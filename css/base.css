@@ -3,11 +3,17 @@
   --color-navy-midnight: #071827;
   --color-blue-primary: #1677D2;
   --color-teal: #16856B;
-  --color-bg-light: #F6F8FA;
+  --color-alibaba-orange: #ff6a00;
+  --color-alibaba-orange-hover: #e55e00;
+  --color-trade-assurance: #028867;
+  --color-trade-assurance-bg: #e6f7f3;
+  --color-verified-gold: #b45309;
+  --color-verified-bg: #fef3c7;
+  --color-bg-light: #F4F6F8;
   --color-white: #FFFFFF;
-  --color-border: #E3E8ED;
+  --color-border: #E2E8F0;
   --color-text-muted: #64748B;
-  --color-text-main: #102A43; /* Deep navy for main text */
+  --color-text-main: #1E293B;
   --color-error: #D92D20;
   --color-success: #16856B;
   

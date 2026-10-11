@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flenko.com - Worldwide B2B Marketplace & Global Wholesale Directory</title>
-  <meta name="description" content="Connect with verified global manufacturers, suppliers & buyers across 190+ countries. Source wholesale industrial machinery, electronics, chemicals, textiles and more.">
+  <title>Flenko.com - Leading Global B2B Wholesale Marketplace & Verified Manufacturers</title>
+  <meta name="description" content="Connect with verified global manufacturers, exporters, and wholesale buyers across 190+ countries. Sourcing solutions, Trade Assurance, and factory-direct wholesale pricing.">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,496 +14,906 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/storefront.css">
+  
   <style>
-    /* Global B2B Marketplace Hero & Search */
-    .hero-im {
-      background: var(--color-navy-deep);
-      padding: 3.5rem 0 3rem;
-      text-align: center;
-      position: relative;
+    /* Alibaba-Style Super Top Bar */
+    .alibaba-top-bar {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.78rem;
+      color: #64748b;
+      padding: 0.35rem 0;
     }
-    .hero-im h1 {
-      color: var(--color-white);
-      font-size: 2.25rem;
-      margin-bottom: 0.75rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-    .hero-im p.hero-sub {
-      color: #94a3b8;
-      font-size: 1.05rem;
-      margin-bottom: 2rem;
-      max-width: 650px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .search-im {
+    .alibaba-top-bar .container {
       display: flex;
-      max-width: 960px;
-      margin: 0 auto;
-      background: var(--color-white);
-      border-radius: var(--radius-md);
-      padding: 0.35rem;
-      box-shadow: 0 12px 30px -4px rgba(0,0,0,0.3);
+      justify-content: space-between;
       align-items: center;
     }
-    .search-im .form-control {
-      border: none;
-      border-radius: 0;
-      padding: 0.75rem 1rem;
+    .alibaba-top-left, .alibaba-top-right {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
     }
-    .search-im .btn {
-      padding: 0.75rem 1.75rem;
-      font-size: 1rem;
-      font-weight: 600;
-      white-space: nowrap;
+    .alibaba-top-bar a {
+      color: #64748b;
+      text-decoration: none;
     }
-    .im-category-section {
-      margin-top: 3.5rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    .alibaba-top-bar a:hover {
+      color: var(--color-alibaba-orange);
+    }
+
+    /* Alibaba Main Header */
+    .alibaba-header {
+      background: var(--color-white);
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0.85rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .alibaba-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 1.5rem;
     }
     
-    @media (max-width: 768px) {
-      .hero-im {
-        padding: 2.5rem 0 2rem;
-      }
-      .search-im {
-        flex-direction: column;
-        padding: 0;
-        background: transparent;
-        box-shadow: none;
-        gap: 0.5rem;
-      }
-      .search-im #heroCountryPicker {
-        width: 100%;
-      }
-      .search-im #heroCountryPicker .flenko-country-btn {
-        width: 100%;
-        border-radius: var(--radius-md);
-        background: var(--color-white);
-        border: 1px solid var(--color-border);
-        padding: 0.75rem 1rem;
-      }
-      .search-im .form-control {
-        border-radius: var(--radius-md) !important;
-        background: var(--color-white);
-      }
-      .search-im .btn {
-        width: 100% !important;
-        border-radius: var(--radius-md) !important;
-      }
-      .hero-im h1 {
-        font-size: 1.5rem;
-      }
-      .hero-im p.hero-sub {
-        font-size: 0.875rem;
-        margin-bottom: 1.5rem;
-      }
-    }
-    
-    .im-category-card {
+    /* Alibaba Iconic Search Box */
+    .alibaba-search-box {
+      flex: 1;
+      max-width: 720px;
+      display: flex;
+      border: 2px solid var(--color-alibaba-orange);
+      border-radius: var(--radius-md);
+      overflow: hidden;
       background: var(--color-white);
-      border: 1px solid var(--color-border);
+    }
+    .search-type-select {
+      background: #f8fafc;
+      border: none;
+      border-right: 1px solid #e2e8f0;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-navy-midnight);
+      cursor: pointer;
+      outline: none;
+    }
+    .alibaba-search-input {
+      flex: 1;
+      border: none;
+      padding: 0.6rem 1rem;
+      font-size: 0.92rem;
+      outline: none;
+      color: var(--color-text-main);
+    }
+    .alibaba-search-btn {
+      background: var(--color-alibaba-orange);
+      color: var(--color-white);
+      border: none;
+      padding: 0 1.75rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    .alibaba-search-btn:hover {
+      background: var(--color-alibaba-orange-hover);
+    }
+
+    /* Alibaba Sub Navigation Bar */
+    .alibaba-sub-nav {
+      background: var(--color-white);
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .alibaba-sub-nav .container {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      padding: 0.5rem 1.5rem;
+    }
+    .all-categories-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--color-navy-midnight);
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0.25rem 0;
+    }
+    .alibaba-sub-nav a {
+      color: #334155;
+      text-decoration: none;
+      transition: color var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .alibaba-sub-nav a:hover {
+      color: var(--color-alibaba-orange);
+    }
+
+    /* Alibaba 3-Column Hero Section */
+    .alibaba-hero-section {
+      background: #f1f5f9;
+      padding: 1.5rem 0 2rem;
+    }
+    .alibaba-hero-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr 280px;
+      gap: 1.25rem;
+      align-items: stretch;
+    }
+
+    /* Left: Category Vertical Menu */
+    .category-mega-sidebar {
+      background: var(--color-white);
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 0.5rem 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .category-mega-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      font-size: 0.825rem;
+      font-weight: 500;
+      color: #334155;
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+    .category-mega-item:hover {
+      background: #fff7ed;
+      color: var(--color-alibaba-orange);
+      font-weight: 600;
+      padding-left: 1.25rem;
+    }
+    .category-mega-item .cat-icon {
+      margin-right: 0.5rem;
+      font-size: 1rem;
+    }
+
+    /* Center: Hero Billboard Carousel */
+    .hero-billboard {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-radius: var(--radius-md);
+      padding: 2.5rem 2rem;
+      color: var(--color-white);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+    .hero-billboard::after {
+      content: '';
+      position: absolute;
+      right: -50px;
+      bottom: -50px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(255, 106, 0, 0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-tagline {
+      display: inline-block;
+      background: rgba(255, 106, 0, 0.2);
+      color: #ff9248;
+      border: 1px solid rgba(255, 106, 0, 0.4);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+    }
+    .hero-billboard h1 {
+      font-size: 2.15rem;
+      color: var(--color-white);
+      line-height: 1.25;
+      margin-bottom: 0.75rem;
+      font-weight: 800;
+    }
+    .hero-billboard p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      max-width: 480px;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Value Pillars Bar inside Center Banner */
+    .alibaba-value-pillars {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 0.85rem;
+      border-radius: var(--radius-md);
+    }
+    .value-pillar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+    }
+    .value-pillar-item strong {
+      display: block;
+      color: var(--color-white);
+      font-size: 0.825rem;
+    }
+    .value-pillar-item span {
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+
+    /* Right: Alibaba Quick RFQ & Buyer Card */
+    .alibaba-right-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .buyer-welcome-card {
+      background: var(--color-white);
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .fast-rfq-card {
+      background: var(--color-white);
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .fast-rfq-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-navy-midnight);
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .fast-rfq-card p {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 0.85rem;
+    }
+
+    /* Alibaba Core Row: Trade Solutions */
+    .trade-solutions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+    .trade-solution-card {
+      background: var(--color-white);
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      transition: all var(--transition-fast);
+      box-shadow: var(--shadow-sm);
+    }
+    .trade-solution-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-alibaba-orange);
+      transform: translateY(-2px);
+    }
+    .trade-solution-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    /* Alibaba Product Card Format */
+    .alibaba-product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 1.25rem;
+    }
+    .alibaba-card {
+      background: var(--color-white);
+      border: 1px solid #e2e8f0;
       border-radius: var(--radius-md);
       overflow: hidden;
       display: flex;
       flex-direction: column;
       transition: all var(--transition-fast);
+      box-shadow: var(--shadow-sm);
     }
-    .im-category-card:hover {
-      box-shadow: var(--shadow-md);
-      border-color: var(--color-blue-primary);
-      transform: translateY(-2px);
+    .alibaba-card:hover {
+      box-shadow: 0 10px 20px -3px rgba(0,0,0,0.1);
+      border-color: #cbd5e1;
+      transform: translateY(-3px);
     }
-    .im-category-header {
-      background: var(--color-bg-light);
-      padding: 1rem;
-      font-weight: 700;
-      font-size: 1.05rem;
-      border-bottom: 1px solid var(--color-border);
+    .alibaba-card-img-wrap {
+      position: relative;
+      aspect-ratio: 1;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    .alibaba-card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform var(--transition-normal);
+    }
+    .alibaba-card:hover .alibaba-card-img {
+      transform: scale(1.05);
+    }
+    .alibaba-card-body {
+      padding: 0.85rem;
       display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      color: var(--color-navy-deep);
-    }
-    .im-category-body {
-      padding: 1rem;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.6rem;
+      flex-direction: column;
       flex: 1;
     }
-    .im-subcategory-link {
-      font-size: 0.8125rem;
-      color: var(--color-text-main);
+    .alibaba-card-price {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 0.2rem;
+    }
+    .alibaba-card-moq {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 0.5rem;
+    }
+    .alibaba-card-title {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #1e293b;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.35;
+      margin-bottom: 0.65rem;
+    }
+    .alibaba-supplier-meta {
+      margin-top: auto;
+      padding-top: 0.6rem;
+      border-top: 1px solid #f1f5f9;
+      font-size: 0.72rem;
+      color: #64748b;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 0.25rem;
+    }
+
+    /* Global Pavilions / Country Sourcing */
+    .pavilion-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .pavilion-card {
+      background: var(--color-white);
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1rem;
+      text-align: center;
+      transition: all var(--transition-fast);
       text-decoration: none;
-      transition: color var(--transition-fast);
+      color: inherit;
     }
-    .im-subcategory-link::before {
-      content: '›';
-      color: var(--color-blue-primary);
-      font-weight: bold;
-      font-size: 1rem;
-      line-height: 1;
-    }
-    .im-subcategory-link:hover {
-      color: var(--color-blue-primary);
-      text-decoration: underline;
-    }
-    .get-quotes-floating {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background: var(--color-teal);
-      color: var(--color-white);
-      padding: 0.875rem 1.5rem;
-      border-radius: 50px;
-      font-weight: 700;
-      box-shadow: var(--shadow-lg);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 1rem;
-      text-decoration: none;
-      transition: transform var(--transition-fast);
-    }
-    .get-quotes-floating:hover {
-      background: #116853;
+    .pavilion-card:hover {
+      border-color: var(--color-alibaba-orange);
+      box-shadow: var(--shadow-md);
       transform: translateY(-2px);
-      color: var(--color-white);
     }
-    .stats-bar {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
-      padding: 1.25rem 2rem;
-      margin-top: 2.5rem;
-      border-radius: var(--radius-lg);
-      display: flex;
-      justify-content: space-around;
-      gap: 2rem;
-      color: var(--color-white);
-      flex-wrap: wrap;
+    .pavilion-flag {
+      font-size: 2.25rem;
+      margin-bottom: 0.5rem;
     }
-    .stats-bar strong { font-size: 1.5rem; display: block; font-weight: 800; }
-    .stats-bar span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85;}
-
-    .top-nav-links {
-      display: flex; gap: 1.5rem; align-items: center; margin-left: auto; margin-right: 2rem; font-size: 0.875rem; font-weight: 600;
+    .pavilion-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+    .pavilion-sub {
+      font-size: 0.75rem;
+      color: #64748b;
     }
 
+    /* Mobile Responsive Breakpoints */
+    @media (max-width: 992px) {
+      .alibaba-hero-grid {
+        grid-template-columns: 1fr;
+      }
+      .category-mega-sidebar {
+        display: none;
+      }
+      .alibaba-right-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .alibaba-search-box {
+        max-width: 100%;
+      }
+    }
     @media (max-width: 768px) {
-      .top-nav-links {
-        margin: 0;
-        justify-content: center;
-        flex-wrap: wrap;
+      .alibaba-top-bar {
+        display: none;
+      }
+      .alibaba-header-row {
+        flex-direction: column;
         gap: 0.75rem;
-        border-bottom: 1px solid var(--color-bg-light);
-        padding-bottom: 0.5rem;
+      }
+      .alibaba-search-box {
         width: 100%;
       }
-      .stats-bar {
-        gap: 1rem;
-        padding: 1rem;
+      .alibaba-sub-nav .container {
+        overflow-x: auto;
+        white-space: nowrap;
+        gap: 1.25rem;
+        padding: 0.5rem 1rem;
       }
-      .stats-bar strong { font-size: 1.25rem; }
+      .alibaba-right-cards {
+        grid-template-columns: 1fr;
+      }
+      .alibaba-value-pillars {
+        grid-template-columns: 1fr;
+      }
+      .hero-billboard h1 {
+        font-size: 1.6rem;
+      }
     }
   </style>
 </head>
 <body>
 
-  <header class="site-header">
-    <div class="container header-top">
-      <a href="index.html" class="brand" style="display:flex; align-items:center;">
-        <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
-      </a>
-      
-      <!-- Top nav links with Worldwide Country selector -->
-      <div class="top-nav-links">
-        <div id="headerCountryContainer"></div>
-        <a href="products.html" style="color: var(--color-text-main);">Find Products</a>
-        <a href="business-directory.html" style="color: var(--color-text-main);">Suppliers</a>
-        <a href="business-software.html" style="color: var(--color-text-main);">CRM / ERP</a>
+  <!-- 1. Alibaba Global Super Top Bar -->
+  <div class="alibaba-top-bar">
+    <div class="container">
+      <div class="alibaba-top-left">
+        <span style="display:flex; align-items:center; gap:0.4rem;">
+          Deliver to:
+          <div id="topBarCountryPicker"></div>
+        </span>
+        <span>🌐 Global Trade / English</span>
+        <span>Currency: <strong>USD ($)</strong></span>
       </div>
+      <div class="alibaba-top-right">
+        <a href="products.html?feature=trade_assurance">🛡️ Flenko Trade Assurance</a>
+        <a href="business-directory.html">Verified Factory Audits</a>
+        <a href="rfq.html">Buyer Central</a>
+        <a href="sell.html" style="color:var(--color-alibaba-orange); font-weight:700;">Become a Global Supplier</a>
+      </div>
+    </div>
+  </div>
 
+  <!-- 2. Alibaba Main Header -->
+  <header class="alibaba-header">
+    <div class="container alibaba-header-row">
+      <!-- Brand Logo -->
+      <a href="index.html" class="brand" style="display:flex; align-items:center; gap:0.5rem; text-decoration:none;">
+        <img src="assets/images/logo.png" alt="Flenko" style="height: 44px; width: auto; object-fit: contain;">
+        <span style="font-size:0.65rem; background:#fff7ed; color:var(--color-alibaba-orange); font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #fed7aa; text-transform:uppercase;">
+          GLOBAL B2B
+        </span>
+      </a>
+
+      <!-- Alibaba Signature Search Bar -->
+      <form class="alibaba-search-box" action="products.html" method="GET">
+        <select class="search-type-select" name="type">
+          <option value="products">Products</option>
+          <option value="suppliers">Suppliers</option>
+          <option value="rfq">RFQs</option>
+        </select>
+        
+        <input type="text" name="q" class="alibaba-search-input" placeholder="What are you looking for? (e.g. CNC Machines, Solar Panels, Packaging Boxes...)" autocomplete="off">
+        
+        <!-- Searchable Country Selector in Search Box -->
+        <div id="headerSearchCountryContainer"></div>
+
+        <button type="submit" class="alibaba-search-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          Search
+        </button>
+      </form>
+
+      <!-- User Account Actions -->
       <div class="header-actions" id="headerActions">
         <button class="action-item" onclick="window.location.href='login.html'">
-          <small>Sign In</small>
-          <strong>Buyer / Seller</strong>
+          <small>Welcome</small>
+          <strong>Sign In / Join</strong>
         </button>
-        <button class="btn btn-primary" onclick="window.location.href='sell.html'" style="background: var(--color-teal); border-color: var(--color-teal);">
-          Sell on Flenko
+        <button class="action-item" onclick="window.location.href='rfq.html'">
+          <small>Inquiries</small>
+          <strong>Post RFQ</strong>
+        </button>
+        <button class="btn btn-orange" onclick="window.location.href='sell.html'" style="font-size:0.84rem; padding:0.5rem 1rem;">
+          Sell Globally
         </button>
       </div>
     </div>
   </header>
 
-  <main>
-    <section class="hero-im">
-      <div class="container">
-        <h1>Global B2B Wholesale Marketplace</h1>
-        <p class="hero-sub">Connect directly with verified manufacturers, exporters & wholesale buyers across 190+ countries worldwide.</p>
-        
-        <!-- Searchable Global Search Bar -->
-        <form class="search-im" action="products.html" method="GET">
-          <!-- Real-Time Searchable Country Selector -->
-          <div id="heroCountryPicker"></div>
-          
-          <input type="text" name="q" class="form-control" placeholder="Search products, machinery, chemicals, electronics, textiles..." style="flex: 1; font-size: 1.05rem;">
-          <button type="submit" class="btn btn-primary">Search</button>
-          <button type="button" class="btn btn-secondary" style="border-left: none; border-radius: 0 var(--radius-md) var(--radius-md) 0;" onclick="window.location.href='rfq.html'">Post Buy RFQ</button>
-        </form>
-        
-        <div class="stats-bar">
-          <div><strong>190+</strong><span>Countries Covered</span></div>
-          <div><strong>50,000+</strong><span>Verified Suppliers</span></div>
-          <div><strong>1.5M+</strong><span>Wholesale Products</span></div>
-          <div><strong>Instant</strong><span>RFQ Matching</span></div>
-        </div>
-      </div>
-    </section>
-
+  <!-- 3. Alibaba Sub Navigation Bar -->
+  <nav class="alibaba-sub-nav">
     <div class="container">
+      <a href="products.html" class="all-categories-trigger">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        All Categories
+      </a>
+      <a href="products.html?feature=trade_assurance">
+        <span style="color:#028867;">🛡️</span> Trade Assurance Protected
+      </a>
+      <a href="products.html?filter=ready_to_ship">
+        <span style="color:#1677D2;">⚡</span> Ready to Ship
+      </a>
+      <a href="products.html?filter=verified_pro">
+        <span style="color:#b45309;">🏆</span> Verified Factory Pro
+      </a>
+      <a href="business-directory.html">
+        <span>🏭</span> Global Factory Directory
+      </a>
+      <a href="rfq.html" style="margin-left:auto; color:var(--color-alibaba-orange); font-weight:700;">
+        <span>✉️</span> One Request, Multiple Quotes (RFQ)
+      </a>
+    </div>
+  </nav>
+
+  <!-- 4. Alibaba 3-Column Hero Section -->
+  <section class="alibaba-hero-section">
+    <div class="container alibaba-hero-grid">
       
-      <!-- Worldwide B2B Business Categories Section -->
-      <div style="text-align:center; margin-top:3.5rem; margin-bottom:1rem;">
-        <h2 style="font-size:1.75rem; color:var(--color-navy-midnight); font-weight:800; margin-bottom:0.5rem;">Explore All Business Sectors Worldwide</h2>
-        <p style="color:var(--color-text-muted); font-size:1rem; max-width:600px; margin:0 auto;">Source directly from top manufacturing hubs across North America, Europe, Asia, Middle East & worldwide.</p>
-      </div>
+      <!-- Left Column: Categories Mega Menu -->
+      <aside class="category-mega-sidebar">
+        <a href="products.html?cat=Industrial+Machinery" class="category-mega-item">
+          <span><span class="cat-icon">⚙️</span> Industrial Machinery</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Electrical+%26+Electronics" class="category-mega-item">
+          <span><span class="cat-icon">⚡</span> Consumer & Commercial Electronics</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Packaging+%26+Printing" class="category-mega-item">
+          <span><span class="cat-icon">📦</span> Packaging & Printing</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Chemicals+%26+Dyes" class="category-mega-item">
+          <span><span class="cat-icon">🧪</span> Chemicals & Raw Materials</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Building+%26+Construction" class="category-mega-item">
+          <span><span class="cat-icon">🏗️</span> Construction & Real Estate</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Medical+%26+Pharma" class="category-mega-item">
+          <span><span class="cat-icon">💊</span> Medical Devices & Healthcare</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Textiles+%26+Apparel" class="category-mega-item">
+          <span><span class="cat-icon">🧵</span> Apparel, Fabrics & Garments</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Agriculture+%26+Food" class="category-mega-item">
+          <span><span class="cat-icon">🌾</span> Agriculture & Bulk Food</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Renewable+Energy" class="category-mega-item">
+          <span><span class="cat-icon">☀️</span> Solar Energy & Clean Tech</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Automotive+%26+Parts" class="category-mega-item">
+          <span><span class="cat-icon">🚗</span> Vehicle Parts & Accessories</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Metals+%26+Minerals" class="category-mega-item">
+          <span><span class="cat-icon">⚙️</span> Metals, Alloys & Metallurgy</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Furniture+%26+Decor" class="category-mega-item">
+          <span><span class="cat-icon">🛋️</span> Commercial Furniture & Decor</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Hardware+%26+Tools" class="category-mega-item">
+          <span><span class="cat-icon">🔧</span> Hardware, Tools & Fasteners</span>
+          <span>›</span>
+        </a>
+        <a href="products.html" class="category-mega-item" style="color:var(--color-alibaba-orange); font-weight:700; border-top:1px solid #f1f5f9;">
+          <span><span>🔍</span> View All 18 Sectors</span>
+          <span>→</span>
+        </a>
+      </aside>
 
-      <div class="im-category-section">
-        
-        <!-- 1. Industrial Machinery -->
-        <div class="im-category-card">
-          <div class="im-category-header">⚙️ Industrial Machinery & Equipment</div>
-          <div class="im-category-body">
-            <a href="products.html?q=CNC+Machines&cat=Industrial+Machinery" class="im-subcategory-link">CNC & Milling Machines</a>
-            <a href="products.html?q=Packaging+Machines&cat=Industrial+Machinery" class="im-subcategory-link">Packaging Machinery</a>
-            <a href="products.html?q=Lathe+Machines&cat=Industrial+Machinery" class="im-subcategory-link">Lathe Machines & Tools</a>
-            <a href="products.html?q=Air+Compressors&cat=Industrial+Machinery" class="im-subcategory-link">Air Compressors</a>
-            <a href="products.html?q=Water+Treatment&cat=Industrial+Machinery" class="im-subcategory-link">Water Treatment Plants</a>
-            <a href="products.html?q=Pumps+Generators&cat=Industrial+Machinery" class="im-subcategory-link">Pumps & Generators</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Industrial+Machinery" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Machinery</a></div>
-        </div>
-
-        <!-- 2. Electrical & Electronics -->
-        <div class="im-category-card">
-          <div class="im-category-header">⚡ Electrical & Electronics</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Wires+Cables&cat=Electrical+%26+Electronics" class="im-subcategory-link">Wires & Cables</a>
-            <a href="products.html?q=Transformers&cat=Electrical+%26+Electronics" class="im-subcategory-link">Transformers & UPS</a>
-            <a href="products.html?q=Switches&cat=Electrical+%26+Electronics" class="im-subcategory-link">Electrical Switchgear</a>
-            <a href="products.html?q=Sensors&cat=Electrical+%26+Electronics" class="im-subcategory-link">Sensors & Automation</a>
-            <a href="products.html?q=LED+Lighting&cat=Electrical+%26+Electronics" class="im-subcategory-link">Commercial LED Lighting</a>
-            <a href="products.html?q=Semiconductors&cat=Electrical+%26+Electronics" class="im-subcategory-link">Electronic Components</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Electrical+%26+Electronics" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Electronics</a></div>
-        </div>
-
-        <!-- 3. Packaging & Printing -->
-        <div class="im-category-card">
-          <div class="im-category-header">📦 Packaging, Printing & Paper</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Corrugated+Boxes&cat=Packaging+%26+Printing" class="im-subcategory-link">Corrugated Boxes</a>
-            <a href="products.html?q=Packaging+Tapes&cat=Packaging+%26+Printing" class="im-subcategory-link">Packaging Tapes</a>
-            <a href="products.html?q=Plastic+Pouches&cat=Packaging+%26+Printing" class="im-subcategory-link">Barrier Pouches & Bags</a>
-            <a href="products.html?q=Glass+Bottles&cat=Packaging+%26+Printing" class="im-subcategory-link">Glass Bottles & Jars</a>
-            <a href="products.html?q=Wooden+Pallets&cat=Packaging+%26+Printing" class="im-subcategory-link">Wooden Pallets</a>
-            <a href="products.html?q=Kraft+Paper&cat=Packaging+%26+Printing" class="im-subcategory-link">Kraft & Copier Paper</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Packaging+%26+Printing" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Packaging</a></div>
-        </div>
-
-        <!-- 4. Chemicals & Dyes -->
-        <div class="im-category-card">
-          <div class="im-category-header">🧪 Chemicals, Polymers & Dyes</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Industrial+Chemicals&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Industrial Chemicals</a>
-            <a href="products.html?q=Solvents&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Organic Solvents</a>
-            <a href="products.html?q=Textile+Dyes&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Textile Pigments & Dyes</a>
-            <a href="products.html?q=Agrochemicals&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Agrochemicals</a>
-            <a href="products.html?q=Synthetic+Resins&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Synthetic Resins</a>
-            <a href="products.html?q=Water+Treatment+Chemicals&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Water Chemicals</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Chemicals+%26+Dyes" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Chemicals</a></div>
-        </div>
-
-        <!-- 5. Building & Construction -->
-        <div class="im-category-card">
-          <div class="im-category-header">🏗️ Building & Construction</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Cement&cat=Building+%26+Construction" class="im-subcategory-link">Cement & Concrete</a>
-            <a href="products.html?q=Steel+Bars&cat=Building+%26+Construction" class="im-subcategory-link">Steel & Rebars</a>
-            <a href="products.html?q=Bricks+Blocks&cat=Building+%26+Construction" class="im-subcategory-link">Bricks & Blocks</a>
-            <a href="products.html?q=Tiles&cat=Building+%26+Construction" class="im-subcategory-link">Floor & Wall Tiles</a>
-            <a href="products.html?q=Plywood&cat=Building+%26+Construction" class="im-subcategory-link">Plywood & Laminates</a>
-            <a href="products.html?q=Plumbing&cat=Building+%26+Construction" class="im-subcategory-link">Plumbing & Valves</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Building+%26+Construction" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Construction</a></div>
-        </div>
-
-        <!-- 6. Medical & Healthcare -->
-        <div class="im-category-card">
-          <div class="im-category-header">💊 Medical, Pharma & Healthcare</div>
-          <div class="im-category-body">
-            <a href="products.html?q=API&cat=Medical+%26+Pharma" class="im-subcategory-link">Active Ingredients (APIs)</a>
-            <a href="products.html?q=Surgical+Instruments&cat=Medical+%26+Pharma" class="im-subcategory-link">Surgical Instruments</a>
-            <a href="products.html?q=Hospital+Furniture&cat=Medical+%26+Pharma" class="im-subcategory-link">Hospital Beds & Carts</a>
-            <a href="products.html?q=Diagnostics&cat=Medical+%26+Pharma" class="im-subcategory-link">Diagnostic Kits & Lab</a>
-            <a href="products.html?q=Medical+Consumables&cat=Medical+%26+Pharma" class="im-subcategory-link">Gloves & Consumables</a>
-            <a href="products.html?q=Herbal+Extracts&cat=Medical+%26+Pharma" class="im-subcategory-link">Herbal & Plant Extracts</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Medical+%26+Pharma" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Pharma</a></div>
-        </div>
-
-        <!-- 7. Textiles & Apparel -->
-        <div class="im-category-card">
-          <div class="im-category-header">🧵 Textiles, Fabrics & Garments</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Cotton+Fabrics&cat=Textiles+%26+Apparel" class="im-subcategory-link">Cotton & Denim Fabrics</a>
-            <a href="products.html?q=Yarn+Threads&cat=Textiles+%26+Apparel" class="im-subcategory-link">Yarns & Spun Threads</a>
-            <a href="products.html?q=Mens+Wear&cat=Textiles+%26+Apparel" class="im-subcategory-link">Wholesale Men's Wear</a>
-            <a href="products.html?q=Womens+Wear&cat=Textiles+%26+Apparel" class="im-subcategory-link">Women's Fashion</a>
-            <a href="products.html?q=Uniforms&cat=Textiles+%26+Apparel" class="im-subcategory-link">Industrial Work Uniforms</a>
-            <a href="products.html?q=Home+Textiles&cat=Textiles+%26+Apparel" class="im-subcategory-link">Home Bedding & Curtains</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Textiles+%26+Apparel" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Textiles</a></div>
-        </div>
-
-        <!-- 8. Agriculture & Food -->
-        <div class="im-category-card">
-          <div class="im-category-header">🌾 Agriculture, Food & Commodities</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Coffee+Beans&cat=Agriculture+%26+Food" class="im-subcategory-link">Coffee & Tea Commodities</a>
-            <a href="products.html?q=Spices&cat=Agriculture+%26+Food" class="im-subcategory-link">Wholesale Spices & Herbs</a>
-            <a href="products.html?q=Rice+Grains&cat=Agriculture+%26+Food" class="im-subcategory-link">Rice, Wheat & Pulses</a>
-            <a href="products.html?q=Edible+Oils&cat=Agriculture+%26+Food" class="im-subcategory-link">Bulk Edible Oils</a>
-            <a href="products.html?q=Fresh+Produce&cat=Agriculture+%26+Food" class="im-subcategory-link">Fruits & Vegetables</a>
-            <a href="products.html?q=Fertilizers&cat=Agriculture+%26+Food" class="im-subcategory-link">Bio-Fertilizers & Feeds</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Agriculture+%26+Food" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Agriculture</a></div>
-        </div>
-
-        <!-- 9. Renewable Energy & Solar -->
-        <div class="im-category-card">
-          <div class="im-category-header">☀️ Renewable Energy & Solar</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Solar+Panels&cat=Renewable+Energy" class="im-subcategory-link">Tier-1 Solar Panels</a>
-            <a href="products.html?q=Inverters&cat=Renewable+Energy" class="im-subcategory-link">Solar Inverters & MPPT</a>
-            <a href="products.html?q=Lithium+Batteries&cat=Renewable+Energy" class="im-subcategory-link">Lithium Battery Packs</a>
-            <a href="products.html?q=Wind+Turbines&cat=Renewable+Energy" class="im-subcategory-link">Wind Power Systems</a>
-            <a href="products.html?q=EV+Chargers&cat=Renewable+Energy" class="im-subcategory-link">Commercial EV Chargers</a>
-            <a href="products.html?q=Solar+Pumps&cat=Renewable+Energy" class="im-subcategory-link">Solar Water Pumps</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Renewable+Energy" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Solar</a></div>
-        </div>
-
-        <!-- 10. Automotive & Parts -->
-        <div class="im-category-card">
-          <div class="im-category-header">🚗 Automotive & Auto Parts</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Engine+Parts&cat=Automotive+%26+Parts" class="im-subcategory-link">Engine Components</a>
-            <a href="products.html?q=Brakes&cat=Automotive+%26+Parts" class="im-subcategory-link">Brake Discs & Pads</a>
-            <a href="products.html?q=Tyres&cat=Automotive+%26+Parts" class="im-subcategory-link">Commercial Tyres & Tubes</a>
-            <a href="products.html?q=Batteries&cat=Automotive+%26+Parts" class="im-subcategory-link">Lead Acid & EV Batteries</a>
-            <a href="products.html?q=Bearings&cat=Automotive+%26+Parts" class="im-subcategory-link">Automotive Bearings</a>
-            <a href="products.html?q=Filters&cat=Automotive+%26+Parts" class="im-subcategory-link">Oil & Air Filters</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Automotive+%26+Parts" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Automotive</a></div>
-        </div>
-
-        <!-- 11. Metals & Minerals -->
-        <div class="im-category-card">
-          <div class="im-category-header">⚙️ Metals, Minerals & Metallurgy</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Stainless+Steel&cat=Metals+%26+Minerals" class="im-subcategory-link">Stainless Steel Coils/Sheets</a>
-            <a href="products.html?q=Aluminum&cat=Metals+%26+Minerals" class="im-subcategory-link">Aluminum Extrusions</a>
-            <a href="products.html?q=Copper&cat=Metals+%26+Minerals" class="im-subcategory-link">Copper Pipes & Wire Rods</a>
-            <a href="products.html?q=Metal+Scrap&cat=Metals+%26+Minerals" class="im-subcategory-link">Metal Scrap & Billets</a>
-            <a href="products.html?q=Brass&cat=Metals+%26+Minerals" class="im-subcategory-link">Brass Precision Parts</a>
-            <a href="products.html?q=Iron+Ore&cat=Metals+%26+Minerals" class="im-subcategory-link">Minerals & Rare Earths</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Metals+%26+Minerals" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Metals</a></div>
-        </div>
-
-        <!-- 12. Furniture & Decor -->
-        <div class="im-category-card">
-          <div class="im-category-header">🛋️ Furniture & Commercial Decor</div>
-          <div class="im-category-body">
-            <a href="products.html?q=Office+Chairs&cat=Furniture+%26+Decor" class="im-subcategory-link">Ergonomic Office Chairs</a>
-            <a href="products.html?q=Modular+Desks&cat=Furniture+%26+Decor" class="im-subcategory-link">Modular Workstations</a>
-            <a href="products.html?q=Hotel+Furniture&cat=Furniture+%26+Decor" class="im-subcategory-link">Hotel & Resort Furniture</a>
-            <a href="products.html?q=Sofas&cat=Furniture+%26+Decor" class="im-subcategory-link">Commercial Sofas</a>
-            <a href="products.html?q=Carpets&cat=Furniture+%26+Decor" class="im-subcategory-link">Carpets & Acoustic Panels</a>
-            <a href="products.html?q=Storage&cat=Furniture+%26+Decor" class="im-subcategory-link">Steel Filing Cabinets</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Furniture+%26+Decor" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Furniture</a></div>
-        </div>
-
-      </div>
-
-      <!-- Verified Wholesale Products Section -->
-      <div class="section-header" style="margin-top: 4.5rem; align-items:center;">
+      <!-- Center Column: Alibaba Feature Billboard -->
+      <div class="hero-billboard">
         <div>
-          <h2 class="section-title" style="margin-bottom:0.25rem;">Trending Wholesale Products Worldwide</h2>
-          <p style="color:var(--color-text-muted); font-size:0.875rem; margin:0;">Direct factory pricing from top verified exporters.</p>
+          <span class="hero-tagline">Worldwide Factory Sourcing Hub</span>
+          <h1>Source Direct from Top Verified Global Manufacturers</h1>
+          <p>Over 1.5M+ wholesale products, audited production lines, and 100% order protection across 190+ countries.</p>
+          
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:2rem;">
+            <button class="btn btn-orange" style="padding:0.75rem 1.75rem; font-size:1rem;" onclick="window.location.href='products.html'">
+              Source Wholesale Products →
+            </button>
+            <button class="btn btn-secondary" style="padding:0.75rem 1.5rem; font-size:1rem; border-color:rgba(255,255,255,0.3); background:rgba(255,255,255,0.1); color:var(--color-white);" onclick="window.location.href='business-directory.html'">
+              View Factory Audits
+            </button>
+          </div>
         </div>
-        <a href="products.html" class="btn btn-primary" style="padding:0.5rem 1.25rem;">Explore Full 1.5M+ Catalog →</a>
+
+        <!-- 3 Value Pillars Bar -->
+        <div class="alibaba-value-pillars">
+          <div class="value-pillar-item">
+            <span style="font-size:1.5rem;">🛡️</span>
+            <div>
+              <strong>Trade Assurance</strong>
+              <span>Safe escrow & on-time delivery</span>
+            </div>
+          </div>
+          <div class="value-pillar-item">
+            <span style="font-size:1.5rem;">🏢</span>
+            <div>
+              <strong>Verified Pro</strong>
+              <span>Audited production lines</span>
+            </div>
+          </div>
+          <div class="value-pillar-item">
+            <span style="font-size:1.5rem;">⚡</span>
+            <div>
+              <strong>Ready to Ship</strong>
+              <span>Fast 5-15 day dispatch</span>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <div class="product-grid" id="homepageProductGrid">
-        <!-- Products populated via JS -->
+
+      <!-- Right Column: Buyer RFQ & Welcome Card -->
+      <div class="alibaba-right-cards">
+        <!-- Card 1: User Welcome -->
+        <div class="buyer-welcome-card">
+          <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+            <div style="width:40px; height:40px; border-radius:50%; background:#fed7aa; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">
+              👤
+            </div>
+            <div>
+              <strong style="font-size:0.875rem; color:#0f172a; display:block;">Global Buyer Hub</strong>
+              <span style="font-size:0.75rem; color:#64748b;">Sign in to manage orders</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-orange" style="flex:1; padding:0.4rem; font-size:0.8rem;" onclick="window.location.href='login.html'">Sign In</button>
+            <button class="btn btn-outline" style="flex:1; padding:0.4rem; font-size:0.8rem;" onclick="window.location.href='login.html'">Join Free</button>
+          </div>
+        </div>
+
+        <!-- Card 2: Instant RFQ Broadcast Box -->
+        <div class="fast-rfq-card">
+          <h3>
+            <span>📋</span>
+            Request for Quotation
+          </h3>
+          <p>Post once and get competitive quotes from verified suppliers within 24 hours.</p>
+          
+          <form action="rfq.html" method="GET" style="display:flex; flex-direction:column; gap:0.6rem; flex:1;">
+            <input type="text" name="name" class="form-control" placeholder="Product name or keyword..." required style="font-size:0.8125rem; padding:0.45rem 0.65rem;">
+            <div style="display:flex; gap:0.5rem;">
+              <input type="number" name="qty" class="form-control" placeholder="Qty (e.g. 1000)" required style="flex:1; font-size:0.8125rem; padding:0.45rem 0.65rem;">
+              <select name="unit" class="form-control" style="width:90px; font-size:0.8125rem; padding:0.45rem 0.4rem;">
+                <option>Pieces</option>
+                <option>Sets</option>
+                <option>Tons</option>
+                <option>Kg</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-orange" style="width:100%; margin-top:auto; padding:0.5rem; font-size:0.84rem;">
+              Submit RFQ Instantly
+            </button>
+          </form>
+        </div>
       </div>
-      
+
+    </div>
+  </section>
+
+  <!-- 5. Alibaba Core Trade Solutions (Trade Assurance, RTS, OEM/ODM) -->
+  <section class="container" style="margin-top: 2rem;">
+    <div class="trade-solutions-grid">
+      <div class="trade-solution-card">
+        <div class="trade-solution-icon" style="background:#e6f7f3; color:#028867;">🛡️</div>
+        <div>
+          <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.25rem;">Flenko Trade Assurance</h4>
+          <p style="font-size:0.8rem; color:#64748b; margin:0;">Zero payment risk. Guaranteed on-time dispatch and full refund policy if product specs don't match.</p>
+        </div>
+      </div>
+
+      <div class="trade-solution-card">
+        <div class="trade-solution-icon" style="background:#fef3c7; color:#b45309;">🏆</div>
+        <div>
+          <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.25rem;">Verified Manufacturer Pro</h4>
+          <p style="font-size:0.8rem; color:#64748b; margin:0;">On-site audited facilities, verified production capacities, certified quality management (ISO 9001/CE).</p>
+        </div>
+      </div>
+
+      <div class="trade-solution-card">
+        <div class="trade-solution-icon" style="background:#eff6ff; color:#1677D2;">⚡</div>
+        <div>
+          <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.25rem;">Ready to Ship (RTS)</h4>
+          <p style="font-size:0.8rem; color:#64748b; margin:0;">In-stock inventory with transparent shipping rates, low minimum orders (MOQ), and 5-15 day delivery.</p>
+        </div>
+      </div>
+
+      <div class="trade-solution-card">
+        <div class="trade-solution-icon" style="background:#fdf2f8; color:#be185d;">🎨</div>
+        <div>
+          <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.25rem;">Custom OEM / ODM</h4>
+          <p style="font-size:0.8rem; color:#64748b; margin:0;">Bring your own design. Custom packaging, private labelling, and rapid 3D prototyping from direct factories.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Alibaba Style Product Section: Top Ranking & Factory Direct Picks -->
+  <main class="container" style="margin-top: 3.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1.5rem; border-bottom:2px solid #e2e8f0; padding-bottom:0.75rem;">
+      <div>
+        <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--color-alibaba-orange); letter-spacing:1px;">FACTORY DIRECT DEALS</div>
+        <h2 style="font-size:1.6rem; color:var(--color-navy-midnight); font-weight:800; margin-top:0.15rem;">Top-Ranking Wholesale Products</h2>
+      </div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <a href="products.html" class="btn btn-outline" style="font-size:0.84rem; padding:0.4rem 0.85rem; border-color:#cbd5e1; color:#334155;">
+          View All 1.5M+ Products →
+        </a>
+      </div>
+    </div>
+
+    <!-- Product Grid Populated with Alibaba Cards -->
+    <div class="alibaba-product-grid" id="homepageProductGrid">
+      <!-- Populated via JS -->
     </div>
   </main>
 
-  <a href="rfq.html" class="get-quotes-floating">
-    ✉️ Post Buy Requirement (RFQ)
+  <!-- 7. Source by Global Regions (Alibaba Global Pavilion) -->
+  <section class="container" style="margin-top: 4rem;">
+    <div style="text-align:center; max-width:650px; margin:0 auto 1.5rem;">
+      <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--color-alibaba-orange); letter-spacing:1px;">GLOBAL TRADE CORRIDORS</div>
+      <h2 style="font-size:1.6rem; color:var(--color-navy-midnight); font-weight:800; margin-top:0.2rem;">Source from World's Leading Manufacturing Pavilions</h2>
+      <p style="font-size:0.875rem; color:#64748b; margin-top:0.25rem;">Discover verified suppliers specialized in key regional exports and trade standards.</p>
+    </div>
+
+    <div class="pavilion-grid">
+      <a href="products.html?country=United+States" class="pavilion-card">
+        <div class="pavilion-flag">🇺🇸</div>
+        <div class="pavilion-title">United States</div>
+        <div class="pavilion-sub">Tech & Eco Packaging</div>
+      </a>
+      <a href="products.html?country=Germany" class="pavilion-card">
+        <div class="pavilion-flag">🇩🇪</div>
+        <div class="pavilion-title">Germany</div>
+        <div class="pavilion-sub">Precision Machinery</div>
+      </a>
+      <a href="products.html?country=China" class="pavilion-card">
+        <div class="pavilion-flag">🇨🇳</div>
+        <div class="pavilion-title">China</div>
+        <div class="pavilion-sub">Electronics & Raw Materials</div>
+      </a>
+      <a href="products.html?country=United+Arab+Emirates" class="pavilion-card">
+        <div class="pavilion-flag">🇦🇪</div>
+        <div class="pavilion-title">UAE & Gulf</div>
+        <div class="pavilion-sub">Solar & Energy Tech</div>
+      </a>
+      <a href="products.html?country=India" class="pavilion-card">
+        <div class="pavilion-flag">🇮🇳</div>
+        <div class="pavilion-title">India</div>
+        <div class="pavilion-sub">Textiles, Agro & Steel</div>
+      </a>
+      <a href="products.html?country=Japan" class="pavilion-card">
+        <div class="pavilion-flag">🇯🇵</div>
+        <div class="pavilion-title">Japan</div>
+        <div class="pavilion-sub">Medical & Robotics</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- 8. Alibaba-Style Global RFQ Banner -->
+  <section class="container" style="margin-top: 4rem;">
+    <div style="background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius:var(--radius-lg); padding:3rem 2.5rem; color:var(--color-white); display:flex; align-items:center; justify-content:space-between; gap:2rem; flex-wrap:wrap; box-shadow:var(--shadow-lg);">
+      <div style="max-width:550px;">
+        <span class="badge badge-teal" style="margin-bottom:0.75rem;">1-CLICK RFQ SERVICE</span>
+        <h2 style="font-size:1.85rem; color:var(--color-white); font-weight:800; margin-bottom:0.5rem; line-height:1.25;">
+          Couldn't find the exact product you need?
+        </h2>
+        <p style="color:#94a3b8; font-size:0.95rem; margin-bottom:1.5rem;">
+          Tell us your specifications, required volume, and destination port. Over 50,000+ verified suppliers will submit competitive bulk quotes within 24 hours.
+        </p>
+        <div style="display:flex; gap:1.5rem; color:#cbd5e1; font-size:0.8rem;">
+          <span>✓ Zero Buyer Commission</span>
+          <span>✓ Factory Direct Pricing</span>
+          <span>✓ Trade Assurance Escrow</span>
+        </div>
+      </div>
+      <div>
+        <a href="rfq.html" class="btn btn-orange" style="padding:1rem 2.25rem; font-size:1.1rem; border-radius:var(--radius-md);">
+          Post Your Requirement (RFQ) Now →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Floating RFQ Button -->
+  <a href="rfq.html" class="get-quotes-floating" style="background:var(--color-alibaba-orange);">
+    ✉️ Post Buy RFQ (Free)
   </a>
 
-  <footer class="site-footer" style="margin-top: 5rem;">
+  <!-- 10. Alibaba Full Global Footer -->
+  <footer class="site-footer" style="margin-top: 5rem; background:#0b1320; color:#94a3b8; padding:3.5rem 0 2rem;">
     <div class="container footer-grid">
       <div class="footer-col">
-        <a href="index.html" class="brand" style="display:flex; align-items:center;">
+        <a href="index.html" class="brand" style="display:flex; align-items:center; margin-bottom:1rem;">
           <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
         </a>
-        <p class="text-muted" style="font-size: 0.875rem; margin-top:0.75rem;">Global B2B Marketplace connecting buyers and verified manufacturers across 190+ countries worldwide.</p>
+        <p style="font-size:0.84rem; line-height:1.6; color:#94a3b8;">
+          Flenko.com is the world's leading B2B wholesale marketplace connecting global buyers and verified manufacturers across 190+ countries with Trade Assurance order protection.
+        </p>
+        <div style="margin-top:1.25rem; display:flex; gap:0.75rem;">
+          <span class="badge badge-trade-assurance">🛡️ Trade Assurance</span>
+          <span class="badge badge-verified-pro">🏆 Verified Pro</span>
+        </div>
       </div>
+
       <div class="footer-col">
-        <h4>For Global Buyers</h4>
-        <ul>
-          <li><a href="products.html">Browse Worldwide Products</a></li>
-          <li><a href="business-directory.html">Search Global Suppliers</a></li>
-          <li><a href="rfq.html">Post a Buy Requirement (RFQ)</a></li>
+        <h4 style="color:var(--color-white); margin-bottom:1rem;">Customer Services</h4>
+        <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:0.6rem; font-size:0.84rem;">
+          <li><a href="rfq.html" style="color:#94a3b8;">Help Center & Disputes</a></li>
+          <li><a href="products.html?feature=trade_assurance" style="color:#94a3b8;">Trade Assurance Policy</a></li>
+          <li><a href="rfq.html" style="color:#94a3b8;">Submit a Buy Request (RFQ)</a></li>
+          <li><a href="products.html" style="color:#94a3b8;">Production Monitoring</a></li>
         </ul>
       </div>
+
       <div class="footer-col">
-        <h4>For Global Suppliers</h4>
-        <ul>
-          <li><a href="sell.html">Register as an Exporter/Supplier</a></li>
-          <li><a href="business-software.html">Flenko B2B CRM</a></li>
-          <li><a href="supplier-dashboard.html">Seller Operations Panel</a></li>
+        <h4 style="color:var(--color-white); margin-bottom:1rem;">Source on Flenko</h4>
+        <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:0.6rem; font-size:0.84rem;">
+          <li><a href="products.html" style="color:#94a3b8;">Browse All Categories</a></li>
+          <li><a href="business-directory.html" style="color:#94a3b8;">Verified Factory Audits</a></li>
+          <li><a href="products.html?filter=ready_to_ship" style="color:#94a3b8;">Ready-to-Ship Products</a></li>
+          <li><a href="products.html?country=United+States" style="color:#94a3b8;">North America Trade Hub</a></li>
         </ul>
       </div>
+
       <div class="footer-col">
-        <h4>Global Trade Network</h4>
-        <ul>
-          <li><a href="products.html?country=United+States">🇺🇸 North America Trade</a></li>
-          <li><a href="products.html?country=Germany">🇪🇺 European Union Trade</a></li>
-          <li><a href="products.html?country=United+Arab+Emirates">🇦🇪 Middle East Hub</a></li>
-          <li><a href="products.html?country=India">🇮🇳 Asia & South Asia</a></li>
+        <h4 style="color:var(--color-white); margin-bottom:1rem;">Sell on Flenko</h4>
+        <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:0.6rem; font-size:0.84rem;">
+          <li><a href="sell.html" style="color:var(--color-alibaba-orange); font-weight:700;">Supplier Membership</a></li>
+          <li><a href="supplier-dashboard.html" style="color:#94a3b8;">Supplier Operations Dashboard</a></li>
+          <li><a href="business-software.html" style="color:#94a3b8;">Flenko Global CRM & ERP</a></li>
+          <li><a href="pricing.html" style="color:#94a3b8;">Verified Pro Subscription Plans</a></li>
         </ul>
       </div>
     </div>
-    <div class="footer-bottom">
-      &copy; 2026 Flenko.com. All rights reserved. Worldwide B2B Marketplace & Supplier Directory.
+
+    <div class="footer-bottom" style="border-top:1px solid #1e293b; margin-top:3rem; padding-top:1.5rem; text-align:center; font-size:0.78rem; color:#64748b;">
+      &copy; 2026 Flenko.com. All rights reserved. Trade Assurance Protected Global B2B Marketplace.
     </div>
   </footer>
 
@@ -512,44 +922,41 @@
   <script src="js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // Check auth state for header buttons
+      // Initialize Top Bar Country Selector
+      new FlenkoCountryPicker({
+        container: '#topBarCountryPicker',
+        style: 'dropdown',
+        inputName: 'top_country'
+      });
+
+      // Initialize Header Search Country Selector
+      new FlenkoCountryPicker({
+        container: '#headerSearchCountryContainer',
+        style: 'dropdown',
+        inputName: 'country'
+      });
+
+      // Auth state update
       const token = auth.getToken();
       const actionsDiv = document.getElementById('headerActions');
-      
       if (token) {
         try {
           const profileData = await auth.getProfile();
           if (profileData && profileData.user) {
             actionsDiv.innerHTML = `
               <button class="action-item" onclick="window.location.href='buyer-dashboard.html'" style="text-align: left;">
-                <small>My Inquiries</small>
+                <small>Inquiries</small>
                 <strong>Buyer Panel</strong>
               </button>
-              <button class="action-item" onclick="window.location.href='supplier-dashboard.html'" style="text-align: left; margin-left: 1rem;">
-                <small>Manage Sales</small>
+              <button class="action-item" onclick="window.location.href='supplier-dashboard.html'" style="text-align: left; margin-left: 0.5rem;">
+                <small>Store</small>
                 <strong>Seller Panel</strong>
               </button>
-              <button class="btn btn-outline" style="border:none; color:var(--color-navy-deep); margin-left:1rem; font-weight:600;" onclick="auth.logout()">Logout</button>
+              <button class="btn btn-outline" style="border:none; color:#64748b; font-size:0.8rem; margin-left:0.5rem;" onclick="auth.logout()">Logout</button>
             `;
           }
         } catch(e){}
       }
-
-      // Initialize Country Pickers
-      new FlenkoCountryPicker({
-        container: '#heroCountryPicker',
-        style: 'hero',
-        inputName: 'country'
-      });
-
-      new FlenkoCountryPicker({
-        container: '#headerCountryContainer',
-        style: 'dropdown',
-        inputName: 'header_country',
-        onSelect: (c) => {
-          // Redirect or save preference
-        }
-      });
     });
   </script>
 </body>
