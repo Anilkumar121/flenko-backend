@@ -11,7 +11,7 @@ app.use(express.json());
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const ADMIN_PHONES = (process.env.ADMIN_PHONE || '8368074009').split(',').map(p => p.trim());
 
-const { sendWhatsAppMessage, getLatestQR, getWhatsAppStatus } = require('./whatsapp');
+const { sendWhatsAppMessage, pollPendingMessages, recordWorkerPing, getWorkerStatus } = require('./whatsapp');
 
 // Helper: Generate 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -21,43 +21,46 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Flenko Backend Server is alive and running!' });
 });
 
-// Route: Dynamic QR Page for WhatsApp Link
-app.get('/qr', (req, res) => {
-  const qrData = getLatestQR();
-  const waStatus = getWhatsAppStatus ? getWhatsAppStatus() : {};
-  
-  if (qrData === 'READY' || waStatus.isReady) {
-    return res.send('<h2>✅ WhatsApp is successfully connected! You can close this window.</h2>');
+// WhatsApp Bot Worker Routes (Option B - Local Windows Bot)
+const BOT_SECRET = 'flenko_bot_secret_2026';
+
+app.get('/api/whatsapp/poll', (req, res) => {
+  if (req.headers['x-bot-token'] !== BOT_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized bot' });
   }
-  
-  if (waStatus.error) {
+  const messages = pollPendingMessages();
+  res.json({ success: true, messages });
+});
+
+app.post('/api/whatsapp/ping', (req, res) => {
+  if (req.headers['x-bot-token'] !== BOT_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized bot' });
+  }
+  recordWorkerPing();
+  res.json({ success: true, status: 'online' });
+});
+
+app.get('/api/whatsapp/status', (req, res) => {
+  res.json({ success: true, worker: getWorkerStatus() });
+});
+
+app.get('/qr', (req, res) => {
+  const status = getWorkerStatus();
+  if (status.isOnline) {
     return res.send(`
-      <div style="font-family:sans-serif; padding:30px; max-width:650px; margin:40px auto; border:2px solid #ef4444; border-radius:8px; background:#fef2f2;">
-        <h2 style="color:#b91c1c;">⚠️ WhatsApp Bot Status</h2>
-        <p>Puppeteer/Chromium encountered an issue on this server environment:</p>
-        <pre style="background:#18181b; color:#f87171; padding:15px; border-radius:6px; overflow:auto; white-space:pre-wrap;">${waStatus.error}</pre>
+      <div style="font-family:sans-serif; text-align:center; padding:40px;">
+        <h2 style="color:#16856b;">✅ Local WhatsApp Bot is ONLINE and Connected!</h2>
+        <p>Pending messages will be sent automatically from your phone.</p>
+      </div>
+    `);
+  } else {
+    return res.send(`
+      <div style="font-family:sans-serif; text-align:center; padding:40px;">
+        <h2 style="color:#f59e0b;">⏳ Local WhatsApp Bot is currently OFFLINE</h2>
+        <p>Double-click <b>start_bot.bat</b> on your laptop to start sending WhatsApp OTPs.</p>
       </div>
     `);
   }
-  
-  if (!qrData) {
-    return res.send('<meta http-equiv="refresh" content="3"><div style="font-family:sans-serif; text-align:center; margin-top:50px;"><h2>🔄 Launching WhatsApp Chromium... Please wait 10-20 seconds...</h2><p>Generating QR code...</p></div>');
-  }
-
-  res.send(`
-    <html>
-      <head>
-        <meta http-equiv="refresh" content="5">
-        <title>Scan WhatsApp QR</title>
-        <style>body { font-family: sans-serif; text-align: center; margin-top: 50px; background: #f1f3f6; } img { border: 10px solid white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }</style>
-      </head>
-      <body>
-        <h2>📱 Link Flenko WhatsApp Bot</h2>
-        <p>Scan this QR code using WhatsApp (Linked Devices). It refreshes automatically every 5 seconds.</p>
-        <img src="${qrData}" width="300" height="300" />
-      </body>
-    </html>
-  `);
 });
 
 // Route: Request OTP

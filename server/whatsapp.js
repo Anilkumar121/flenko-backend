@@ -1,103 +1,51 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-let qrcodeLib = null;
-try {
-  qrcodeLib = require('qrcode');
-} catch(e) {}
+// High-performance Queue-based WhatsApp Service
+// Connects to Local WhatsApp Bot Worker on laptop
 
-let isReady = false;
-let latestQRDataUrl = null;
-let client = null;
-let lastError = null;
+let pendingMessages = [];
+let lastWorkerPing = 0;
 
-try {
-  client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'flenko-system' }),
-    puppeteer: {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ]
-    }
-  });
-
-  client.on('qr', async (qr) => {
-    console.log('WHATSAPP QR CODE GENERATED');
-    try {
-      if (qrcodeLib) {
-        latestQRDataUrl = await qrcodeLib.toDataURL(qr);
-      }
-    } catch (err) {
-      console.error('Error generating QR Data URL', err);
-    }
-  });
-
-  client.on('ready', () => {
-    console.log('✅ WhatsApp Web Client is ready to send OTPs!');
-    isReady = true;
-    latestQRDataUrl = 'READY';
-  });
-
-  client.on('authenticated', () => {
-    console.log('✅ WhatsApp Authenticated successfully.');
-    latestQRDataUrl = 'READY';
-  });
-
-  client.on('auth_failure', msg => {
-    console.error('WhatsApp Authentication failure', msg);
-    isReady = false;
-    latestQRDataUrl = null;
-  });
-
-  client.on('disconnected', (reason) => {
-    console.warn('WhatsApp disconnected:', reason);
-    isReady = false;
-    latestQRDataUrl = null;
-  });
-
-  client.initialize().catch(err => {
-    console.error('WhatsApp initialization error:', err.message);
-    lastError = err.message || err.toString();
-  });
-} catch (err) {
-  console.error('WhatsApp client setup error:', err.message);
-  lastError = err.message || err.toString();
+function enqueueMessage(phone, messageText) {
+  let cleanPhone = phone.replace(/[^0-9]/g, '');
+  if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+  
+  const id = Date.now().toString() + '_' + Math.floor(Math.random() * 1000);
+  pendingMessages.push({ id, phone: cleanPhone, messageText, createdAt: Date.now() });
+  
+  if (pendingMessages.length > 50) pendingMessages.shift();
+  console.log(`[WhatsApp Queue] Enqueued message to ${cleanPhone}. Queue length: ${pendingMessages.length}`);
+  return true;
 }
 
 async function sendWhatsAppMessage(phone, messageText) {
-  if (!client || !isReady) {
-    console.warn(`WhatsApp client not ready yet. Simulating MSG to ${phone}:\n${messageText}`);
-    return false;
-  }
-  
-  try {
-    let formattedPhone = phone.replace(/[^0-9]/g, '');
-    if (formattedPhone.length === 10) {
-      formattedPhone = '91' + formattedPhone;
-    }
-    const chatId = formattedPhone + '@c.us';
-    
-    await client.sendMessage(chatId, messageText);
-    console.log(`✅ WhatsApp MSG sent to ${phone}`);
-    return true;
-  } catch (err) {
-    console.error('Failed to send WhatsApp MSG:', err);
-    return false;
-  }
+  enqueueMessage(phone, messageText);
+  // Returns true if local bot worker was active in last 45 seconds
+  const isWorkerOnline = (Date.now() - lastWorkerPing) < 45000;
+  return isWorkerOnline;
 }
 
-function getLatestQR() {
-  return latestQRDataUrl;
+function pollPendingMessages() {
+  lastWorkerPing = Date.now();
+  const msgs = [...pendingMessages];
+  pendingMessages = []; // Drain queue
+  return msgs;
 }
 
-function getWhatsAppStatus() {
-  return { isReady, error: lastError, hasQR: !!latestQRDataUrl };
+function recordWorkerPing() {
+  lastWorkerPing = Date.now();
 }
 
-module.exports = { sendWhatsAppMessage, getLatestQR, getWhatsAppStatus };
+function getWorkerStatus() {
+  const isOnline = (Date.now() - lastWorkerPing) < 45000;
+  return {
+    isOnline,
+    lastPingAgoSeconds: Math.round((Date.now() - lastWorkerPing) / 1000),
+    queueSize: pendingMessages.length
+  };
+}
+
+module.exports = {
+  sendWhatsAppMessage,
+  pollPendingMessages,
+  recordWorkerPing,
+  getWorkerStatus
+};
