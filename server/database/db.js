@@ -29,6 +29,7 @@ let mockDB = {
     { id: 1, supplier_id: 1, product_needed: '1000 Corrugated Boxes', buyer_phone: '9876543210', details: 'Need heavy duty 5-ply boxes', status: 'New', created_at: new Date() }
   ],
   products: [],
+  password_resets: [],
   idCounter: 2
 };
 
@@ -127,6 +128,14 @@ async function ensureTables() {
       message TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      email VARCHAR(150),
+      token VARCHAR(100) UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `;
   try {
     await pool.query(schema);
@@ -221,6 +230,57 @@ module.exports = {
       mockDB.users.push(newUser);
       saveMockDB();
       return { rows: [newUser] };
+    }
+    if (text.includes('SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR phone = $2') || text.includes('SELECT * FROM users WHERE email = $1 OR phone = $2')) {
+      const targetEmail = (params[0] || '').toString().trim().toLowerCase();
+      const targetPhone = (params[1] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      mockDB.users = mockDB.users || [];
+      const row = mockDB.users.find(u => 
+        (u.email && u.email.toLowerCase() === targetEmail) || 
+        (targetPhone && (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone)
+      );
+      return { rows: row ? [row] : [] };
+    }
+    if (text.includes('SELECT * FROM users WHERE LOWER(email) = LOWER($1)') || text.includes('SELECT * FROM users WHERE email = $1')) {
+      const targetEmail = (params[0] || '').toString().trim().toLowerCase();
+      mockDB.users = mockDB.users || [];
+      const row = mockDB.users.find(u => u.email && u.email.toLowerCase() === targetEmail);
+      return { rows: row ? [row] : [] };
+    }
+    if (text.includes('INSERT INTO password_resets')) {
+      mockDB.password_resets = mockDB.password_resets || [];
+      const newReset = {
+        id: mockDB.idCounter++,
+        user_id: params[0],
+        email: params[1],
+        token: params[2],
+        expires_at: params[3],
+        created_at: new Date()
+      };
+      mockDB.password_resets.push(newReset);
+      saveMockDB();
+      return { rows: [newReset] };
+    }
+    if (text.includes('SELECT * FROM password_resets WHERE token = $1')) {
+      mockDB.password_resets = mockDB.password_resets || [];
+      const row = mockDB.password_resets.find(r => r.token === params[0] && new Date(r.expires_at).getTime() > Date.now());
+      return { rows: row ? [row] : [] };
+    }
+    if (text.includes('DELETE FROM password_resets WHERE token = $1')) {
+      mockDB.password_resets = (mockDB.password_resets || []).filter(r => r.token !== params[0]);
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM password_resets WHERE user_id = $1')) {
+      mockDB.password_resets = (mockDB.password_resets || []).filter(r => r.user_id != params[0]);
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('UPDATE users SET password = $1 WHERE id = $2')) {
+      const user = (mockDB.users || []).find(u => u.id == params[1]);
+      if (user) { user.password = params[0]; }
+      saveMockDB();
+      return { rows: [] };
     }
     if (text.includes('UPDATE users SET password = $1 WHERE phone = $2')) {
       const targetPhone = (params[1] || '').toString().replace(/[^0-9]/g, '').slice(-10);

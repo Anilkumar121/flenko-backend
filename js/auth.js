@@ -29,6 +29,26 @@ const auth = {
     });
     return res.json();
   },
+  async forgotPassword(payload) {
+    const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+  async verifyResetToken(token) {
+    const res = await fetch(`${API_BASE}/auth/verify-reset-token?token=${encodeURIComponent(token)}`);
+    return res.json();
+  },
+  async resetPassword(payload) {
+    const res = await fetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
   async requestOtp(phone) {
     const res = await fetch(`${API_BASE}/auth/request-otp`, {
       method: 'POST',

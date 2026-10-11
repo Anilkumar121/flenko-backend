@@ -72,12 +72,35 @@
           </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 1.5rem;">
+        <div class="form-group" style="margin-bottom: 0.5rem;">
           <label class="form-label" style="font-weight: 600;">Password</label>
           <input type="password" id="loginPassword" class="form-control" required placeholder="Enter password" style="border-radius: var(--radius-md);">
         </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 1.25rem;">
+          <a href="javascript:void(0)" onclick="switchAuthTab('forgot')" style="font-size: 0.8rem; color: var(--color-teal); text-decoration: none; font-weight: 500;">Forgot Password?</a>
+        </div>
         
         <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 600; background-color: var(--color-teal); border-color: var(--color-teal);">Sign In</button>
+      </form>
+
+      <!-- Forgot Password Form -->
+      <form id="forgotForm" class="hidden">
+        <h3 style="margin-bottom: 0.35rem; font-size: 1.15rem; color: var(--color-navy-deep); text-align: center;">Reset Your Password</h3>
+        <p class="text-muted text-center" style="font-size: 0.85rem; margin-bottom: 1.25rem;">
+          Enter your registered Email address (or Mobile Number) and we will send you a password reset link.
+        </p>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-weight: 600;">Email or Mobile Number</label>
+          <input type="text" id="forgotIdentifier" class="form-control" required placeholder="e.g. name@example.com or 10-digit mobile" style="border-radius: var(--radius-md);">
+        </div>
+
+        <button type="submit" id="forgotSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 600; background-color: var(--color-teal); border-color: var(--color-teal);">Send Reset Link to Email</button>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <a href="javascript:void(0)" onclick="switchAuthTab('login')" style="font-size: 0.85rem; color: #64748b; text-decoration: none;">&larr; Back to Sign In</a>
+        </div>
       </form>
 
       <!-- Create Buyer Account Form -->
@@ -117,6 +140,7 @@
   <script>
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
+    const forgotForm = document.getElementById('forgotForm');
     const tabSignIn = document.getElementById('tabSignIn');
     const tabSignUp = document.getElementById('tabSignUp');
     const statusMsg = document.getElementById('statusMsg');
@@ -128,13 +152,54 @@
         tabSignUp.classList.remove('active');
         loginForm.classList.remove('hidden');
         registerForm.classList.add('hidden');
-      } else {
+        forgotForm.classList.add('hidden');
+      } else if (tab === 'register') {
         tabSignUp.classList.add('active');
         tabSignIn.classList.remove('active');
         registerForm.classList.remove('hidden');
         loginForm.classList.add('hidden');
+        forgotForm.classList.add('hidden');
+      } else if (tab === 'forgot') {
+        tabSignIn.classList.remove('active');
+        tabSignUp.classList.remove('active');
+        forgotForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        registerForm.classList.add('hidden');
       }
     }
+
+    // Handle Forgot Password
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const val = document.getElementById('forgotIdentifier').value.trim();
+      const btn = document.getElementById('forgotSubmitBtn');
+      const payload = val.includes('@') ? { email: val } : { phone: val.replace(/[^0-9]/g, '').slice(-10) };
+
+      statusMsg.innerText = 'Generating reset link...';
+      statusMsg.style.color = '#64748b';
+      btn.disabled = true;
+
+      try {
+        const res = await auth.forgotPassword(payload);
+        if (res.success) {
+          statusMsg.innerHTML = `
+            <div style="color: var(--color-teal); font-weight: 500; margin-bottom: 0.5rem;">
+              ✅ ${res.message}
+            </div>
+            ${res._resetUrl ? `<a href="${res._resetUrl}" target="_blank" class="btn btn-outline" style="display:inline-block; margin-top:8px; padding:6px 14px; font-size:0.8rem; border-color:var(--color-teal); color:var(--color-teal);">🔗 Open Password Reset Link</a>` : ''}
+          `;
+          btn.disabled = false;
+        } else {
+          statusMsg.innerText = res.error || 'Failed to send reset link.';
+          statusMsg.style.color = '#ef4444';
+          btn.disabled = false;
+        }
+      } catch (err) {
+        statusMsg.innerText = 'Server error. Please try again.';
+        statusMsg.style.color = '#ef4444';
+        btn.disabled = false;
+      }
+    });
 
     // Handle Login
     loginForm.addEventListener('submit', async (e) => {

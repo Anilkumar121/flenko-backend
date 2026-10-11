@@ -26,6 +26,7 @@ if (!ADMIN_PHONES.includes('8368074009')) ADMIN_PHONES.push('8368074009');
 
 const { dispatchCloudOtp, getCloudConfigStatus } = require('./services/cloudOtp');
 const { sendWhatsAppMessage, pollPendingMessages, recordWorkerPing, getWorkerStatus } = require('./whatsapp');
+const { sendPasswordResetEmail } = require('./services/mailService');
 
 // Helper: Generate 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -214,6 +215,154 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// Route: Request Password Reset Link (Sends Email)
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email, phone } = req.body;
+  const targetEmail = (email || '').toString().trim().toLowerCase();
+  const cleanPhone = (phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+
+  if (!targetEmail && !cleanPhone) {
+    return res.status(400).json({ error: 'Please provide your registered Email address or Mobile number' });
+  }
+
+  try {
+    // Find user by email or phone
+    let userRes;
+    if (targetEmail && cleanPhone) {
+      userRes = await db.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR phone = $2', [targetEmail, cleanPhone]);
+    } else if (targetEmail) {
+      userRes = await db.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [targetEmail]);
+    } else {
+      userRes = await db.query('SELECT * FROM users WHERE phone = $1', [cleanPhone]);
+    }
+
+    if (!userRes.rows || userRes.rows.length === 0) {
+      // Security standard: don't reveal if account exists or not
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email or mobile, a password reset link has been dispatched.'
+      });
+    }
+
+    const user = userRes.rows[0];
+    const destinationEmail = targetEmail || user.email;
+
+    if (!destinationEmail) {
+      return res.status(400).json({
+        error: 'No email address is linked to this account. Please enter your email address to receive the reset link.'
+      });
+    }
+
+    // Generate secure 64-char token and 1-hour expiry
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    // Delete existing tokens for this user
+    await db.query('DELETE FROM password_resets WHERE user_id = $1', [user.id]);
+    await db.query(
+      'INSERT INTO password_resets (user_id, email, token, expires_at) VALUES ($1, $2, $3, $4)',
+      [user.id, destinationEmail, token, expiresAt]
+    );
+
+    const origin = req.headers.origin || 'https://flenko.com';
+    const resetUrl = `${origin}/reset-password.html?token=${token}`;
+
+    const mailResult = await sendPasswordResetEmail(destinationEmail, resetUrl, user.name);
+
+    res.json({
+      success: true,
+      message: 'Password reset link sent to your email! Please check your inbox and spam folder.',
+      email: destinationEmail,
+      _resetUrl: mailResult.resetUrl || resetUrl
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Server error while processing password reset' });
+  }
+});
+
+// Route: Verify Reset Token
+app.get('/api/auth/verify-reset-token', async (req, res) => {
+  const token = (req.query.token || '').toString().trim();
+  if (!token) {
+    return res.status(400).json({ valid: false, error: 'Token is required' });
+  }
+
+  try {
+    const checkRes = await db.query(
+      'SELECT * FROM password_resets WHERE token = $1 AND expires_at > NOW()',
+      [token]
+    );
+
+    if (checkRes.rows && checkRes.rows.length > 0) {
+      return res.json({ valid: true, email: checkRes.rows[0].email });
+    } else {
+      return res.status(400).json({ valid: false, error: 'Reset link is invalid or has expired. Please request a new one.' });
+    }
+  } catch (error) {
+    console.error('Verify token error:', error);
+    res.status(500).json({ valid: false, error: 'Server error verifying token' });
+  }
+});
+
+// Route: Execute Password Reset
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  const cleanToken = (token || '').toString().trim();
+  const cleanPass = (newPassword || '').toString().trim();
+
+  if (!cleanToken) {
+    return res.status(400).json({ error: 'Reset token is required' });
+  }
+  if (!cleanPass || cleanPass.length < 4) {
+    return res.status(400).json({ error: 'New password must be at least 4 characters long' });
+  }
+
+  try {
+    const tokenRes = await db.query(
+      'SELECT * FROM password_resets WHERE token = $1 AND expires_at > NOW()',
+      [cleanToken]
+    );
+
+    if (!tokenRes.rows || tokenRes.rows.length === 0) {
+      return res.status(400).json({ error: 'Reset link has expired or is invalid. Please request a new one.' });
+    }
+
+    const resetRecord = tokenRes.rows[0];
+    const hashedPassword = hashPassword(cleanPass);
+
+    // Update user password
+    await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, resetRecord.user_id]);
+
+    // Delete used token
+    await db.query('DELETE FROM password_resets WHERE token = $1', [cleanToken]);
+
+    // Fetch updated user to issue immediate login token
+    const userRes = await db.query('SELECT * FROM users WHERE id = $1', [resetRecord.user_id]);
+    const user = userRes.rows[0];
+
+    const jwtToken = jwt.sign({ id: user.id, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully! Logging you in...',
+      token: jwtToken,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
+        subscription: user.subscription || 'free'
+      }
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Server error while resetting password' });
   }
 });
 
