@@ -108,6 +108,13 @@ module.exports = {
       const row = mockDB.businesses.find(b => b.user_id === params[0]);
       return { rows: row ? [row] : [] };
     }
+    if (text.includes('FROM businesses') && text.includes('SELECT')) {
+      let rows = [...mockDB.businesses];
+      if (params.length > 0 && text.includes('LOWER(b.category) = LOWER($1)')) {
+        rows = rows.filter(b => b.category && b.category.toLowerCase() === params[0].toLowerCase());
+      }
+      return { rows: rows.reverse() };
+    }
     if (text.includes('INSERT INTO businesses')) {
       mockDB.businesses.push({ id: mockDB.idCounter++, user_id: params[0], company_name: params[1], gst_number: params[2], business_type: params[3], address: params[4], city: params[5], category: params[6] });
       saveMockDB();

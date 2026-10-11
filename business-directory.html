@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global Verified Suppliers Directory - Flenko.com</title>
-  <meta name="description" content="Connect with verified global manufacturers, exporters, and wholesale distributors across 190+ countries.">
+  <title>Global Verified Suppliers & Business Directory - Flenko.com</title>
+  <meta name="description" content="Connect with verified global manufacturers, exporters, and wholesale distributors across 190+ countries categorized by business sectors.">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,12 +27,12 @@
     }
     .supplier-card:hover {
       box-shadow: var(--shadow-md);
-      border-color: var(--color-blue-primary);
+      border-color: var(--color-alibaba-orange);
       transform: translateY(-2px);
     }
     .supplier-logo-box {
-      width: 54px;
-      height: 54px;
+      width: 52px;
+      height: 52px;
       border-radius: var(--radius-md);
       background: #f1f5f9;
       display: flex;
@@ -41,6 +41,36 @@
       font-size: 1.5rem;
       font-weight: 800;
       color: var(--color-navy-midnight);
+    }
+    .category-pills-bar {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 0.75rem;
+      margin-top: 1.25rem;
+      margin-bottom: 1.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cat-pill-btn {
+      padding: 0.4rem 0.85rem;
+      border-radius: 20px;
+      border: 1px solid var(--color-border);
+      background: var(--color-white);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .cat-pill-btn:hover {
+      border-color: var(--color-alibaba-orange);
+      color: var(--color-alibaba-orange);
+    }
+    .cat-pill-btn.active {
+      background: #fff7ed;
+      border-color: var(--color-alibaba-orange);
+      color: var(--color-alibaba-orange);
     }
   </style>
 </head>
@@ -52,35 +82,77 @@
       </a>
       <div class="header-actions">
         <button class="btn btn-outline" onclick="window.location.href='index.html'">Back to Home</button>
-        <button class="btn btn-primary" onclick="window.location.href='sell.html'" style="background:var(--color-teal); border-color:var(--color-teal);">Register Business</button>
+        <button class="btn btn-orange" onclick="window.location.href='sell.html'" style="font-size:0.85rem;">Register Your Business (Sell on Flenko)</button>
       </div>
     </div>
   </header>
 
   <main class="container" style="padding-top: 2.5rem; padding-bottom: 5rem;">
-    <div class="section-header" style="flex-wrap: wrap; gap: 1rem;">
+    <div class="section-header" style="flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
       <div>
         <h2 class="section-title" style="margin-bottom: 0.25rem;">Worldwide Verified Supplier Directory</h2>
-        <p style="color:var(--color-text-muted); font-size: 0.875rem; margin: 0;">Verified manufacturing corporations, exporters, and wholesale trade hubs.</p>
+        <p style="color:var(--color-text-muted); font-size: 0.875rem; margin: 0;">Find verified manufacturers, exporters, and suppliers by business category.</p>
       </div>
       
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <!-- Category Dropdown Filter -->
+        <select id="dirCategorySelect" class="form-control" style="width: 200px; font-weight:600; font-size:0.85rem;">
+          <option value="">All Business Sectors</option>
+          <option value="Industrial Machinery">⚙️ Industrial Machinery</option>
+          <option value="Electrical & Electronics">⚡ Electrical & Electronics</option>
+          <option value="Packaging & Printing">📦 Packaging & Printing</option>
+          <option value="Chemicals & Dyes">🧪 Chemicals & Dyes</option>
+          <option value="Building & Construction">🏗️ Building & Construction</option>
+          <option value="Medical & Pharma">💊 Medical & Pharma</option>
+          <option value="Textiles & Apparel">🧵 Textiles & Apparel</option>
+          <option value="Agriculture & Food">🌾 Agriculture & Food</option>
+          <option value="Renewable Energy">☀️ Renewable Energy</option>
+          <option value="Automotive & Parts">🚗 Automotive & Parts</option>
+          <option value="Metals & Minerals">⚙️ Metals & Minerals</option>
+          <option value="Furniture & Decor">🛋️ Furniture & Decor</option>
+          <option value="Beauty & Personal Care">🧴 Beauty & Personal Care</option>
+          <option value="Hardware & Tools">🔧 Hardware & Tools</option>
+          <option value="IT & Telecom">💻 IT, Telecom & Software</option>
+          <option value="Safety & Security">🛡️ Safety & Security</option>
+          <option value="Gifts & Sports">🧸 Gifts & Sports</option>
+          <option value="Logistics & Shipping">🚢 Logistics & Cargo</option>
+        </select>
+
         <div id="directoryCountryContainer"></div>
-        <form id="directorySearchForm" style="display: flex; max-width: 320px;">
-          <input type="text" id="dirSearchInput" class="form-control" placeholder="Search by name, sector..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
-          <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">Search</button>
+
+        <form id="directorySearchForm" style="display: flex; max-width: 260px;">
+          <input type="text" id="dirSearchInput" class="form-control" placeholder="Search by name, city..." style="border-radius: var(--radius-md) 0 0 var(--radius-md); font-size:0.85rem;">
+          <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0; font-size:0.85rem;">Search</button>
         </form>
       </div>
     </div>
 
-    <!-- Active Count -->
-    <div style="margin-top: 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: var(--color-text-muted);" id="supplierCountText">
+    <!-- Category Quick-Filter Horizontal Pills -->
+    <div class="category-pills-bar" id="categoryPills">
+      <button type="button" class="cat-pill-btn active" data-cat="">All Categories</button>
+      <button type="button" class="cat-pill-btn" data-cat="Industrial Machinery">⚙️ Industrial Machinery</button>
+      <button type="button" class="cat-pill-btn" data-cat="Electrical & Electronics">⚡ Electrical & Electronics</button>
+      <button type="button" class="cat-pill-btn" data-cat="Packaging & Printing">📦 Packaging & Printing</button>
+      <button type="button" class="cat-pill-btn" data-cat="Chemicals & Dyes">🧪 Chemicals & Dyes</button>
+      <button type="button" class="cat-pill-btn" data-cat="Building & Construction">🏗️ Building & Construction</button>
+      <button type="button" class="cat-pill-btn" data-cat="Medical & Pharma">💊 Medical & Pharma</button>
+      <button type="button" class="cat-pill-btn" data-cat="Textiles & Apparel">🧵 Textiles & Apparel</button>
+      <button type="button" class="cat-pill-btn" data-cat="Agriculture & Food">🌾 Agriculture & Food</button>
+      <button type="button" class="cat-pill-btn" data-cat="Renewable Energy">☀️ Renewable Energy</button>
+      <button type="button" class="cat-pill-btn" data-cat="Automotive & Parts">🚗 Automotive & Parts</button>
+      <button type="button" class="cat-pill-btn" data-cat="Metals & Minerals">⚙️ Metals & Minerals</button>
+      <button type="button" class="cat-pill-btn" data-cat="Furniture & Decor">🛋️ Furniture & Decor</button>
+      <button type="button" class="cat-pill-btn" data-cat="Hardware & Tools">🔧 Hardware & Tools</button>
+      <button type="button" class="cat-pill-btn" data-cat="IT & Telecom">💻 IT & Telecom</button>
+    </div>
+
+    <!-- Active Count Display -->
+    <div style="margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--color-text-muted);" id="supplierCountText">
       Showing verified suppliers worldwide
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;" id="supplierDirectoryGrid">
-      <!-- Populated via JS -->
-    </div>
+    <!-- Suppliers Grid Container -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;" id="supplierDirectoryGrid"></div>
   </main>
 
   <script src="js/countries.js"></script>
@@ -90,10 +162,12 @@
       const countText = document.getElementById("supplierCountText");
       const searchForm = document.getElementById("directorySearchForm");
       const searchInput = document.getElementById("dirSearchInput");
+      const catSelect = document.getElementById("dirCategorySelect");
+      const catPills = document.querySelectorAll("#categoryPills .cat-pill-btn");
 
       let allSuppliers = [];
 
-      // Fetch live suppliers registered in backend
+      // Fetch real live suppliers registered in backend
       try {
         const res = await fetch('https://flenko-backend.onrender.com/api/public/businesses');
         if (res.ok) {
@@ -101,16 +175,13 @@
           if (data.businesses && data.businesses.length > 0) {
             allSuppliers = data.businesses.map(b => ({
               id: b.id,
+              user_id: b.user_id,
               company_name: b.company_name,
-              country: b.country || "Worldwide",
-              flag: b.country === "United States" ? "🇺🇸" : (b.country === "Germany" ? "🇩🇪" : (b.country === "India" ? "🇮🇳" : "🏢")),
-              city: b.city || "Global Hub",
-              category: b.category || "Wholesale B2B Supplier",
+              category: b.category || "General B2B",
               business_type: b.business_type || "Verified Supplier",
-              verified: true,
-              years: "Verified Profile",
-              products_count: "Direct Supplier",
-              description: b.description || `Registered B2B supplier based in ${b.city || 'Worldwide'}. Specializing in bulk wholesale supply and custom manufacturing.`
+              city: b.city || "Global Hub",
+              is_verified: b.is_verified !== false,
+              created_at: b.created_at
             }));
           }
         }
@@ -118,12 +189,24 @@
         console.warn("Could not fetch live businesses", e);
       }
 
+      // Check URL query parameters (e.g. ?cat=Industrial+Machinery)
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialCat = urlParams.get('cat') || '';
+      if (initialCat) {
+        catSelect.value = initialCat;
+        catPills.forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-cat').toLowerCase() === initialCat.toLowerCase());
+        });
+      }
+
+      // Initialize Searchable Country Picker
       const countryPicker = new FlenkoCountryPicker({
         container: "#directoryCountryContainer",
         inputName: "dir_country",
         onSelect: () => renderDirectory()
       });
 
+      // Event Listeners
       searchForm.addEventListener("submit", (e) => {
         e.preventDefault();
         renderDirectory();
@@ -133,11 +216,31 @@
         renderDirectory();
       });
 
+      catSelect.addEventListener("change", () => {
+        const selectedVal = catSelect.value;
+        catPills.forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-cat').toLowerCase() === selectedVal.toLowerCase());
+        });
+        renderDirectory();
+      });
+
+      catPills.forEach(pill => {
+        pill.addEventListener("click", () => {
+          const cat = pill.getAttribute("data-cat");
+          catSelect.value = cat;
+          catPills.forEach(p => p.classList.remove("active"));
+          pill.classList.add("active");
+          renderDirectory();
+        });
+      });
+
       function renderDirectory() {
         const q = searchInput.value.toLowerCase().trim();
         const selCountry = countryPicker.selected;
+        const selCategory = catSelect.value.toLowerCase().trim();
 
         const filtered = allSuppliers.filter(s => {
+          // Name / City query filter
           if (q) {
             const matchName = s.company_name.toLowerCase().includes(q);
             const matchCat = s.category.toLowerCase().includes(q);
@@ -145,24 +248,35 @@
             if (!matchName && !matchCat && !matchCity) return false;
           }
 
+          // Exact Category filter
+          if (selCategory) {
+            if (s.category.toLowerCase() !== selCategory) return false;
+          }
+
+          // Country filter
           if (selCountry && selCountry.code !== 'ALL') {
-            const countryMatch = (s.country && s.country.toLowerCase() === selCountry.name.toLowerCase()) ||
-                                 (s.city && s.city.toLowerCase().includes(selCountry.name.toLowerCase()));
+            const countryMatch = (s.city && s.city.toLowerCase().includes(selCountry.name.toLowerCase()));
             if (!countryMatch) return false;
           }
 
           return true;
         });
 
-        countText.textContent = `Showing ${filtered.length} verified suppliers worldwide`;
+        countText.textContent = `Showing ${filtered.length} verified suppliers in ${selCategory ? catSelect.value : 'all categories'}`;
 
         if (filtered.length === 0) {
           grid.innerHTML = `
             <div style="grid-column: 1/-1; padding: 4rem 2rem; text-align: center; background:var(--color-white); border:1px dashed var(--color-border); border-radius:var(--radius-lg);">
               <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏢</div>
-              <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem; color:var(--color-navy-midnight);">No verified suppliers registered yet</h3>
-              <p style="color:var(--color-text-muted); max-width:450px; margin:0 auto 1.5rem;">Are you a manufacturer, exporter, or wholesale supplier? Register your business profile on Flenko and start connecting with global buyers today.</p>
-              <button class="btn btn-orange" onclick="window.location.href='sell.html'" style="padding:0.6rem 1.5rem;">Register as a Supplier (Free) →</button>
+              <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem; color:var(--color-navy-midnight);">
+                No verified suppliers registered ${selCategory ? 'in ' + catSelect.value : 'yet'}
+              </h3>
+              <p style="color:var(--color-text-muted); max-width:450px; margin:0 auto 1.5rem; font-size:0.9rem;">
+                Are you a manufacturer, exporter, or supplier in this category? Register your business profile on Flenko and start connecting with buyers worldwide.
+              </p>
+              <button class="btn btn-orange" onclick="window.location.href='sell.html'" style="padding:0.6rem 1.5rem;">
+                Register as a Supplier in this Category →
+              </button>
             </div>
           `;
           return;
@@ -172,7 +286,7 @@
           <div class="supplier-card">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
               <div class="supplier-logo-box">
-                ${s.flag || '🏢'}
+                🏢
               </div>
               <span class="badge badge-teal">${s.business_type}</span>
             </div>
@@ -182,20 +296,20 @@
             </h3>
             
             <div style="font-size:0.8125rem; color:var(--color-text-muted); margin-bottom:0.75rem;">
-              <span>📍 ${s.city}, ${s.country}</span> &bull; <span>${s.years}</span>
+              <span>📍 ${s.city}</span> &bull; <span style="color:var(--color-teal); font-weight:600;">Verified Profile</span>
             </div>
             
-            <div style="margin-bottom:0.75rem;">
-              <span class="badge badge-blue" style="font-size:0.75rem;">🏷️ ${s.category}</span>
+            <div style="margin-bottom:1rem;">
+              <span class="badge badge-blue" style="font-size:0.8rem; padding:0.35rem 0.65rem;">🏷️ Category: ${s.category}</span>
             </div>
-            
-            <p style="font-size:0.84rem; color:var(--color-text-main); margin-bottom:1.25rem; line-height:1.5; flex:1;">
-              ${s.description}
-            </p>
             
             <div style="display:flex; gap:0.5rem; margin-top:auto;">
-              <button class="btn btn-primary" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='products.html?q=${encodeURIComponent(s.company_name)}'">View Products</button>
-              <button class="btn btn-outline" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='rfq.html'">Send RFQ</button>
+              <button class="btn btn-orange" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='products.html?q=${encodeURIComponent(s.company_name)}'">
+                View Products
+              </button>
+              <button class="btn btn-outline" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='rfq.html?supplier=${s.user_id}&name=${encodeURIComponent(s.company_name)}'">
+                Send RFQ
+              </button>
             </div>
           </div>
         `).join('');

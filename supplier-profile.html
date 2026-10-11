@@ -81,26 +81,26 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Primary Business Category</label>
-                <select id="bizCategory" class="form-control" required>
-                  <option value="" disabled selected>Select Primary Category</option>
-                  <optgroup label="Manufacturing & Industrial">
-                    <option>Industrial Machinery</option><option>Packaging Material</option><option>Chemicals & Dyes</option><option>Metal & Hardware</option>
-                  </optgroup>
-                  <optgroup label="Construction & Real Estate">
-                    <option>Building Materials</option><option>Architectural Services</option><option>Interior & Furnishings</option>
-                  </optgroup>
-                  <optgroup label="Software & IT Services">
-                    <option>Web & App Development</option><option>Digital Marketing & SEO</option><option>ERP & Business Software</option><option>Cloud Hosting</option>
-                  </optgroup>
-                  <optgroup label="Medical & Hospitality">
-                    <option>Medical Equipment</option><option>Hospital Furniture</option><option>Surgical Supplies</option><option>Hotel & Restaurant Supplies</option>
-                  </optgroup>
-                  <optgroup label="Textile & Apparel">
-                    <option>Garments & Fabric</option><option>Fashion Accessories</option><option>Yarn & Threads</option>
-                  </optgroup>
-                  <optgroup label="Other">
-                    <option>Agriculture & Food</option><option>Electronics & Electrical</option><option>Printing & Signage</option><option>Uncategorized</option>
-                  </optgroup>
+                <select id="bizCategory" class="form-control" required style="font-weight:600;">
+                  <option value="" disabled selected>Select Primary Category...</option>
+                  <option value="Industrial Machinery">⚙️ Industrial Machinery & Equipment</option>
+                  <option value="Electrical & Electronics">⚡ Electrical & Electronics</option>
+                  <option value="Packaging & Printing">📦 Packaging, Printing & Paper</option>
+                  <option value="Chemicals & Dyes">🧪 Chemicals, Polymers & Dyes</option>
+                  <option value="Building & Construction">🏗️ Building & Construction Materials</option>
+                  <option value="Medical & Pharma">💊 Medical, Healthcare & Pharma</option>
+                  <option value="Textiles & Apparel">🧵 Textiles, Fabrics & Garments</option>
+                  <option value="Agriculture & Food">🌾 Agriculture, Food & Bulk Produce</option>
+                  <option value="Renewable Energy">☀️ Renewable Energy & Solar Tech</option>
+                  <option value="Automotive & Parts">🚗 Automotive & Auto Parts</option>
+                  <option value="Metals & Minerals">⚙️ Metals, Minerals & Metallurgy</option>
+                  <option value="Furniture & Decor">🛋️ Furniture & Commercial Decor</option>
+                  <option value="Beauty & Personal Care">🧴 Beauty & Personal Care</option>
+                  <option value="Hardware & Tools">🔧 Hardware, Fasteners & Tools</option>
+                  <option value="IT & Telecom">💻 IT, Telecom & Software</option>
+                  <option value="Safety & Security">🛡️ Safety, Security & Protection</option>
+                  <option value="Gifts & Sports">🧸 Gifts, Handicrafts & Sports</option>
+                  <option value="Logistics & Shipping">🚢 Logistics, Freight & Cargo</option>
                 </select>
               </div>
             </div>
@@ -140,7 +140,7 @@
       const btn = e.target.querySelector('button[type="submit"]');
       btn.innerText = 'Saving...';
       try {
-        const res = await fetch('/api/businesses', {
+        const res = await fetch('https://flenko-backend.onrender.com/api/businesses', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

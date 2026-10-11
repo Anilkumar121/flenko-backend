@@ -266,6 +266,27 @@ app.post('/api/businesses', authMiddleware, async (req, res) => {
   }
 });
 
+// Route: Get Public Businesses / Supplier Directory
+app.get('/api/public/businesses', async (req, res) => {
+  try {
+    const { category, q } = req.query;
+    let query = 'SELECT b.id, b.user_id, b.company_name, b.business_type, b.city, b.category, b.is_verified, b.created_at, u.name as owner_name FROM businesses b LEFT JOIN users u ON b.user_id = u.id';
+    const params = [];
+
+    if (category) {
+      query += ' WHERE LOWER(b.category) = LOWER($1)';
+      params.push(category);
+    }
+
+    query += ' ORDER BY b.id DESC';
+    const result = await db.query(query, params);
+    res.json({ businesses: result.rows });
+  } catch (err) {
+    console.error('Error fetching public businesses:', err);
+    res.status(500).json({ error: 'Failed to fetch businesses' });
+  }
+});
+
 // Route: Get Supplier Leads
 app.get('/api/leads', authMiddleware, async (req, res) => {
   try {
