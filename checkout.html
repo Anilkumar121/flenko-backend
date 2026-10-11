@@ -100,13 +100,24 @@
     const plan = urlParams.get('plan') || 'basic';
     
     let base = 0;
-    if (plan === 'basic') base = 10000;
-    else if (plan === 'pro') base = 20000;
-    else if (plan === 'enterprise') base = 30000;
+    let displayName = plan + " Premium";
+    if (plan === 'basic') {
+      base = 10000;
+      displayName = "Basic Supplier Plan";
+    } else if (plan === 'pro') {
+      base = 20000;
+      displayName = "Pro Standard Plan";
+    } else if (plan === 'enterprise') {
+      base = 30000;
+      displayName = "Enterprise Growth Plan";
+    } else if (plan === 'website_combo') {
+      base = 35000;
+      displayName = "Custom Business Website + VIP Growth Plan";
+    }
     
     const total = base;
     
-    document.getElementById('planName').innerText = plan + " Premium";
+    document.getElementById('planName').innerText = displayName;
     document.getElementById('totalPrice').innerText = '₹' + total.toLocaleString();
     document.getElementById('displayTotal').innerText = '(₹' + total.toLocaleString() + ')';
 

@@ -15,9 +15,91 @@ function verifyPassword(password, hash) {
   return hashPassword(password) === hash;
 }
 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Upload Directories
+const uploadDir = path.join(__dirname, '../assets/images/products');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const logoDir = path.join(__dirname, '../assets/images/logos');
+if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
+
+const productStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const logoStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, logoDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = 'logo-' + Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: productStorage });
+const uploadLogo = multer({ storage: logoStorage });
+
+// Serve uploaded images and static assets
+app.use('/assets', express.static(path.join(__dirname, '../assets')));
+
+// Helper: Smart Category Classification for typed services/products
+function classifyCategory(name = '', category = '') {
+  const text = ((name || '') + ' ' + (category || '')).toLowerCase();
+  
+  if (/website|web dev|app dev|software|android|ios|coding|developer|crm|erp|seo|digital marketing|cloud hosting|domain|it service|saas|graphic design|e-commerce/i.test(text)) {
+    return 'Web & App Development';
+  }
+  if (/construction|civil|architect|building|cement|concrete|brick|tiles|interior|marble|flooring|plywood|sand|tmt|steel rod|pipe/i.test(text)) {
+    return 'Building Materials';
+  }
+  if (/packag|box|carton|corrugated|bag|pouch|tape|print|signage|label|polybag|container/i.test(text)) {
+    return 'Packaging Material';
+  }
+  if (/machine|machinery|lathe|cnc|laser|milling|hydraulic|pneumatic|welding|pump|motor|bearing|hardware|nut|bolt|fastener/i.test(text)) {
+    return 'Industrial Machinery';
+  }
+  if (/medical|hospital|doctor|clinic|surgical|pharma|medicine|mask|gloves|stethoscope|ventilator|bandage|ayurvedic/i.test(text)) {
+    return 'Medical Equipment';
+  }
+  if (/fabric|garment|cloth|shirt|tshirt|dress|textile|yarn|thread|fashion|saree|denim|cotton|silk|suit/i.test(text)) {
+    return 'Garments & Fabric';
+  }
+  if (/hotel|restaurant|catering|kitchen equipment|hospitality|cafe|crockery|cutlery|chef/i.test(text)) {
+    return 'Hotel & Restaurant Supplies';
+  }
+  if (/chemical|dye|paint|resin|solvent|polymer|acid|detergent|bleach|pigment/i.test(text)) {
+    return 'Chemicals & Dyes';
+  }
+  if (/electric|wire|cable|solar|inverter|switch|led|light|battery|transformer|electronic|pcb/i.test(text)) {
+    return 'Electronics & Electrical';
+  }
+  if (/food|grain|rice|wheat|spice|sugar|oil|agriculture|fertilizer|pesticide|tea|coffee|fruit|vegetable/i.test(text)) {
+    return 'Agriculture & Food';
+  }
+  if (/metal|steel|iron|aluminum|copper|brass|wire mesh|sheet metal/i.test(text)) {
+    return 'Metal & Hardware';
+  }
+  
+  if (category && category.trim()) {
+    return category.trim();
+  }
+  return 'Uncategorized';
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const rawAdmin = process.env.ADMIN_PHONE || '8368074009';
@@ -552,28 +634,33 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
   }
 });
 
-// Route: Create/Update Business Profile
-app.post('/api/businesses', authMiddleware, async (req, res) => {
+// Route: Create/Update Business Profile (Supports Company Logo Upload)
+app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (req, res) => {
   const { company_name, gst_number, business_type, address, city, category } = req.body;
   
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  let logo_url = req.file ? `${baseUrl}/assets/images/logos/${req.file.filename}` : (req.body.logo_url || null);
+
   try {
     // Check if business exists
-    const existing = await db.query('SELECT id FROM businesses WHERE user_id = $1', [req.user.id]);
+    const existing = await db.query('SELECT id, logo_url FROM businesses WHERE user_id = $1', [req.user.id]);
     
     if (existing.rows.length > 0) {
+      if (!logo_url) logo_url = existing.rows[0].logo_url;
       await db.query(
-        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6 WHERE user_id = $7',
-        [company_name, gst_number, business_type, address, city, category, req.user.id]
+        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7 WHERE user_id = $8',
+        [company_name, gst_number, business_type, address, city, category, logo_url, req.user.id]
       );
-      res.json({ success: true, message: 'Business updated' });
+      res.json({ success: true, message: 'Business updated successfully', logo_url });
     } else {
       await db.query(
-        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [req.user.id, company_name, gst_number, business_type, address, city, category]
+        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [req.user.id, company_name, gst_number, business_type, address, city, category, logo_url]
       );
-      res.json({ success: true, message: 'Business created' });
+      res.json({ success: true, message: 'Business created successfully', logo_url });
     }
   } catch (error) {
+    console.error('Error updating business profile:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -582,7 +669,7 @@ app.post('/api/businesses', authMiddleware, async (req, res) => {
 app.get('/api/public/businesses', async (req, res) => {
   try {
     const { category, q } = req.query;
-    let query = 'SELECT b.id, b.user_id, b.company_name, b.business_type, b.city, b.category, b.is_verified, b.created_at, u.name as owner_name FROM businesses b LEFT JOIN users u ON b.user_id = u.id';
+    let query = 'SELECT b.id, b.user_id, b.company_name, b.business_type, b.city, b.category, b.is_verified, b.logo_url, b.created_at, u.name as owner_name FROM businesses b LEFT JOIN users u ON b.user_id = u.id';
     const params = [];
 
     if (category) {
@@ -652,9 +739,10 @@ app.post('/api/leads/:id/pay', authMiddleware, async (req, res) => {
 app.post('/api/subscriptions/upgrade', authMiddleware, async (req, res) => {
   try {
     const { plan } = req.body;
-    // plan could be 'basic' (10k), 'pro' (20k), 'enterprise' (30k)
+    // plan could be 'basic' (10k), 'pro' (20k), 'enterprise' (30k), 'website_combo' (35k)
     await db.query('UPDATE users SET subscription = $1 WHERE id = $2', [plan, req.user.id]);
-    res.json({ success: true, message: `Successfully upgraded to ${plan.toUpperCase()} plan via No Cost EMI!` });
+    const planLabel = plan === 'website_combo' ? 'CUSTOM BUSINESS WEBSITE + VIP' : plan.toUpperCase();
+    res.json({ success: true, message: `Successfully upgraded to ${planLabel} plan!` });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -782,27 +870,6 @@ app.get('/api/public/products/:id', async (req, res) => {
   }
 });
 
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../assets/images/products');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
-
 // Route: Get Products for a Supplier
 app.get('/api/products', authMiddleware, async (req, res) => {
   try {
@@ -814,52 +881,51 @@ app.get('/api/products', authMiddleware, async (req, res) => {
   }
 });
 
-// Serve uploaded images statically
-app.use('/assets', express.static(path.join(__dirname, '../assets')));
-
-// Route: Add a Product
+// Route: Add a Product (With Auto-Categorization & Stock Quantity)
 app.post('/api/products', authMiddleware, upload.single('image'), async (req, res) => {
   const { name, price, category, moq, unit, stock_quantity } = req.body;
+  const effectiveCategory = classifyCategory(name, category);
   
   // Create an absolute URL for the image so it loads correctly when HTML is opened via file://
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   const image_url = req.file ? `${baseUrl}/assets/images/products/${req.file.filename}` : 'https://via.placeholder.com/400x300?text=No+Image';
   
   // Auto-SEO Generator
-  const autoSeoTags = `buy ${name} wholesale, best ${name} supplier, ${name} manufacturers, top quality ${category}`;
+  const autoSeoTags = `buy ${name} wholesale, best ${name} supplier, ${name} manufacturers, top quality ${effectiveCategory}`;
 
   try {
     const newProd = await db.query(
       'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [req.user.id, name, price || 0, category || 'Uncategorized', moq || 1, unit || 'Pieces', image_url, autoSeoTags, parseInt(stock_quantity) || 500]
+      [req.user.id, name, price || 0, effectiveCategory, moq || 1, unit || 'Pieces', image_url, autoSeoTags, parseInt(stock_quantity) || 500]
     );
-    res.json({ success: true, product: newProd.rows[0], seo_generated: autoSeoTags });
+    res.json({ success: true, product: newProd.rows[0], seo_generated: autoSeoTags, category: effectiveCategory });
   } catch (error) {
     console.error('Error adding product:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
-// Route: Update Product
+// Route: Update Product (With Auto-Categorization)
 app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req, res) => {
   const { name, price, category, moq, unit, stock_quantity } = req.body;
+  const effectiveCategory = classifyCategory(name, category);
   
   try {
     let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6 WHERE id = $7 AND supplier_id = $8 RETURNING *';
-    let params = [name, price, category || 'Uncategorized', moq, unit || 'Pieces', parseInt(stock_quantity) || 500, parseInt(req.params.id), req.user.id];
+    let params = [name, price, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, parseInt(req.params.id), req.user.id];
 
     if (req.file) {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const image_url = `${baseUrl}/assets/images/products/${req.file.filename}`;
       updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, image_url = $7 WHERE id = $8 AND supplier_id = $9 RETURNING *';
-      params = [name, price, category || 'Uncategorized', moq, unit || 'Pieces', parseInt(stock_quantity) || 500, image_url, parseInt(req.params.id), req.user.id];
+      params = [name, price, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, image_url, parseInt(req.params.id), req.user.id];
     }
     
     const updatedProd = await db.query(updateQuery, params);
     if (updatedProd.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found or unauthorized' });
     }
-    res.json({ success: true, product: updatedProd.rows[0] });
+    res.json({ success: true, product: updatedProd.rows[0], category: effectiveCategory });
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
@@ -883,7 +949,28 @@ app.delete('/api/products/:id', authMiddleware, async (req, res) => {
 // Route: Get ALL Products (Public)
 app.get('/api/public/products', async (req, res) => {
   try {
-    const prods = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+    let prods;
+    try {
+      prods = await db.query(`
+        SELECT p.*, b.company_name AS supplier_name, b.logo_url AS supplier_logo, b.city AS city
+        FROM products p
+        LEFT JOIN businesses b ON p.supplier_id = b.user_id
+        ORDER BY p.created_at DESC
+      `);
+    } catch(qErr) {
+      const rawProds = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+      const rawBiz = await db.query('SELECT * FROM businesses');
+      const bizMap = {};
+      (rawBiz.rows || []).forEach(b => { bizMap[b.user_id] = b; });
+      prods = {
+        rows: (rawProds.rows || []).map(p => ({
+          ...p,
+          supplier_name: bizMap[p.supplier_id] ? bizMap[p.supplier_id].company_name : ('Supplier #' + p.supplier_id),
+          supplier_logo: bizMap[p.supplier_id] ? bizMap[p.supplier_id].logo_url : null,
+          city: bizMap[p.supplier_id] ? bizMap[p.supplier_id].city : null
+        }))
+      };
+    }
     res.json({ products: prods.rows });
   } catch (error) {
     console.error('Error fetching public products:', error);

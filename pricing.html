@@ -10,8 +10,8 @@
   <style>
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
       margin-top: 3rem;
     }
     .pricing-card {
@@ -137,6 +137,24 @@
           <li>Custom CRM Integration</li>
         </ul>
         <button class="btn btn-outline" style="width: 100%;" onclick="upgradePlan('enterprise')">Choose Enterprise</button>
+      </div>
+
+      <!-- Custom Dedicated Website Combo Plan -->
+      <div class="pricing-card" style="border: 2px solid #028867; background: linear-gradient(180deg, #f0fdf9 0%, #ffffff 18%);">
+        <div class="popular-badge" style="background: #028867;">Website Combo</div>
+        <h2 style="font-size: 1.5rem; color: #028867;">Custom Website</h2>
+        <div class="price-value">₹35K<span style="font-size:1rem;font-weight:normal;color:var(--color-text-muted)">/yr</span></div>
+        <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: -1rem; margin-bottom: 1rem;">Inclusive of all taxes</div>
+        <div class="emi-text" style="color: #028867; background: rgba(2, 136, 103, 0.1);">No Cost EMI @ ₹2,916/mo</div>
+        
+        <ul class="feature-list">
+          <li><strong>Dedicated Custom Website</strong> (yourbrand.com)</li>
+          <li>1 Year Domain + High-Speed Hosting</li>
+          <li>Mobile Responsive & WhatsApp Orders</li>
+          <li>Flenko VIP Supplier Top Rank & Badge</li>
+          <li>Unlimited RFQ Leads + Dedicated Manager</li>
+        </ul>
+        <button class="btn btn-primary" style="width: 100%; background: #028867; border-color: #028867;" onclick="upgradePlan('website_combo')">Choose Website Combo</button>
       </div>
     </div>
   </main>

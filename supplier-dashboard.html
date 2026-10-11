@@ -117,7 +117,10 @@
   <main class="im-panel-layout">
     <aside class="im-sidebar">
       <div style="padding: 1rem; border-bottom: 1px solid var(--color-border); text-align: center;">
-        <div id="userAvatarText" style="width: 50px; height: 50px; background: var(--color-navy-deep); color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; margin: 0 auto 0.5rem; font-size: 1.25rem;">U</div>
+        <div id="userAvatarContainer" style="position: relative; width: 60px; height: 60px; margin: 0 auto 0.5rem;">
+          <div id="userAvatarText" style="width: 100%; height: 100%; background: var(--color-navy-deep); color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; font-size: 1.25rem;">U</div>
+          <img id="userLogoImg" src="" alt="Logo" style="display: none; width: 100%; height: 100%; border-radius: 50%; object-fit: contain; border: 2px solid #028867; background: #fff;">
+        </div>
         <div id="welcomeName" style="font-weight: 700; font-size: 1rem; color: var(--color-navy-deep);">Loading...</div>
         <div style="font-size: 0.75rem; color: var(--color-text-muted);">Free Supplier</div>
       </div>
@@ -134,7 +137,24 @@
     </aside>
 
     <section>
-      
+      <!-- Dedicated Custom Business Website Banner -->
+      <div class="panel-card" style="border: 2px solid #028867; background: linear-gradient(135deg, #e6f7f3 0%, #ffffff 100%);">
+        <div class="panel-card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <span style="background: #028867; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Exclusive Website Package</span>
+            <h3 style="font-size: 1.15rem; color: var(--color-navy-deep); margin: 0.4rem 0 0.2rem 0;">Apne Business Ki Dedicated Website Chahiye?</h3>
+            <p style="font-size: 0.825rem; color: #475569; margin: 0; max-width: 620px;">
+              Get your custom branded website (<strong>yourbrand.com</strong>), mobile catalog, domain, 1-year hosting & WhatsApp ordering + VIP Flenko Top Ranking for just ₹35,000/yr!
+            </p>
+          </div>
+          <div>
+            <a href="checkout.html?plan=website_combo" class="btn btn-primary" style="background: #028867; border: none; font-weight: 600; padding: 0.55rem 1.25rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+              🌐 Get Website Package &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div class="panel-card">
         <div class="panel-card-body" style="display: flex; gap: 2rem; align-items: center;">
           <div style="flex: 1;">
@@ -213,7 +233,13 @@
       const profileData = await auth.getProfile();
       if (profileData && profileData.user) {
          document.getElementById('userAvatarText').innerText = profileData.user.name ? profileData.user.name.charAt(0).toUpperCase() : 'U';
-         document.getElementById('welcomeName').innerText = profileData.user.company_name || profileData.user.name || 'Supplier';
+         document.getElementById('welcomeName').innerText = (profileData.user.business && profileData.user.business.company_name) || profileData.user.company_name || profileData.user.name || 'Supplier';
+         if (profileData.user.business && profileData.user.business.logo_url) {
+           const logoImg = document.getElementById('userLogoImg');
+           logoImg.src = profileData.user.business.logo_url;
+           logoImg.style.display = 'block';
+           document.getElementById('userAvatarText').style.display = 'none';
+         }
       }
 
       const leadsData = await auth.getLeads();

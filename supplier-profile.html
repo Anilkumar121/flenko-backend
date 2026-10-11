@@ -61,10 +61,40 @@
     </aside>
 
     <section>
+      <!-- Dedicated Business Website Package Banner -->
+      <div class="panel-card" style="border: 2px solid #028867; background: linear-gradient(135deg, #f0fdf9 0%, #ffffff 100%);">
+        <div class="panel-card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <span style="background: #028867; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Exclusive Seller Add-on</span>
+            <h3 style="color: var(--color-navy-deep); margin: 0.5rem 0 0.25rem 0; font-size: 1.15rem;">🌐 Apne Business Ki Dedicated Custom Website Banwayein!</h3>
+            <p style="color: #64748b; font-size: 0.85rem; margin: 0; max-width: 650px;">
+              Get your own professional company website (e.g. <strong>yourbrand.com</strong>), complete product catalog, domain + 1 year cloud hosting, WhatsApp order button + Flenko VIP Supplier Top Rank listing!
+            </p>
+          </div>
+          <div>
+            <a href="checkout.html?plan=website_combo" class="btn btn-primary" style="background: #028867; border-color: #028867; font-weight: 600; padding: 0.65rem 1.25rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+              🚀 Get Website Package (₹35,000/yr) &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div class="panel-card">
         <div class="panel-card-header">Edit Company Details</div>
         <div class="panel-card-body">
-          <form id="profileForm" onsubmit="event.preventDefault(); alert('Profile Updated Successfully!');">
+          <form id="profileForm">
+            <!-- Company Logo Upload -->
+            <div class="form-group" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px dashed #cbd5e1;">
+              <div style="position: relative; width: 85px; height: 85px; border-radius: 50%; border: 2px solid #028867; overflow: hidden; background: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.06);">
+                <img id="logoPreview" src="assets/images/logo.png" alt="Company Logo" style="width: 100%; height: 100%; object-fit: contain;">
+              </div>
+              <div style="flex: 1;">
+                <label class="form-label" style="margin-bottom: 0.25rem; font-weight: 600;">Official Business Logo</label>
+                <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Upload your brand or company logo (PNG, JPG, WebP). It will appear on your products, seller profile, and catalog.</p>
+                <input type="file" id="companyLogoFile" accept="image/*" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.5rem;">
+              </div>
+            </div>
+
             <div class="form-group">
               <label class="form-label">Company Name</label>
               <input type="text" id="companyName" class="form-control" required>
@@ -114,7 +144,7 @@
               <label class="form-label">Complete Address</label>
               <textarea id="address" class="form-control" rows="3" placeholder="Shop/Plot No, Street, Landmark..."></textarea>
             </div>
-            <button type="submit" class="btn btn-primary">Save Profile Details</button>
+            <button type="submit" id="saveProfileBtn" class="btn btn-primary">Save Profile Details</button>
           </form>
         </div>
       </div>
@@ -127,39 +157,63 @@
       if (!auth.getToken()) return window.location.href = 'login.html';
       const data = await auth.getProfile();
       if (data && data.user && data.user.business) {
-        document.getElementById('companyName').value = data.user.business.company_name || '';
-        document.getElementById('gstNumber').value = data.user.business.gst_number || '';
-        document.getElementById('bizType').value = data.user.business.business_type || 'Manufacturer';
-        document.getElementById('bizCategory').value = data.user.business.category || '';
-        document.getElementById('address').value = data.user.business.address || '';
+        const b = data.user.business;
+        document.getElementById('companyName').value = b.company_name || '';
+        document.getElementById('gstNumber').value = b.gst_number || '';
+        document.getElementById('bizType').value = b.business_type || 'Manufacturer';
+        document.getElementById('bizCategory').value = b.category || '';
+        document.getElementById('address').value = b.address || '';
+        if (b.logo_url) {
+          document.getElementById('logoPreview').src = b.logo_url;
+        }
       }
     });
 
-    document.querySelector('form').addEventListener('submit', async (e) => {
+    // Preview logo on file selection
+    document.getElementById('companyLogoFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          document.getElementById('logoPreview').src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
+      const btn = document.getElementById('saveProfileBtn');
       btn.innerText = 'Saving...';
       try {
+        const formData = new FormData();
+        formData.append('company_name', document.getElementById('companyName').value);
+        formData.append('gst_number', document.getElementById('gstNumber').value);
+        formData.append('business_type', document.getElementById('bizType').value);
+        formData.append('category', document.getElementById('bizCategory').value);
+        formData.append('address', document.getElementById('address').value);
+        formData.append('city', 'Unknown');
+        
+        const logoFile = document.getElementById('companyLogoFile').files[0];
+        if (logoFile) {
+          formData.append('logo', logoFile);
+        }
+
         const res = await fetch('https://flenko-backend.onrender.com/api/businesses', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + auth.getToken()
           },
-          body: JSON.stringify({
-            company_name: document.getElementById('companyName').value,
-            gst_number: document.getElementById('gstNumber').value,
-            business_type: document.getElementById('bizType').value,
-            category: document.getElementById('bizCategory').value,
-            address: document.getElementById('address').value,
-            city: 'Unknown' // default since not in form
-          })
+          body: formData
         });
         const data = await res.json();
         if (data.success) {
           alert('Profile saved successfully!');
+          if (data.business && data.business.logo_url) {
+            document.getElementById('logoPreview').src = data.business.logo_url;
+          }
         } else {
-          alert('Failed to save profile: ' + data.error);
+          alert('Failed to save profile: ' + (data.error || 'Server error'));
         }
       } catch (err) {
         alert('Error saving profile');

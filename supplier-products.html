@@ -105,48 +105,55 @@
       <h3 style="margin-bottom: 1.5rem;">Add New Product</h3>
       <form id="addProductForm">
         <div class="form-group">
-          <label class="form-label">Product Name</label>
-          <input type="text" id="pName" class="form-control" required placeholder="e.g. 5-Ply Corrugated Box">
+          <label class="form-label">Product / Service Name</label>
+          <input type="text" id="pName" class="form-control" required placeholder="e.g. Website Development, Civil Construction, Corrugated Boxes" oninput="autoDetectCategory('add')">
         </div>
         <div class="form-group">
-          <label class="form-label">Category</label>
-          <select id="pCategory" class="form-control" required>
-            <option value="" disabled selected>Select Business Category</option>
-            <optgroup label="Manufacturing & Industrial">
-              <option>Industrial Machinery</option>
-              <option>Packaging Material</option>
-              <option>Chemicals & Dyes</option>
-              <option>Metal & Hardware</option>
+          <label class="form-label">Business Industry / Service <small style="color:#64748b; font-weight:normal;">(Select or type freely below)</small></label>
+          <select id="pServiceDropdown" class="form-control" onchange="applyServiceDropdown('add')" style="margin-bottom: 0.5rem; font-weight:500;">
+            <option value="">-- Quick Select Industry / Service --</option>
+            <optgroup label="💻 Software, Web & Digital Services">
+              <option value="Web & App Development">Website & Mobile App Development</option>
+              <option value="Digital Marketing & SEO">Digital Marketing & SEO Services</option>
+              <option value="ERP & Business Software">ERP, CRM & Billing Software</option>
+              <option value="Cloud Hosting">Cloud Hosting & Domains</option>
             </optgroup>
-            <optgroup label="Construction & Real Estate">
-              <option>Building Materials</option>
-              <option>Architectural Services</option>
-              <option>Interior & Furnishings</option>
+            <optgroup label="🏗️ Construction, Civil & Real Estate">
+              <option value="Building Materials">Building & Civil Construction</option>
+              <option value="Architectural Services">Architectural & 3D Modeling Services</option>
+              <option value="Interior & Furnishings">Interior Designing & Commercial Furnishing</option>
             </optgroup>
-            <optgroup label="Software & IT Services">
-              <option>Web & App Development</option>
-              <option>Digital Marketing & SEO</option>
-              <option>ERP & Business Software</option>
-              <option>Cloud Hosting</option>
+            <optgroup label="📦 Packaging, Printing & Paper">
+              <option value="Packaging Material">Carton Boxes, Packaging & Pouches</option>
+              <option value="Printing & Signage">Commercial Printing, Signage & Banners</option>
             </optgroup>
-            <optgroup label="Medical & Hospitality">
-              <option>Medical Equipment</option>
-              <option>Hospital Furniture</option>
-              <option>Surgical Supplies</option>
-              <option>Hotel & Restaurant Supplies</option>
+            <optgroup label="⚙️ Manufacturing & Industrial">
+              <option value="Industrial Machinery">Industrial Machinery, CNC & Heavy Tools</option>
+              <option value="Chemicals & Dyes">Chemicals, Resins, Polymers & Dyes</option>
+              <option value="Metal & Hardware">Metal Fabrications, Steel & Hardware</option>
             </optgroup>
-            <optgroup label="Textile & Apparel">
-              <option>Garments & Fabric</option>
-              <option>Fashion Accessories</option>
-              <option>Yarn & Threads</option>
+            <optgroup label="🏥 Medical & Healthcare">
+              <option value="Medical Equipment">Medical, Surgical & Hospital Equipment</option>
+              <option value="Hospital Furniture">Hospital Furniture & Clinic Setup</option>
             </optgroup>
-            <optgroup label="Other">
-              <option>Agriculture & Food</option>
-              <option>Electronics & Electrical</option>
-              <option>Printing & Signage</option>
-              <option>Uncategorized</option>
+            <optgroup label="🏨 Hospitality, Food & Textiles">
+              <option value="Hotel & Restaurant Supplies">Hotel, Restaurant & Kitchen Supplies</option>
+              <option value="Garments & Fabric">Textiles, Garments & Wholesale Fabrics</option>
+              <option value="Agriculture & Food">Agriculture, Bulk Produce & Spices</option>
+            </optgroup>
+            <optgroup label="⚡ Electrical & Other">
+              <option value="Electronics & Electrical">Electrical Wiring, Solar & Electronics</option>
+              <option value="Other">Custom / Other Business Service</option>
             </optgroup>
           </select>
+          <div style="position: relative;">
+            <input type="text" id="pCategoryInput" class="form-control" placeholder="Or type your specific service / category manually..." oninput="autoDetectCategory('add')">
+            <input type="hidden" id="pCategory" value="Uncategorized">
+          </div>
+          <div id="pAutoCatBadge" style="margin-top: 0.4rem; font-size: 0.75rem; color: #028867; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>🎯 Auto-assigned Category:</span>
+            <span id="pAutoCatName" style="background: #e6f7f3; color: #028867; padding: 2px 8px; border-radius: 4px; border: 1px solid #bbf0e2;">General B2B</span>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Price (₹) <small style="font-weight: normal; color: #64748b;">(per piece / unit)</small></label>
@@ -276,14 +283,75 @@
       if (label) label.innerText = unit;
     }
 
+    function classifyCategoryClient(name, typedCat) {
+      const combined = ((name || '') + ' ' + (typedCat || '')).toLowerCase();
+      if (/(website|web dev|app dev|software|seo|digital marketing|cloud hosting|erp|crm|coding|fullstack|ui\/ux|graphic design|developer|domain)/i.test(combined)) {
+        return 'Web & App Development';
+      }
+      if (/(construction|civil|architect|building|cement|concrete|brick|tiles|interior|marble|flooring|plywood|paint|scaffolding|steel bar)/i.test(combined)) {
+        return 'Building Materials';
+      }
+      if (/(packag|box|carton|corrugated|bag|pouch|tape|print|signage|label|poly bag|bubble wrap)/i.test(combined)) {
+        return 'Packaging Material';
+      }
+      if (/(machine|machinery|lathe|cnc|laser|welding|pump|motor|generator|compressor|hydraulic|boiler|drill|automation|hardware)/i.test(combined)) {
+        return 'Industrial Machinery';
+      }
+      if (/(medical|hospital|doctor|surgical|pharma|medicine|clinic|ppe|mask|gloves|stethoscope|diagnostic|implant)/i.test(combined)) {
+        return 'Medical Equipment';
+      }
+      if (/(fabric|garment|cloth|shirt|pant|textile|yarn|cotton|saree|suit|fashion|apparel|dress)/i.test(combined)) {
+        return 'Garments & Fabric';
+      }
+      if (/(hotel|restaurant|catering|kitchen equipment|crockery|cutlery|hospitality|resort|banquet|cafe)/i.test(combined)) {
+        return 'Hotel & Restaurant Supplies';
+      }
+      if (/(chemical|resin|polymer|dye|acid|solvent|fertilizer|pesticide)/i.test(combined)) {
+        return 'Chemicals & Dyes';
+      }
+      if (/(electric|solar|wire|cable|transformer|switch|light|led|battery|inverter)/i.test(combined)) {
+        return 'Electronics & Electrical';
+      }
+      if (/(agri|grain|spice|rice|wheat|sugar|fruit|vegetable|pulse|tea|coffee)/i.test(combined)) {
+        return 'Agriculture & Food';
+      }
+      if (typedCat && typedCat.trim().length > 0) {
+        return typedCat.trim();
+      }
+      return 'General B2B';
+    }
+
+    function autoDetectCategory(type) {
+      const nameEl = document.getElementById(type === 'add' ? 'pName' : 'eName');
+      const catInput = document.getElementById(type === 'add' ? 'pCategoryInput' : 'eCategoryInput');
+      const hiddenCat = document.getElementById(type === 'add' ? 'pCategory' : 'eCategory');
+      const badgeName = document.getElementById(type === 'add' ? 'pAutoCatName' : 'eAutoCatName');
+
+      const detected = classifyCategoryClient(nameEl ? nameEl.value : '', catInput ? catInput.value : '');
+      if (hiddenCat) hiddenCat.value = detected;
+      if (badgeName) badgeName.innerText = detected;
+    }
+
+    function applyServiceDropdown(type) {
+      const dropdown = document.getElementById(type === 'add' ? 'pServiceDropdown' : 'eServiceDropdown');
+      const catInput = document.getElementById(type === 'add' ? 'pCategoryInput' : 'eCategoryInput');
+      if (dropdown && dropdown.value) {
+        if (catInput) catInput.value = dropdown.value;
+      }
+      autoDetectCategory(type);
+    }
+
     document.getElementById('addProductForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('addBtn');
       btn.innerText = 'Uploading...';
       
+      autoDetectCategory('add');
+      const finalCat = document.getElementById('pCategory').value || document.getElementById('pCategoryInput').value || 'General B2B';
+      
       const formData = new FormData();
       formData.append('name', document.getElementById('pName').value);
-      formData.append('category', document.getElementById('pCategory').value);
+      formData.append('category', finalCat);
       formData.append('price', document.getElementById('pPrice').value);
       formData.append('moq', document.getElementById('pMoq').value);
       formData.append('unit', document.getElementById('pUnit').value);
@@ -310,7 +378,9 @@
     function openEditModal(id, name, price, moq, unit, category, stock_quantity) {
       editingProductId = id;
       document.getElementById('eName').value = name;
+      document.getElementById('eCategoryInput').value = category || '';
       document.getElementById('eCategory').value = category || 'Uncategorized';
+      autoDetectCategory('edit');
       document.getElementById('ePrice').value = price;
       document.getElementById('eMoq').value = moq;
       document.getElementById('eUnit').value = unit || 'Pieces';
@@ -325,9 +395,12 @@
       const btn = document.getElementById('editBtn');
       btn.innerText = 'Saving...';
       
+      autoDetectCategory('edit');
+      const finalCat = document.getElementById('eCategory').value || document.getElementById('eCategoryInput').value || 'General B2B';
+      
       const formData = new FormData();
       formData.append('name', document.getElementById('eName').value);
-      formData.append('category', document.getElementById('eCategory').value);
+      formData.append('category', finalCat);
       formData.append('price', document.getElementById('ePrice').value);
       formData.append('moq', document.getElementById('eMoq').value);
       formData.append('unit', document.getElementById('eUnit').value);
@@ -378,32 +451,55 @@
       </div>
       <form id="editProductForm">
         <div class="form-group">
-          <label class="form-label">Product Name</label>
-          <input type="text" id="eName" class="form-control" required>
+          <label class="form-label">Product / Service Name</label>
+          <input type="text" id="eName" class="form-control" required oninput="autoDetectCategory('edit')">
         </div>
         <div class="form-group">
-          <label class="form-label">Category</label>
-          <select id="eCategory" class="form-control" required>
-            <option value="" disabled selected>Select Business Category</option>
-            <optgroup label="Manufacturing & Industrial">
-              <option>Industrial Machinery</option><option>Packaging Material</option><option>Chemicals & Dyes</option><option>Metal & Hardware</option>
+          <label class="form-label">Business Industry / Service <small style="color:#64748b; font-weight:normal;">(Select or type freely below)</small></label>
+          <select id="eServiceDropdown" class="form-control" onchange="applyServiceDropdown('edit')" style="margin-bottom: 0.5rem; font-weight:500;">
+            <option value="">-- Quick Select Industry / Service --</option>
+            <optgroup label="💻 Software, Web & Digital Services">
+              <option value="Web & App Development">Website & Mobile App Development</option>
+              <option value="Digital Marketing & SEO">Digital Marketing & SEO Services</option>
+              <option value="ERP & Business Software">ERP, CRM & Billing Software</option>
+              <option value="Cloud Hosting">Cloud Hosting & Domains</option>
             </optgroup>
-            <optgroup label="Construction & Real Estate">
-              <option>Building Materials</option><option>Architectural Services</option><option>Interior & Furnishings</option>
+            <optgroup label="🏗️ Construction, Civil & Real Estate">
+              <option value="Building Materials">Building & Civil Construction</option>
+              <option value="Architectural Services">Architectural & 3D Modeling Services</option>
+              <option value="Interior & Furnishings">Interior Designing & Commercial Furnishing</option>
             </optgroup>
-            <optgroup label="Software & IT Services">
-              <option>Web & App Development</option><option>Digital Marketing & SEO</option><option>ERP & Business Software</option><option>Cloud Hosting</option>
+            <optgroup label="📦 Packaging, Printing & Paper">
+              <option value="Packaging Material">Carton Boxes, Packaging & Pouches</option>
+              <option value="Printing & Signage">Commercial Printing, Signage & Banners</option>
             </optgroup>
-            <optgroup label="Medical & Hospitality">
-              <option>Medical Equipment</option><option>Hospital Furniture</option><option>Surgical Supplies</option><option>Hotel & Restaurant Supplies</option>
+            <optgroup label="⚙️ Manufacturing & Industrial">
+              <option value="Industrial Machinery">Industrial Machinery, CNC & Heavy Tools</option>
+              <option value="Chemicals & Dyes">Chemicals, Resins, Polymers & Dyes</option>
+              <option value="Metal & Hardware">Metal Fabrications, Steel & Hardware</option>
             </optgroup>
-            <optgroup label="Textile & Apparel">
-              <option>Garments & Fabric</option><option>Fashion Accessories</option><option>Yarn & Threads</option>
+            <optgroup label="🏥 Medical & Healthcare">
+              <option value="Medical Equipment">Medical, Surgical & Hospital Equipment</option>
+              <option value="Hospital Furniture">Hospital Furniture & Clinic Setup</option>
             </optgroup>
-            <optgroup label="Other">
-              <option>Agriculture & Food</option><option>Electronics & Electrical</option><option>Printing & Signage</option><option>Uncategorized</option>
+            <optgroup label="🏨 Hospitality, Food & Textiles">
+              <option value="Hotel & Restaurant Supplies">Hotel, Restaurant & Kitchen Supplies</option>
+              <option value="Garments & Fabric">Textiles, Garments & Wholesale Fabrics</option>
+              <option value="Agriculture & Food">Agriculture, Bulk Produce & Spices</option>
+            </optgroup>
+            <optgroup label="⚡ Electrical & Other">
+              <option value="Electronics & Electrical">Electrical Wiring, Solar & Electronics</option>
+              <option value="Other">Custom / Other Business Service</option>
             </optgroup>
           </select>
+          <div style="position: relative;">
+            <input type="text" id="eCategoryInput" class="form-control" placeholder="Or type your specific service / category manually..." oninput="autoDetectCategory('edit')">
+            <input type="hidden" id="eCategory" value="Uncategorized">
+          </div>
+          <div id="eAutoCatBadge" style="margin-top: 0.4rem; font-size: 0.75rem; color: #028867; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <span>🎯 Auto-assigned Category:</span>
+            <span id="eAutoCatName" style="background: #e6f7f3; color: #028867; padding: 2px 8px; border-radius: 4px; border: 1px solid #bbf0e2;">General B2B</span>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Price (₹) <small style="font-weight: normal; color: #64748b;">(per piece / unit)</small></label>

@@ -51,6 +51,7 @@ async function renderHomepageProducts() {
           reviews: 1,
           supplier: { 
             name: p.supplier_name || ("Supplier #" + p.supplier_id), 
+            logo: p.supplier_logo || null,
             verified: true, 
             location: (p.city || "Global Hub") + (p.country ? ", " + p.country : "") 
           },
@@ -121,10 +122,13 @@ async function renderHomepageProducts() {
 
         <div class="alibaba-supplier-meta">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">
-              ${p.flag || '📍'} ${p.supplier.name}
-            </span>
-            <span style="color:#b45309; font-weight:700;">${p.years || 'Verified'}</span>
+            <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+              ${p.supplier.logo ? `<img src="${p.supplier.logo}" alt="Logo" style="width:20px; height:20px; border-radius:50%; object-fit:contain; border:1px solid #cbd5e1; background:#fff; flex-shrink:0;">` : ''}
+              <span style="font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">
+                ${p.supplier.name}
+              </span>
+            </div>
+            <span style="color:#b45309; font-weight:700; font-size:0.75rem;">${p.years || 'Verified'}</span>
           </div>
         </div>
 

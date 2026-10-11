@@ -84,8 +84,10 @@ async function ensureTables() {
       address TEXT,
       city VARCHAR(100),
       is_verified BOOLEAN DEFAULT FALSE,
+      logo_url TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS logo_url TEXT;
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -320,13 +322,24 @@ module.exports = {
       return { rows: rows.reverse() };
     }
     if (text.includes('INSERT INTO businesses')) {
-      mockDB.businesses.push({ id: mockDB.idCounter++, user_id: params[0], company_name: params[1], gst_number: params[2], business_type: params[3], address: params[4], city: params[5], category: params[6] });
+      mockDB.businesses.push({ id: mockDB.idCounter++, user_id: params[0], company_name: params[1], gst_number: params[2], business_type: params[3], address: params[4], city: params[5], category: params[6], logo_url: params[7] || null });
       saveMockDB();
       return { rows: [] };
     }
     if (text.includes('UPDATE businesses SET')) {
-      const biz = mockDB.businesses.find(b => b.user_id === params[6]);
-      if (biz) { biz.company_name = params[0]; biz.gst_number = params[1]; biz.business_type = params[2]; biz.address = params[3]; biz.city = params[4]; biz.category = params[5]; }
+      const targetUserId = params[params.length - 1];
+      const biz = mockDB.businesses.find(b => b.user_id === targetUserId);
+      if (biz) { 
+        biz.company_name = params[0]; 
+        biz.gst_number = params[1]; 
+        biz.business_type = params[2]; 
+        biz.address = params[3]; 
+        biz.city = params[4]; 
+        biz.category = params[5]; 
+        if (params.length >= 8) {
+          biz.logo_url = params[6] || biz.logo_url;
+        }
+      }
       saveMockDB();
       return { rows: [] };
     }
