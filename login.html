@@ -63,7 +63,12 @@
         if (res.success) {
            loginForm.classList.add('hidden');
            otpForm.classList.remove('hidden');
-           statusMsg.innerHTML = res.message || 'OTP sent to your phone! Please enter the 6-digit code.';
+           if (res.testOtp) {
+             document.getElementById('otpInput').value = res.testOtp;
+             statusMsg.innerHTML = `Free Test Mode: Code auto-filled (<b>${res.testOtp}</b>). Click Verify & Login!`;
+           } else {
+             statusMsg.innerHTML = res.message || 'OTP sent to your phone! Please enter the 6-digit code.';
+           }
            statusMsg.style.color = 'var(--color-teal)';
         } else {
            statusMsg.innerText = res.error || 'Failed to send OTP';

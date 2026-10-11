@@ -183,7 +183,12 @@
         if (res.success) {
            regForm.classList.add('hidden');
            otpForm.classList.remove('hidden');
-           regStatusMsg.innerHTML = res.message || 'OTP sent to your phone! Please enter the 6-digit code.';
+           if (res.testOtp) {
+             document.getElementById('regOtpInput').value = res.testOtp;
+             regStatusMsg.innerHTML = `Free Test Mode: Code auto-filled (<b>${res.testOtp}</b>). Click Verify to complete registration!`;
+           } else {
+             regStatusMsg.innerHTML = res.message || 'OTP sent to your phone! Please enter the 6-digit code.';
+           }
            regStatusMsg.style.color = 'var(--color-teal)';
         } else {
            regStatusMsg.innerText = res.error || 'Failed to send OTP';
