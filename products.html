@@ -3,178 +3,857 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>B2B Products - Flenko.com</title>
+  <title>Worldwide Wholesale Products - Flenko.com B2B Marketplace</title>
+  <meta name="description" content="Browse millions of wholesale products from verified global manufacturers and suppliers across 190+ countries.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/storefront.css">
+  
   <style>
+    /* Full Responsive Layout for Products Page */
     .layout-sidebar {
       display: grid;
-      grid-template-columns: 250px 1fr;
+      grid-template-columns: 280px 1fr;
       gap: 2rem;
-      margin-top: 2rem;
+      margin-top: 1.5rem;
+      margin-bottom: 3rem;
+      align-items: start;
     }
+
     .filters-card {
-      padding: 1.5rem;
+      padding: 1.25rem;
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 80px;
     }
+
     .filter-group {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
       border-bottom: 1px solid var(--color-border);
-      padding-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
     }
+
     .filter-group:last-child {
       border-bottom: none;
       padding-bottom: 0;
       margin-bottom: 0;
     }
+
     .filter-title {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
       color: var(--color-navy-midnight);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+
+    .category-search-input {
+      margin-bottom: 0.75rem;
+      font-size: 0.8125rem;
+      padding: 0.4rem 0.65rem;
+    }
+
+    .category-scroll-list {
+      max-height: 250px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: 0.25rem;
+    }
+
+    .category-scroll-list::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .category-scroll-list::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
     .checkbox-label {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.875rem;
+      font-size: 0.84rem;
       color: var(--color-text-main);
       margin-bottom: 0.5rem;
       cursor: pointer;
+      user-select: none;
+      transition: color var(--transition-fast);
+    }
+
+    .checkbox-label:hover {
+      color: var(--color-blue-primary);
+    }
+
+    .checkbox-label input[type="radio"],
+    .checkbox-label input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--color-blue-primary);
+      width: 15px;
+      height: 15px;
+    }
+
+    .mobile-filter-bar {
+      display: none;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .mobile-filter-btn {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+    }
+
+    .active-filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      align-items: center;
+    }
+
+    .filter-chip {
+      background: rgba(22, 119, 210, 0.1);
+      color: var(--color-blue-primary);
+      border: 1px solid rgba(22, 119, 210, 0.2);
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .filter-chip button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-blue-primary);
+      font-size: 0.9rem;
+      padding: 0;
+      line-height: 1;
+    }
+
+    /* Product grid responsive */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Tablet and Mobile Specific Breakpoints */
+    @media (max-width: 900px) {
+      .layout-sidebar {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      .mobile-filter-bar {
+        display: block;
+      }
+
+      .filters-card {
+        display: none; /* Collapsed by default on mobile */
+        position: static;
+        margin-bottom: 1rem;
+      }
+
+      .filters-card.open {
+        display: block;
+        animation: flenkoFadeIn 0.2s ease-out;
+      }
+
+      .section-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+      }
+
+      .section-header > div {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.875rem;
+      }
+
+      .product-info {
+        padding: 0.75rem;
+      }
+
+      .product-title {
+        font-size: 0.8rem;
+        line-height: 1.25;
+      }
+
+      .product-price {
+        font-size: 0.95rem;
+      }
+
+      .product-moq {
+        font-size: 0.7rem;
+      }
+
+      .header-search {
+        flex-direction: row;
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
   <header class="site-header">
     <div class="container header-top">
-      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
-      <form class="header-search" action="products.html" method="GET">
-        <input type="text" name="q" class="form-control" placeholder="Search products, brands, or suppliers..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
-        <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">Search</button>
+      <a href="index.html" class="brand" style="display:flex; align-items:center;">
+        <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
+      </a>
+      
+      <form class="header-search" action="products.html" method="GET" style="display:flex; flex:1; max-width:650px;">
+        <div id="headerCountryContainer"></div>
+        <input type="text" name="q" id="headerSearchQuery" class="form-control" placeholder="Search wholesale products, machinery, suppliers..." style="border-radius: 0;">
+        <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: 0.5rem 1.25rem;">Search</button>
       </form>
+      
       <div class="header-actions">
-        <button class="action-item" onclick="window.location.href='index.html'"><strong>Back to Home</strong></button>
+        <button class="action-item" onclick="window.location.href='index.html'">
+          <small>Home</small>
+          <strong>Back to Home</strong>
+        </button>
+        <button class="btn btn-primary" onclick="window.location.href='rfq.html'" style="background:var(--color-teal); border-color:var(--color-teal); font-size:0.8125rem;">
+          Post RFQ
+        </button>
       </div>
     </div>
   </header>
 
   <main class="container">
+    <!-- Mobile Filter Toggle Bar -->
+    <div class="mobile-filter-bar">
+      <button type="button" class="mobile-filter-btn" id="mobileFilterToggle">
+        <span style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <strong>Filter by Country & Category</strong>
+        </span>
+        <span id="activeFilterBadge" class="badge badge-blue">All Products</span>
+      </button>
+    </div>
+
     <div class="layout-sidebar">
-      <aside class="card filters-card">
-        <div class="filter-group">
-          <h4 class="filter-title">Categories</h4>
-          <label class="checkbox-label"><input type="checkbox" checked> All Categories</label>
-          <label class="checkbox-label"><input type="checkbox"> Industrial Machinery</label>
-          <label class="checkbox-label"><input type="checkbox"> Packaging</label>
-          <label class="checkbox-label"><input type="checkbox"> Electronics</label>
+      <!-- Left Filters Sidebar -->
+      <aside class="filters-card" id="filtersCard">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--color-border);">
+          <h3 style="font-size:1.05rem; margin:0; font-weight:700; color:var(--color-navy-midnight);">Filters</h3>
+          <button type="button" id="resetFiltersBtn" class="btn btn-outline" style="padding:0.2rem 0.5rem; font-size:0.75rem; border:none; color:var(--color-blue-primary);">Reset All</button>
         </div>
+
+        <!-- Country Selector Filter -->
         <div class="filter-group">
-          <h4 class="filter-title">Supplier Type</h4>
-          <label class="checkbox-label"><input type="checkbox"> Verified Supplier ✓</label>
-          <label class="checkbox-label"><input type="checkbox"> Manufacturer</label>
-          <label class="checkbox-label"><input type="checkbox"> Wholesaler</label>
+          <h4 class="filter-title">
+            <span>Supplier Country</span>
+            <span style="font-size:0.7rem; font-weight:normal; color:var(--color-text-muted);">Worldwide</span>
+          </h4>
+          <div id="sidebarCountryContainer" style="width:100%;"></div>
         </div>
+
+        <!-- Global Business Categories -->
         <div class="filter-group">
-          <h4 class="filter-title">Min. Order Quantity (MOQ)</h4>
-          <input type="number" class="form-control" placeholder="Max MOQ e.g. 100">
+          <h4 class="filter-title">
+            <span>Global Categories</span>
+            <span id="categoryCountLabel" style="font-size:0.75rem; font-weight:normal; color:var(--color-text-muted);">(18 Sectors)</span>
+          </h4>
+          <input type="text" id="categoryFilterSearch" class="form-control category-search-input" placeholder="Search 18+ business categories...">
+          
+          <div class="category-scroll-list" id="categoryScrollList">
+            <label class="checkbox-label">
+              <input type="radio" name="businessCategory" value="" checked>
+              <strong>All Categories</strong>
+            </label>
+            <label class="checkbox-label" data-name="industrial machinery equipment tools">
+              <input type="radio" name="businessCategory" value="Industrial Machinery">
+              <span>🏭 Industrial Machinery & Tools</span>
+            </label>
+            <label class="checkbox-label" data-name="electrical electronics wires solar">
+              <input type="radio" name="businessCategory" value="Electrical & Electronics">
+              <span>⚡ Electrical & Electronics</span>
+            </label>
+            <label class="checkbox-label" data-name="packaging printing paper boxes">
+              <input type="radio" name="businessCategory" value="Packaging & Printing">
+              <span>📦 Packaging & Printing</span>
+            </label>
+            <label class="checkbox-label" data-name="chemicals dyes solvents resins">
+              <input type="radio" name="businessCategory" value="Chemicals & Dyes">
+              <span>🧪 Chemicals & Dyes</span>
+            </label>
+            <label class="checkbox-label" data-name="building construction cement steel tiles">
+              <input type="radio" name="businessCategory" value="Building & Construction">
+              <span>🏗️ Building & Construction</span>
+            </label>
+            <label class="checkbox-label" data-name="medical pharma healthcare hospital surgical">
+              <input type="radio" name="businessCategory" value="Medical & Pharma">
+              <span>💊 Medical & Pharma</span>
+            </label>
+            <label class="checkbox-label" data-name="textiles fabrics apparel cotton garments">
+              <input type="radio" name="businessCategory" value="Textiles & Apparel">
+              <span>🧵 Textiles & Apparel</span>
+            </label>
+            <label class="checkbox-label" data-name="agriculture food grains spices coffee produce">
+              <input type="radio" name="businessCategory" value="Agriculture & Food">
+              <span>🌾 Agriculture & Food</span>
+            </label>
+            <label class="checkbox-label" data-name="metals minerals steel aluminum copper mining">
+              <input type="radio" name="businessCategory" value="Metals & Minerals">
+              <span>⚙️ Metals & Minerals</span>
+            </label>
+            <label class="checkbox-label" data-name="automotive auto parts cars tyres engines">
+              <input type="radio" name="businessCategory" value="Automotive & Parts">
+              <span>🚗 Automotive & Parts</span>
+            </label>
+            <label class="checkbox-label" data-name="furniture home decor office chairs desks">
+              <input type="radio" name="businessCategory" value="Furniture & Decor">
+              <span>🛋️ Furniture & Home Decor</span>
+            </label>
+            <label class="checkbox-label" data-name="beauty cosmetics personal care skincare oils">
+              <input type="radio" name="businessCategory" value="Beauty & Personal Care">
+              <span>🧴 Beauty & Personal Care</span>
+            </label>
+            <label class="checkbox-label" data-name="hardware fasteners tools nuts bolts valves">
+              <input type="radio" name="businessCategory" value="Hardware & Tools">
+              <span>🔧 Hardware & Tools</span>
+            </label>
+            <label class="checkbox-label" data-name="computers it telecom networking software cctv">
+              <input type="radio" name="businessCategory" value="IT & Telecom">
+              <span>💻 IT, Telecom & Software</span>
+            </label>
+            <label class="checkbox-label" data-name="renewable energy solar wind power inverters">
+              <input type="radio" name="businessCategory" value="Renewable Energy">
+              <span>☀️ Renewable Energy & Solar</span>
+            </label>
+            <label class="checkbox-label" data-name="safety security fire protection ppe alarms">
+              <input type="radio" name="businessCategory" value="Safety & Security">
+              <span>🛡️ Safety, Security & Protection</span>
+            </label>
+            <label class="checkbox-label" data-name="toys gifts handicrafts sports fitness">
+              <input type="radio" name="businessCategory" value="Gifts & Sports">
+              <span>🧸 Gifts, Crafts & Sports</span>
+            </label>
+            <label class="checkbox-label" data-name="logistics freight shipping cargo pallets warehousing">
+              <input type="radio" name="businessCategory" value="Logistics & Shipping">
+              <span>🚢 Logistics & Supply Chain</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Supplier Verification Filter -->
+        <div class="filter-group">
+          <h4 class="filter-title">Supplier Verification</h4>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filterVerifiedOnly">
+            <span>Verified Suppliers Only ✓</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filterManufacturerOnly">
+            <span>Manufacturers / Exporters</span>
+          </label>
+        </div>
+
+        <!-- MOQ Filter -->
+        <div class="filter-group">
+          <h4 class="filter-title">Maximum Min. Order (MOQ)</h4>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="number" id="filterMaxMoq" class="form-control" placeholder="Max units (e.g. 500)">
+            <button type="button" id="applyMoqBtn" class="btn btn-secondary" style="padding:0.4rem 0.75rem; font-size:0.8rem;">Apply</button>
+          </div>
         </div>
       </aside>
       
-      <section>
-        <div class="section-header" style="padding-top: 0;">
-          <h2 class="section-title">Wholesale Products</h2>
-          <div style="display: flex; gap: 1rem; align-items: center;">
-            <label style="font-size: 0.875rem;">Sort By:</label>
-            <select class="form-control" style="width: 200px;">
-              <option>Relevance</option>
-              <option>Price: Low to High</option>
-              <option>MOQ: Low to High</option>
+      <!-- Right Products Grid Area -->
+      <section style="min-width: 0;">
+        <div class="section-header" style="padding-top: 0; margin-bottom: 1rem;">
+          <div>
+            <h2 class="section-title" id="pageMainHeading" style="margin-bottom:0.25rem;">Worldwide Wholesale Products</h2>
+            <p id="resultsCountText" style="font-size:0.875rem; color:var(--color-text-muted); margin:0;">Loading products from global suppliers...</p>
+          </div>
+          
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <label style="font-size: 0.84rem; color:var(--color-text-muted); white-space:nowrap;">Sort By:</label>
+            <select class="form-control" id="sortBySelect" style="width: 170px; font-size:0.85rem;">
+              <option value="relevance">Relevance</option>
+              <option value="price_low">Price: Low to High</option>
+              <option value="price_high">Price: High to Low</option>
+              <option value="moq_low">MOQ: Low to High</option>
             </select>
           </div>
         </div>
+
+        <!-- Active Filter Chips -->
+        <div class="active-filters-row" id="activeFilterChips"></div>
         
+        <!-- Products Grid Container -->
         <div class="product-grid" id="productsPageGrid">
           <!-- Populated by JS -->
         </div>
       </section>
     </div>
   </main>
+
+  <script src="js/countries.js"></script>
   <script src="js/app.js"></script>
+  
   <script>
+    // Comprehensive Global Wholesale Catalog
+    const GLOBAL_SAMPLE_PRODUCTS = [
+      {
+        id: "gp_1",
+        name: "High-Precision 5-Axis CNC Milling Machine Center",
+        category: "Industrial Machinery",
+        country: "Germany",
+        flag: "🇩🇪",
+        supplier: { name: "Siemens Automation & Tooling GmbH", verified: true, location: "Munich, Germany" },
+        price: 24500,
+        moq: 1,
+        unit: "Sets",
+        image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80",
+        badge: "VERIFIED EXPORTER",
+        leadTime: "15-20 days"
+      },
+      {
+        id: "gp_2",
+        name: "Eco-Friendly Biodegradable Corrugated Shipping Boxes (Bulk 3-Ply / 5-Ply)",
+        category: "Packaging & Printing",
+        country: "United States",
+        flag: "🇺🇸",
+        supplier: { name: "Apex Pack Worldwide Corp", verified: true, location: "Chicago, IL, USA" },
+        price: 0.45,
+        moq: 1000,
+        unit: "Pieces",
+        image: "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=500&q=80",
+        badge: "TOP SELLER",
+        leadTime: "5-7 days"
+      },
+      {
+        id: "gp_3",
+        name: "Industrial Grade High-Purity Titanium Dioxide (TiO2) White Pigment Powder",
+        category: "Chemicals & Dyes",
+        country: "China",
+        flag: "🇨🇳",
+        supplier: { name: "Shandong Chemical Industries Ltd", verified: true, location: "Qingdao, China" },
+        price: 1850,
+        moq: 5,
+        unit: "Tons",
+        image: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=500&q=80",
+        badge: "ISO 9001",
+        leadTime: "10-14 days"
+      },
+      {
+        id: "gp_4",
+        name: "Commercial Tier-1 Bifacial Monocrystalline Solar Panels 550W",
+        category: "Renewable Energy",
+        country: "United Arab Emirates",
+        flag: "🇦🇪",
+        supplier: { name: "Gulf CleanEnergy Technologies FZE", verified: true, location: "Dubai, UAE" },
+        price: 95,
+        moq: 50,
+        unit: "Units",
+        image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=500&q=80",
+        badge: "TIER 1",
+        leadTime: "7-12 days"
+      },
+      {
+        id: "gp_5",
+        name: "Hospital Grade Electric ICU Patient Bed with 5 Functions & Remote",
+        category: "Medical & Pharma",
+        country: "Japan",
+        flag: "🇯🇵",
+        supplier: { name: "Kyoto MedTech International", verified: true, location: "Tokyo, Japan" },
+        price: 1450,
+        moq: 5,
+        unit: "Sets",
+        image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=500&q=80",
+        badge: "CE & FDA",
+        leadTime: "14 days"
+      },
+      {
+        id: "gp_6",
+        name: "100% Organic Combed Ring-Spun Cotton Yarn 30s/1 for Knitting & Weaving",
+        category: "Textiles & Apparel",
+        country: "India",
+        flag: "🇮🇳",
+        supplier: { name: "Vardhman Global Textiles Ltd", verified: true, location: "Surat, India" },
+        price: 3.20,
+        moq: 500,
+        unit: "Kg",
+        image: "https://images.unsplash.com/photo-1606744837616-56c9a5c6a6eb?auto=format&fit=crop&w=500&q=80",
+        badge: "OEKO-TEX",
+        leadTime: "7 days"
+      },
+      {
+        id: "gp_7",
+        name: "Cold Rolled Stainless Steel Sheet 304 / 316L 2B Finish Coil",
+        category: "Metals & Minerals",
+        country: "South Korea",
+        flag: "🇰🇷",
+        supplier: { name: "POSCO Steel Trade Hub", verified: true, location: "Seoul, South Korea" },
+        price: 2600,
+        moq: 2,
+        unit: "Tons",
+        image: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=500&q=80",
+        badge: "CERTIFIED",
+        leadTime: "12 days"
+      },
+      {
+        id: "gp_8",
+        name: "Wholesale Organic Premium Arabica Green Coffee Beans Bulk",
+        category: "Agriculture & Food",
+        country: "Brazil",
+        flag: "🇧🇷",
+        supplier: { name: "Santos Agro Exports SA", verified: true, location: "São Paulo, Brazil" },
+        price: 4.80,
+        moq: 250,
+        unit: "Kg",
+        image: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=500&q=80",
+        badge: "ORGANIC",
+        leadTime: "15 days"
+      },
+      {
+        id: "gp_9",
+        name: "Heavy Duty High-Speed Electric Vehicle (EV) DC Fast Charger 120kW",
+        category: "Automotive & Parts",
+        country: "United Kingdom",
+        flag: "🇬🇧",
+        supplier: { name: "ElectroVolt Power Systems UK", verified: true, location: "London, UK" },
+        price: 8900,
+        moq: 1,
+        unit: "Units",
+        image: "https://images.unsplash.com/photo-1558441719-8b489c63f7d1?auto=format&fit=crop&w=500&q=80",
+        badge: "CE CERTIFIED",
+        leadTime: "10 days"
+      },
+      {
+        id: "gp_10",
+        name: "Ergonomic Mesh Executive Office Chairs (Heavy-Duty BIFMA Certified)",
+        category: "Furniture & Decor",
+        country: "Canada",
+        flag: "🇨🇦",
+        supplier: { name: "Nordic Office Concepts Inc", verified: true, location: "Toronto, Canada" },
+        price: 78,
+        moq: 20,
+        unit: "Pieces",
+        image: "https://images.unsplash.com/photo-1580481077195-c3a8b062ec7e?auto=format&fit=crop&w=500&q=80",
+        badge: "BIFMA TESTED",
+        leadTime: "7 days"
+      },
+      {
+        id: "gp_11",
+        name: "Smart AI 4K IP Dome Security Camera with Night Vision & Motion Alerts",
+        category: "IT & Telecom",
+        country: "Singapore",
+        flag: "🇸🇬",
+        supplier: { name: "NexTech Vision Solutions Pte", verified: true, location: "Singapore" },
+        price: 42,
+        moq: 25,
+        unit: "Units",
+        image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=500&q=80",
+        badge: "ONVIF",
+        leadTime: "5-7 days"
+      },
+      {
+        id: "gp_12",
+        name: "Stainless Steel Fasteners Hex Bolts & Nuts Assortment Din 933 Grade 8.8",
+        category: "Hardware & Tools",
+        country: "India",
+        flag: "🇮🇳",
+        supplier: { name: "Punjab Precision Fasteners Ltd", verified: true, location: "Ludhiana, India" },
+        price: 1.10,
+        moq: 500,
+        unit: "Sets",
+        image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=500&q=80",
+        badge: "DIRECT FACTORY",
+        leadTime: "5 days"
+      }
+    ];
+
     document.addEventListener("DOMContentLoaded", async () => {
       const grid = document.getElementById("productsPageGrid");
-      if (!grid) return;
-      
-      let allProducts = [...b2bProducts];
+      const resultsText = document.getElementById("resultsCountText");
+      const chipsContainer = document.getElementById("activeFilterChips");
+      const mobileFilterToggle = document.getElementById("mobileFilterToggle");
+      const filtersCard = document.getElementById("filtersCard");
+      const categorySearch = document.getElementById("categoryFilterSearch");
+      const categoryRadios = document.querySelectorAll('input[name="businessCategory"]');
+      const verifiedCheck = document.getElementById("filterVerifiedOnly");
+      const manufacturerCheck = document.getElementById("filterManufacturerOnly");
+      const maxMoqInput = document.getElementById("filterMaxMoq");
+      const sortBySelect = document.getElementById("sortBySelect");
+      const resetBtn = document.getElementById("resetFiltersBtn");
+
+      // Mobile drawer toggle
+      mobileFilterToggle.addEventListener("click", () => {
+        filtersCard.classList.toggle("open");
+        const isOpen = filtersCard.classList.contains("open");
+        mobileFilterToggle.querySelector("strong").textContent = isOpen ? "Hide Filters ✕" : "Filter by Country & Category";
+      });
+
+      // Initialize Searchable Country Pickers (Header & Sidebar)
+      const sidebarCountryPicker = new FlenkoCountryPicker({
+        container: "#sidebarCountryContainer",
+        inputName: "sidebar_country",
+        onSelect: () => applyAllFilters()
+      });
+
+      const headerCountryPicker = new FlenkoCountryPicker({
+        container: "#headerCountryContainer",
+        inputName: "country",
+        onSelect: (c) => {
+          sidebarCountryPicker.selectCountry(c);
+        }
+      });
+
+      // Synchronize when changed externally
+      window.addEventListener("flenko_country_selected", (e) => {
+        applyAllFilters();
+      });
+
+      // Load products from backend + global sample catalogue
+      let allProducts = [...GLOBAL_SAMPLE_PRODUCTS];
 
       try {
-        const res = await fetch('/api/public/products');
+        const res = await fetch('https://flenko-backend.onrender.com/api/public/products');
         if (res.ok) {
           const data = await res.json();
           if (data.products && data.products.length > 0) {
             const liveProducts = data.products.map(p => ({
               id: p.id,
               name: p.name,
-              category: p.category,
-              supplier: { name: "Supplier ID: " + p.supplier_id, verified: true, location: "Pan-India" },
+              category: p.category || "General B2B",
+              country: p.country || "India",
+              flag: p.country === "United States" ? "🇺🇸" : (p.country === "Germany" ? "🇩🇪" : "🇮🇳"),
+              supplier: { 
+                name: "Verified Supplier #" + p.supplier_id, 
+                verified: true, 
+                location: (p.city || "Pan-India") + (p.country ? ", " + p.country : "") 
+              },
               price: p.price,
-              moq: p.moq,
+              moq: p.moq || 1,
               unit: p.unit || "Pieces",
-              image: p.image_url,
-              badge: "NEW",
-              leadTime: "TBD"
+              image: p.image_url || "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80",
+              badge: "NEW LISTING",
+              leadTime: "Ready to Ship"
             }));
             allProducts = [...liveProducts, ...allProducts];
           }
         }
       } catch (err) {
-        console.warn("Could not fetch live products", err);
+        console.warn("Live backend products unreachable; using global catalogue", err);
       }
 
+      // Check URL parameters (e.g. ?q=solar&cat=Renewable+Energy&country=United+States)
       const urlParams = new URLSearchParams(window.location.search);
-      const query = urlParams.get('q');
-      const cat = urlParams.get('cat');
+      const initialQuery = urlParams.get('q') || '';
+      const initialCat = urlParams.get('cat') || urlParams.get('sub') || '';
+      const initialCountry = urlParams.get('country') || '';
 
-      if (query) {
-        allProducts = allProducts.filter(p => 
-          p.name.toLowerCase().includes(query.toLowerCase()) || 
-          p.category.toLowerCase().includes(query.toLowerCase())
-        );
-      }
-      if (cat) {
-        allProducts = allProducts.filter(p => p.category.toLowerCase() === cat.toLowerCase());
+      if (initialQuery) {
+        document.getElementById('headerSearchQuery').value = initialQuery;
       }
 
-      if (allProducts.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1/-1; padding: 3rem; text-align: center; color: var(--color-text-muted);">No products or services found for your search. Please try a different keyword or post an <a href="rfq.html" style="color:var(--color-blue-primary);">RFQ</a>.</div>';
-        return;
+      if (initialCat) {
+        // Select matching category radio
+        for (const radio of categoryRadios) {
+          if (radio.value.toLowerCase() === initialCat.toLowerCase() || initialCat.toLowerCase().includes(radio.value.toLowerCase())) {
+            radio.checked = true;
+            break;
+          }
+        }
       }
 
-      grid.innerHTML = allProducts.map(p => `
-        <article class="product-card">
-          <div class="product-img-wrapper">
-            <img src="${p.image}" alt="${p.name}" class="product-img" loading="lazy" onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
-            ${p.badge ? `<div class="product-badges"><span class="badge badge-teal">${p.badge}</span></div>` : ''}
-          </div>
-          <div class="product-info">
-            <div class="product-vendor">${p.supplier.name} ${p.supplier.verified ? '<span style="color:var(--color-blue-primary);" title="Verified Supplier">✓</span>' : ''}</div>
-            <h3 class="product-title">${p.name}</h3>
-            <div class="product-meta">
-              <div>📍 ${p.supplier.location}</div>
-            </div>
-            <div class="product-price-row">
-              <div>
-                <div class="product-price">${formatCurrency(p.price)} <small>/ ${p.unit}</small></div>
-                <div class="product-moq">Min. Order: ${p.moq} ${p.unit}</div>
+      if (initialCountry) {
+        const found = FLENKO_COUNTRIES.find(c => c.name.toLowerCase() === initialCountry.toLowerCase());
+        if (found) {
+          sidebarCountryPicker.selectCountry(found);
+          headerCountryPicker.selectCountry(found);
+        }
+      }
+
+      // Category search input filter
+      categorySearch.addEventListener("input", (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        document.querySelectorAll("#categoryScrollList .checkbox-label").forEach(label => {
+          const radio = label.querySelector("input");
+          if (!radio.value) return; // always keep 'All Categories' visible
+          const text = (label.textContent + " " + (label.getAttribute("data-name") || "")).toLowerCase();
+          label.style.display = text.includes(query) ? "flex" : "none";
+        });
+      });
+
+      // Filter events
+      categoryRadios.forEach(radio => radio.addEventListener("change", applyAllFilters));
+      verifiedCheck.addEventListener("change", applyAllFilters);
+      manufacturerCheck.addEventListener("change", applyAllFilters);
+      document.getElementById("applyMoqBtn").addEventListener("click", applyAllFilters);
+      sortBySelect.addEventListener("change", applyAllFilters);
+
+      resetBtn.addEventListener("click", () => {
+        document.querySelector('input[name="businessCategory"][value=""]').checked = true;
+        sidebarCountryPicker.selectCountry(FLENKO_COUNTRIES[0]);
+        headerCountryPicker.selectCountry(FLENKO_COUNTRIES[0]);
+        document.getElementById('headerSearchQuery').value = '';
+        verifiedCheck.checked = false;
+        manufacturerCheck.checked = false;
+        maxMoqInput.value = '';
+        sortBySelect.value = 'relevance';
+        applyAllFilters();
+      });
+
+      function applyAllFilters() {
+        const query = (document.getElementById('headerSearchQuery').value || '').toLowerCase().trim();
+        const selectedRadio = document.querySelector('input[name="businessCategory"]:checked');
+        const selectedCat = selectedRadio ? selectedRadio.value : '';
+        const selectedCountry = sidebarCountryPicker.selected;
+        const isVerifiedOnly = verifiedCheck.checked;
+        const maxMoq = parseFloat(maxMoqInput.value) || 0;
+        const sortBy = sortBySelect.value;
+
+        let filtered = allProducts.filter(p => {
+          // Text Search
+          if (query) {
+            const matchName = p.name.toLowerCase().includes(query);
+            const matchCat = p.category.toLowerCase().includes(query);
+            const matchSupplier = p.supplier.name.toLowerCase().includes(query);
+            if (!matchName && !matchCat && !matchSupplier) return false;
+          }
+
+          // Category filter
+          if (selectedCat) {
+            if (p.category.toLowerCase() !== selectedCat.toLowerCase()) return false;
+          }
+
+          // Country filter
+          if (selectedCountry && selectedCountry.code !== "ALL") {
+            const countryMatch = (p.country && p.country.toLowerCase() === selectedCountry.name.toLowerCase()) ||
+                                 (p.supplier.location && p.supplier.location.toLowerCase().includes(selectedCountry.name.toLowerCase()));
+            if (!countryMatch) return false;
+          }
+
+          // Verified filter
+          if (isVerifiedOnly && !p.supplier.verified) return false;
+
+          // Max MOQ filter
+          if (maxMoq > 0 && p.moq > maxMoq) return false;
+
+          return true;
+        });
+
+        // Sorting
+        if (sortBy === 'price_low') {
+          filtered.sort((a, b) => a.price - b.price);
+        } else if (sortBy === 'price_high') {
+          filtered.sort((a, b) => b.price - a.price);
+        } else if (sortBy === 'moq_low') {
+          filtered.sort((a, b) => a.moq - b.moq);
+        }
+
+        renderProducts(filtered, { query, selectedCat, selectedCountry });
+      }
+
+      function renderProducts(products, filters) {
+        // Update results counter
+        resultsText.textContent = `Showing ${products.length} wholesale products worldwide`;
+        
+        // Update mobile badge
+        const badgeText = filters.selectedCat || (filters.selectedCountry.code !== 'ALL' ? filters.selectedCountry.name : 'All Products');
+        document.getElementById("activeFilterBadge").textContent = badgeText;
+
+        // Render Active Filter Chips
+        let chipsHtml = '';
+        if (filters.query) {
+          chipsHtml += `<div class="filter-chip">Search: "${filters.query}" <button onclick="document.getElementById('headerSearchQuery').value=''; applyAllFilters();">×</button></div>`;
+        }
+        if (filters.selectedCat) {
+          chipsHtml += `<div class="filter-chip">Category: ${filters.selectedCat} <button onclick="document.querySelector('input[name=\\'businessCategory\\'][value=\\'\\']').checked=true; applyAllFilters();">×</button></div>`;
+        }
+        if (filters.selectedCountry && filters.selectedCountry.code !== 'ALL') {
+          chipsHtml += `<div class="filter-chip">Country: ${filters.selectedCountry.flag} ${filters.selectedCountry.name} <button onclick="sidebarCountryPicker.selectCountry(FLENKO_COUNTRIES[0]);">×</button></div>`;
+        }
+        chipsContainer.innerHTML = chipsHtml;
+
+        // Empty state
+        if (products.length === 0) {
+          grid.innerHTML = `
+            <div style="grid-column: 1/-1; padding: 4rem 2rem; text-align: center; background:var(--color-white); border:1px dashed var(--color-border); border-radius:var(--radius-lg);">
+              <div style="font-size:3rem; margin-bottom:1rem;">🌐</div>
+              <h3 style="font-size:1.25rem; margin-bottom:0.5rem; color:var(--color-navy-midnight);">No wholesale products matched your exact filter</h3>
+              <p style="color:var(--color-text-muted); max-width:450px; margin:0 auto 1.5rem;">
+                Try choosing "Worldwide (All Countries)" or reset category filters, or post your requirement directly.
+              </p>
+              <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('resetFiltersBtn').click();">Reset Filters</button>
+                <button type="button" class="btn btn-primary" onclick="window.location.href='rfq.html'" style="background:var(--color-teal); border-color:var(--color-teal);">Post Buy Requirement (RFQ)</button>
               </div>
             </div>
-            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-              <button class="btn btn-outline" style="flex:1;" onclick="window.location.href='rfq.html?product=${p.id}'">Contact Supplier</button>
+          `;
+          return;
+        }
+
+        // Render Cards
+        grid.innerHTML = products.map(p => `
+          <article class="product-card">
+            <div class="product-img-wrapper">
+              <img src="${p.image}" alt="${p.name}" class="product-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80'">
+              ${p.badge ? `<div class="product-badges"><span class="badge badge-teal">${p.badge}</span></div>` : ''}
             </div>
-          </div>
-        </article>
-      `).join("");
+            <div class="product-info">
+              <div class="product-vendor">
+                ${p.supplier.name} ${p.supplier.verified ? '<span style="color:var(--color-blue-primary);" title="Verified Global Supplier">✓</span>' : ''}
+              </div>
+              <h3 class="product-title" title="${p.name}">${p.name}</h3>
+              <div class="product-meta">
+                <div>${p.flag || '📍'} ${p.supplier.location || (p.country || 'Worldwide')}</div>
+                ${p.leadTime ? `<div>⏱️ Lead: ${p.leadTime}</div>` : ''}
+              </div>
+              <div class="product-price-row">
+                <div>
+                  <div class="product-price">${formatCurrency(p.price)} <small style="font-size:0.75rem; font-weight:normal; color:var(--color-text-muted);">/ ${p.unit}</small></div>
+                  <div class="product-moq">Min. Order: <strong>${p.moq} ${p.unit}</strong></div>
+                </div>
+              </div>
+              <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                <button class="btn btn-primary" style="flex:1; padding:0.45rem 0.6rem; font-size:0.8125rem;" onclick="window.location.href='rfq.html?product=${p.id}&name=${encodeURIComponent(p.name)}'">
+                  Contact Supplier
+                </button>
+              </div>
+            </div>
+          </article>
+        `).join("");
+      }
+
+      // Trigger initial render
+      applyAllFilters();
     });
   </script>
 </body>

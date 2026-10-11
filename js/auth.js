@@ -1,6 +1,6 @@
 // Flenko Authentication & API Client
 
-const API_BASE = '/api';
+const API_BASE = 'https://flenko-backend.onrender.com/api';
 
 const auth = {
   setToken(token) {
@@ -98,7 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <strong>${data.user.name}</strong>
           `;
           loginBtn.onclick = () => {
-             if (data.user.role === 'supplier') {
+             if (data.user.role === 'admin') {
+               window.location.href = 'admin-dashboard.html';
+             } else if (data.user.role === 'supplier') {
                window.location.href = 'supplier-dashboard.html';
              } else {
                window.location.href = 'buyer-dashboard.html';

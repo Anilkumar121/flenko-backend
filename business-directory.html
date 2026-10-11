@@ -3,31 +3,288 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Business Directory - Flenko.com</title>
+  <title>Global Verified Suppliers Directory - Flenko.com</title>
+  <meta name="description" content="Connect with verified global manufacturers, exporters, and wholesale distributors across 190+ countries.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <style>
+    .supplier-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      transition: all var(--transition-fast);
+      box-shadow: var(--shadow-sm);
+    }
+    .supplier-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-blue-primary);
+      transform: translateY(-2px);
+    }
+    .supplier-logo-box {
+      width: 54px;
+      height: 54px;
+      border-radius: var(--radius-md);
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--color-navy-midnight);
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
     <div class="container header-top">
-      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <a href="index.html" class="brand" style="display:flex; align-items:center;">
+        <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
+      </a>
       <div class="header-actions">
         <button class="btn btn-outline" onclick="window.location.href='index.html'">Back to Home</button>
+        <button class="btn btn-primary" onclick="window.location.href='sell.html'" style="background:var(--color-teal); border-color:var(--color-teal);">Register Business</button>
       </div>
     </div>
   </header>
 
-  <main class="container" style="padding-top: 3rem;">
-    <div class="section-header">
-      <h2 class="section-title">Verified Supplier Directory</h2>
-      <form class="header-search" style="max-width: 400px; margin: 0;">
-        <input type="text" class="form-control" placeholder="Search businesses by name, type, or city..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
-        <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">Search</button>
-      </form>
+  <main class="container" style="padding-top: 2.5rem; padding-bottom: 5rem;">
+    <div class="section-header" style="flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 class="section-title" style="margin-bottom: 0.25rem;">Worldwide Verified Supplier Directory</h2>
+        <p style="color:var(--color-text-muted); font-size: 0.875rem; margin: 0;">Verified manufacturing corporations, exporters, and wholesale trade hubs.</p>
+      </div>
+      
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <div id="directoryCountryContainer"></div>
+        <form id="directorySearchForm" style="display: flex; max-width: 320px;">
+          <input type="text" id="dirSearchInput" class="form-control" placeholder="Search by name, sector..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
+          <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">Search</button>
+        </form>
+      </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-      </div></main>
+    <!-- Active Count -->
+    <div style="margin-top: 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: var(--color-text-muted);" id="supplierCountText">
+      Showing verified suppliers worldwide
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;" id="supplierDirectoryGrid">
+      <!-- Populated via JS -->
+    </div>
+  </main>
+
+  <script src="js/countries.js"></script>
+  <script>
+    const SAMPLE_GLOBAL_SUPPLIERS = [
+      {
+        id: 101,
+        company_name: "Siemens Automation & Tooling GmbH",
+        country: "Germany",
+        flag: "🇩🇪",
+        city: "Munich",
+        category: "Industrial Machinery & Tools",
+        business_type: "Manufacturer / Exporter",
+        verified: true,
+        years: "18+ Years",
+        products_count: "240+ Products",
+        description: "Specialized in 5-axis CNC machining centers, automated robotic lines, and precision industrial motors."
+      },
+      {
+        id: 102,
+        company_name: "Apex Pack Worldwide Corp",
+        country: "United States",
+        flag: "🇺🇸",
+        city: "Chicago, IL",
+        category: "Packaging & Printing",
+        business_type: "Manufacturer",
+        verified: true,
+        years: "12+ Years",
+        products_count: "500+ SKUs",
+        description: "Leading manufacturer of heavy-duty corrugated cartons, biodegradable pouches, and automated stretch wrapping systems."
+      },
+      {
+        id: 103,
+        company_name: "Shandong Chemical Industries Ltd",
+        country: "China",
+        flag: "🇨🇳",
+        city: "Qingdao",
+        category: "Chemicals & Dyes",
+        business_type: "Direct Factory",
+        verified: true,
+        years: "15+ Years",
+        products_count: "120+ Chemicals",
+        description: "Bulk exporter of titanium dioxide, industrial organic solvents, pigments, and water purification agents."
+      },
+      {
+        id: 104,
+        company_name: "Gulf CleanEnergy Technologies FZE",
+        country: "United Arab Emirates",
+        flag: "🇦🇪",
+        city: "Dubai",
+        category: "Renewable Energy",
+        business_type: "Wholesaler / Exporter",
+        verified: true,
+        years: "8+ Years",
+        products_count: "80+ Solutions",
+        description: "Supplier of tier-1 monocrystalline solar PV panels, hybrid inverters, and commercial EV fast chargers."
+      },
+      {
+        id: 105,
+        company_name: "Kyoto MedTech International",
+        country: "Japan",
+        flag: "🇯🇵",
+        city: "Kyoto",
+        category: "Medical & Pharma",
+        business_type: "OEM / Manufacturer",
+        verified: true,
+        years: "22+ Years",
+        products_count: "95+ Devices",
+        description: "High-grade hospital furniture, intelligent electric ICU beds, diagnostic surgical devices, and sterilizers."
+      },
+      {
+        id: 106,
+        company_name: "Vardhman Global Textiles Ltd",
+        country: "India",
+        flag: "🇮🇳",
+        city: "Surat / Ludhiana",
+        category: "Textiles & Apparel",
+        business_type: "Manufacturer",
+        verified: true,
+        years: "25+ Years",
+        products_count: "350+ Fabrics",
+        description: "Producer of 100% organic cotton yarn, denim fabric rolls, industrial uniforms, and home furnishing textiles."
+      }
+    ];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const grid = document.getElementById("supplierDirectoryGrid");
+      const countText = document.getElementById("supplierCountText");
+      const searchForm = document.getElementById("directorySearchForm");
+      const searchInput = document.getElementById("dirSearchInput");
+
+      let allSuppliers = [...SAMPLE_GLOBAL_SUPPLIERS];
+
+      // Fetch any live suppliers registered in backend
+      try {
+        const res = await fetch('https://flenko-backend.onrender.com/api/public/businesses');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.businesses && data.businesses.length > 0) {
+            const live = data.businesses.map(b => ({
+              id: b.id,
+              company_name: b.company_name,
+              country: b.country || "India",
+              flag: b.country === "United States" ? "🇺🇸" : (b.country === "Germany" ? "🇩🇪" : "🇮🇳"),
+              city: b.city || "Pan-India",
+              category: b.category || "General B2B Wholesale",
+              business_type: b.business_type || "Verified Supplier",
+              verified: true,
+              years: "Verified Profile",
+              products_count: "Direct Supplier",
+              description: b.description || `Registered B2B supplier based in ${b.city || 'India'}. Specializing in wholesale supply and custom manufacturing.`
+            }));
+            allSuppliers = [...live, ...allSuppliers];
+          }
+        }
+      } catch(e) {
+        console.warn("Could not fetch live businesses", e);
+      }
+
+      const countryPicker = new FlenkoCountryPicker({
+        container: "#directoryCountryContainer",
+        inputName: "dir_country",
+        onSelect: () => renderDirectory()
+      });
+
+      searchForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        renderDirectory();
+      });
+
+      searchInput.addEventListener("input", () => {
+        renderDirectory();
+      });
+
+      function renderDirectory() {
+        const q = searchInput.value.toLowerCase().trim();
+        const selCountry = countryPicker.selected;
+
+        const filtered = allSuppliers.filter(s => {
+          if (q) {
+            const matchName = s.company_name.toLowerCase().includes(q);
+            const matchCat = s.category.toLowerCase().includes(q);
+            const matchCity = s.city.toLowerCase().includes(q);
+            if (!matchName && !matchCat && !matchCity) return false;
+          }
+
+          if (selCountry && selCountry.code !== 'ALL') {
+            const countryMatch = (s.country && s.country.toLowerCase() === selCountry.name.toLowerCase()) ||
+                                 (s.city && s.city.toLowerCase().includes(selCountry.name.toLowerCase()));
+            if (!countryMatch) return false;
+          }
+
+          return true;
+        });
+
+        countText.textContent = `Showing ${filtered.length} verified suppliers worldwide`;
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
+            <div style="grid-column: 1/-1; padding: 4rem 2rem; text-align: center; background:var(--color-white); border:1px dashed var(--color-border); border-radius:var(--radius-lg);">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏢</div>
+              <h3>No verified suppliers match your filter</h3>
+              <p style="color:var(--color-text-muted);">Try selecting "Worldwide (All Countries)" or a different search keyword.</p>
+              <button class="btn btn-outline" onclick="countryPicker.selectCountry(FLENKO_COUNTRIES[0]); searchInput.value=''; renderDirectory();">Reset Filter</button>
+            </div>
+          `;
+          return;
+        }
+
+        grid.innerHTML = filtered.map(s => `
+          <div class="supplier-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+              <div class="supplier-logo-box">
+                ${s.flag || '🏢'}
+              </div>
+              <span class="badge badge-teal">${s.business_type}</span>
+            </div>
+            
+            <h3 style="font-size:1.1rem; margin-bottom:0.35rem; color:var(--color-navy-midnight); font-weight:700;">
+              ${s.company_name} <span style="color:var(--color-blue-primary);" title="Verified Global Supplier">✓</span>
+            </h3>
+            
+            <div style="font-size:0.8125rem; color:var(--color-text-muted); margin-bottom:0.75rem;">
+              <span>📍 ${s.city}, ${s.country}</span> &bull; <span>${s.years}</span>
+            </div>
+            
+            <div style="margin-bottom:0.75rem;">
+              <span class="badge badge-blue" style="font-size:0.75rem;">🏷️ ${s.category}</span>
+            </div>
+            
+            <p style="font-size:0.84rem; color:var(--color-text-main); margin-bottom:1.25rem; line-height:1.5; flex:1;">
+              ${s.description}
+            </p>
+            
+            <div style="display:flex; gap:0.5rem; margin-top:auto;">
+              <button class="btn btn-primary" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='products.html?q=${encodeURIComponent(s.company_name)}'">View Products</button>
+              <button class="btn btn-outline" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='rfq.html'">Send RFQ</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      renderDirectory();
+    });
+  </script>
 </body>
 </html>

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flenko.com - India's Largest B2B Marketplace</title>
-  <meta name="description" content="Find Products. Connect Businesses. Grow Faster.">
+  <title>Flenko.com - Worldwide B2B Marketplace & Global Wholesale Directory</title>
+  <meta name="description" content="Connect with verified global manufacturers, suppliers & buyers across 190+ countries. Source wholesale industrial machinery, electronics, chemicals, textiles and more.">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,65 +15,91 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/storefront.css">
   <style>
-    /* IndiaMART inspired tweaks */
+    /* Global B2B Marketplace Hero & Search */
     .hero-im {
       background: var(--color-navy-deep);
-      padding: 3rem 0;
+      padding: 3.5rem 0 3rem;
       text-align: center;
+      position: relative;
     }
     .hero-im h1 {
       color: var(--color-white);
-      font-size: 2rem;
-      margin-bottom: 1.5rem;
-      font-weight: 700;
+      font-size: 2.25rem;
+      margin-bottom: 0.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .hero-im p.hero-sub {
+      color: #94a3b8;
+      font-size: 1.05rem;
+      margin-bottom: 2rem;
+      max-width: 650px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .search-im {
       display: flex;
-      max-width: 900px;
+      max-width: 960px;
       margin: 0 auto;
       background: var(--color-white);
       border-radius: var(--radius-md);
-      padding: 0.5rem;
-      box-shadow: var(--shadow-lg);
+      padding: 0.35rem;
+      box-shadow: 0 12px 30px -4px rgba(0,0,0,0.3);
+      align-items: center;
     }
     .search-im .form-control {
       border: none;
-      border-right: 1px solid var(--color-border);
       border-radius: 0;
-    }
-    .search-im .form-control:last-child {
-      border-right: none;
+      padding: 0.75rem 1rem;
     }
     .search-im .btn {
-      padding: 0.75rem 2rem;
-      font-size: 1.125rem;
+      padding: 0.75rem 1.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
     }
     .im-category-section {
-      margin-top: 3rem;
+      margin-top: 3.5rem;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1.5rem;
     }
     
     @media (max-width: 768px) {
+      .hero-im {
+        padding: 2.5rem 0 2rem;
+      }
       .search-im {
         flex-direction: column;
         padding: 0;
         background: transparent;
         box-shadow: none;
+        gap: 0.5rem;
       }
-      .search-im .form-control {
-        border-right: none;
-        border-bottom: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
-        margin-bottom: 0.5rem;
+      .search-im #heroCountryPicker {
+        width: 100%;
       }
-      .search-im .btn {
+      .search-im #heroCountryPicker .flenko-country-btn {
         width: 100%;
         border-radius: var(--radius-md);
+        background: var(--color-white);
+        border: 1px solid var(--color-border);
+        padding: 0.75rem 1rem;
+      }
+      .search-im .form-control {
+        border-radius: var(--radius-md) !important;
+        background: var(--color-white);
+      }
+      .search-im .btn {
+        width: 100% !important;
+        border-radius: var(--radius-md) !important;
       }
       .hero-im h1 {
         font-size: 1.5rem;
+      }
+      .hero-im p.hero-sub {
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
       }
     }
     
@@ -84,12 +110,18 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      transition: all var(--transition-fast);
+    }
+    .im-category-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-blue-primary);
+      transform: translateY(-2px);
     }
     .im-category-header {
       background: var(--color-bg-light);
       padding: 1rem;
       font-weight: 700;
-      font-size: 1.125rem;
+      font-size: 1.05rem;
       border-bottom: 1px solid var(--color-border);
       display: flex;
       align-items: center;
@@ -100,22 +132,28 @@
       padding: 1rem;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
+      gap: 0.6rem;
+      flex: 1;
     }
     .im-subcategory-link {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       color: var(--color-text-main);
       display: flex;
       align-items: center;
       gap: 0.25rem;
+      text-decoration: none;
+      transition: color var(--transition-fast);
     }
     .im-subcategory-link::before {
       content: '›';
       color: var(--color-blue-primary);
       font-weight: bold;
+      font-size: 1rem;
+      line-height: 1;
     }
     .im-subcategory-link:hover {
       color: var(--color-blue-primary);
+      text-decoration: underline;
     }
     .get-quotes-floating {
       position: fixed;
@@ -123,7 +161,7 @@
       right: 2rem;
       background: var(--color-teal);
       color: var(--color-white);
-      padding: 1rem 1.5rem;
+      padding: 0.875rem 1.5rem;
       border-radius: 50px;
       font-weight: 700;
       box-shadow: var(--shadow-lg);
@@ -131,25 +169,29 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 1.125rem;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: transform var(--transition-fast);
     }
     .get-quotes-floating:hover {
       background: #116853;
+      transform: translateY(-2px);
       color: var(--color-white);
     }
     .stats-bar {
-      background: rgba(255,255,255,0.1);
-      padding: 1rem;
-      margin-top: 2rem;
-      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 1.25rem 2rem;
+      margin-top: 2.5rem;
+      border-radius: var(--radius-lg);
       display: flex;
-      justify-content: center;
-      gap: 3rem;
+      justify-content: space-around;
+      gap: 2rem;
       color: var(--color-white);
       flex-wrap: wrap;
     }
-    .stats-bar strong { font-size: 1.5rem; display: block; }
-    .stats-bar span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;}
+    .stats-bar strong { font-size: 1.5rem; display: block; font-weight: 800; }
+    .stats-bar span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85;}
 
     .top-nav-links {
       display: flex; gap: 1.5rem; align-items: center; margin-left: auto; margin-right: 2rem; font-size: 0.875rem; font-weight: 600;
@@ -160,13 +202,14 @@
         margin: 0;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: 0.75rem;
         border-bottom: 1px solid var(--color-bg-light);
         padding-bottom: 0.5rem;
         width: 100%;
       }
       .stats-bar {
-        gap: 1.5rem;
+        gap: 1rem;
+        padding: 1rem;
       }
       .stats-bar strong { font-size: 1.25rem; }
     }
@@ -176,10 +219,13 @@
 
   <header class="site-header">
     <div class="container header-top">
-      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <a href="index.html" class="brand" style="display:flex; align-items:center;">
+        <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
+      </a>
       
-      <!-- Top nav links shifted to header for compact IndiaMart feel -->
+      <!-- Top nav links with Worldwide Country selector -->
       <div class="top-nav-links">
+        <div id="headerCountryContainer"></div>
         <a href="products.html" style="color: var(--color-text-main);">Find Products</a>
         <a href="business-directory.html" style="color: var(--color-text-main);">Suppliers</a>
         <a href="business-software.html" style="color: var(--color-text-main);">CRM / ERP</a>
@@ -190,16 +236,283 @@
           <small>Sign In</small>
           <strong>Buyer / Seller</strong>
         </button>
-        <button class="btn btn-primary" onclick="window.location.href='sell.html'" style="background: var(--color-teal);">
+        <button class="btn btn-primary" onclick="window.location.href='sell.html'" style="background: var(--color-teal); border-color: var(--color-teal);">
           Sell on Flenko
         </button>
       </div>
     </div>
   </header>
 
+  <main>
+    <section class="hero-im">
+      <div class="container">
+        <h1>Global B2B Wholesale Marketplace</h1>
+        <p class="hero-sub">Connect directly with verified manufacturers, exporters & wholesale buyers across 190+ countries worldwide.</p>
+        
+        <!-- Searchable Global Search Bar -->
+        <form class="search-im" action="products.html" method="GET">
+          <!-- Real-Time Searchable Country Selector -->
+          <div id="heroCountryPicker"></div>
+          
+          <input type="text" name="q" class="form-control" placeholder="Search products, machinery, chemicals, electronics, textiles..." style="flex: 1; font-size: 1.05rem;">
+          <button type="submit" class="btn btn-primary">Search</button>
+          <button type="button" class="btn btn-secondary" style="border-left: none; border-radius: 0 var(--radius-md) var(--radius-md) 0;" onclick="window.location.href='rfq.html'">Post Buy RFQ</button>
+        </form>
+        
+        <div class="stats-bar">
+          <div><strong>190+</strong><span>Countries Covered</span></div>
+          <div><strong>50,000+</strong><span>Verified Suppliers</span></div>
+          <div><strong>1.5M+</strong><span>Wholesale Products</span></div>
+          <div><strong>Instant</strong><span>RFQ Matching</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+      
+      <!-- Worldwide B2B Business Categories Section -->
+      <div style="text-align:center; margin-top:3.5rem; margin-bottom:1rem;">
+        <h2 style="font-size:1.75rem; color:var(--color-navy-midnight); font-weight:800; margin-bottom:0.5rem;">Explore All Business Sectors Worldwide</h2>
+        <p style="color:var(--color-text-muted); font-size:1rem; max-width:600px; margin:0 auto;">Source directly from top manufacturing hubs across North America, Europe, Asia, Middle East & worldwide.</p>
+      </div>
+
+      <div class="im-category-section">
+        
+        <!-- 1. Industrial Machinery -->
+        <div class="im-category-card">
+          <div class="im-category-header">⚙️ Industrial Machinery & Equipment</div>
+          <div class="im-category-body">
+            <a href="products.html?q=CNC+Machines&cat=Industrial+Machinery" class="im-subcategory-link">CNC & Milling Machines</a>
+            <a href="products.html?q=Packaging+Machines&cat=Industrial+Machinery" class="im-subcategory-link">Packaging Machinery</a>
+            <a href="products.html?q=Lathe+Machines&cat=Industrial+Machinery" class="im-subcategory-link">Lathe Machines & Tools</a>
+            <a href="products.html?q=Air+Compressors&cat=Industrial+Machinery" class="im-subcategory-link">Air Compressors</a>
+            <a href="products.html?q=Water+Treatment&cat=Industrial+Machinery" class="im-subcategory-link">Water Treatment Plants</a>
+            <a href="products.html?q=Pumps+Generators&cat=Industrial+Machinery" class="im-subcategory-link">Pumps & Generators</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Industrial+Machinery" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Machinery</a></div>
+        </div>
+
+        <!-- 2. Electrical & Electronics -->
+        <div class="im-category-card">
+          <div class="im-category-header">⚡ Electrical & Electronics</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Wires+Cables&cat=Electrical+%26+Electronics" class="im-subcategory-link">Wires & Cables</a>
+            <a href="products.html?q=Transformers&cat=Electrical+%26+Electronics" class="im-subcategory-link">Transformers & UPS</a>
+            <a href="products.html?q=Switches&cat=Electrical+%26+Electronics" class="im-subcategory-link">Electrical Switchgear</a>
+            <a href="products.html?q=Sensors&cat=Electrical+%26+Electronics" class="im-subcategory-link">Sensors & Automation</a>
+            <a href="products.html?q=LED+Lighting&cat=Electrical+%26+Electronics" class="im-subcategory-link">Commercial LED Lighting</a>
+            <a href="products.html?q=Semiconductors&cat=Electrical+%26+Electronics" class="im-subcategory-link">Electronic Components</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Electrical+%26+Electronics" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Electronics</a></div>
+        </div>
+
+        <!-- 3. Packaging & Printing -->
+        <div class="im-category-card">
+          <div class="im-category-header">📦 Packaging, Printing & Paper</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Corrugated+Boxes&cat=Packaging+%26+Printing" class="im-subcategory-link">Corrugated Boxes</a>
+            <a href="products.html?q=Packaging+Tapes&cat=Packaging+%26+Printing" class="im-subcategory-link">Packaging Tapes</a>
+            <a href="products.html?q=Plastic+Pouches&cat=Packaging+%26+Printing" class="im-subcategory-link">Barrier Pouches & Bags</a>
+            <a href="products.html?q=Glass+Bottles&cat=Packaging+%26+Printing" class="im-subcategory-link">Glass Bottles & Jars</a>
+            <a href="products.html?q=Wooden+Pallets&cat=Packaging+%26+Printing" class="im-subcategory-link">Wooden Pallets</a>
+            <a href="products.html?q=Kraft+Paper&cat=Packaging+%26+Printing" class="im-subcategory-link">Kraft & Copier Paper</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Packaging+%26+Printing" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Packaging</a></div>
+        </div>
+
+        <!-- 4. Chemicals & Dyes -->
+        <div class="im-category-card">
+          <div class="im-category-header">🧪 Chemicals, Polymers & Dyes</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Industrial+Chemicals&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Industrial Chemicals</a>
+            <a href="products.html?q=Solvents&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Organic Solvents</a>
+            <a href="products.html?q=Textile+Dyes&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Textile Pigments & Dyes</a>
+            <a href="products.html?q=Agrochemicals&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Agrochemicals</a>
+            <a href="products.html?q=Synthetic+Resins&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Synthetic Resins</a>
+            <a href="products.html?q=Water+Treatment+Chemicals&cat=Chemicals+%26+Dyes" class="im-subcategory-link">Water Chemicals</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Chemicals+%26+Dyes" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Chemicals</a></div>
+        </div>
+
+        <!-- 5. Building & Construction -->
+        <div class="im-category-card">
+          <div class="im-category-header">🏗️ Building & Construction</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Cement&cat=Building+%26+Construction" class="im-subcategory-link">Cement & Concrete</a>
+            <a href="products.html?q=Steel+Bars&cat=Building+%26+Construction" class="im-subcategory-link">Steel & Rebars</a>
+            <a href="products.html?q=Bricks+Blocks&cat=Building+%26+Construction" class="im-subcategory-link">Bricks & Blocks</a>
+            <a href="products.html?q=Tiles&cat=Building+%26+Construction" class="im-subcategory-link">Floor & Wall Tiles</a>
+            <a href="products.html?q=Plywood&cat=Building+%26+Construction" class="im-subcategory-link">Plywood & Laminates</a>
+            <a href="products.html?q=Plumbing&cat=Building+%26+Construction" class="im-subcategory-link">Plumbing & Valves</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Building+%26+Construction" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Construction</a></div>
+        </div>
+
+        <!-- 6. Medical & Healthcare -->
+        <div class="im-category-card">
+          <div class="im-category-header">💊 Medical, Pharma & Healthcare</div>
+          <div class="im-category-body">
+            <a href="products.html?q=API&cat=Medical+%26+Pharma" class="im-subcategory-link">Active Ingredients (APIs)</a>
+            <a href="products.html?q=Surgical+Instruments&cat=Medical+%26+Pharma" class="im-subcategory-link">Surgical Instruments</a>
+            <a href="products.html?q=Hospital+Furniture&cat=Medical+%26+Pharma" class="im-subcategory-link">Hospital Beds & Carts</a>
+            <a href="products.html?q=Diagnostics&cat=Medical+%26+Pharma" class="im-subcategory-link">Diagnostic Kits & Lab</a>
+            <a href="products.html?q=Medical+Consumables&cat=Medical+%26+Pharma" class="im-subcategory-link">Gloves & Consumables</a>
+            <a href="products.html?q=Herbal+Extracts&cat=Medical+%26+Pharma" class="im-subcategory-link">Herbal & Plant Extracts</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Medical+%26+Pharma" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Pharma</a></div>
+        </div>
+
+        <!-- 7. Textiles & Apparel -->
+        <div class="im-category-card">
+          <div class="im-category-header">🧵 Textiles, Fabrics & Garments</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Cotton+Fabrics&cat=Textiles+%26+Apparel" class="im-subcategory-link">Cotton & Denim Fabrics</a>
+            <a href="products.html?q=Yarn+Threads&cat=Textiles+%26+Apparel" class="im-subcategory-link">Yarns & Spun Threads</a>
+            <a href="products.html?q=Mens+Wear&cat=Textiles+%26+Apparel" class="im-subcategory-link">Wholesale Men's Wear</a>
+            <a href="products.html?q=Womens+Wear&cat=Textiles+%26+Apparel" class="im-subcategory-link">Women's Fashion</a>
+            <a href="products.html?q=Uniforms&cat=Textiles+%26+Apparel" class="im-subcategory-link">Industrial Work Uniforms</a>
+            <a href="products.html?q=Home+Textiles&cat=Textiles+%26+Apparel" class="im-subcategory-link">Home Bedding & Curtains</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Textiles+%26+Apparel" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Textiles</a></div>
+        </div>
+
+        <!-- 8. Agriculture & Food -->
+        <div class="im-category-card">
+          <div class="im-category-header">🌾 Agriculture, Food & Commodities</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Coffee+Beans&cat=Agriculture+%26+Food" class="im-subcategory-link">Coffee & Tea Commodities</a>
+            <a href="products.html?q=Spices&cat=Agriculture+%26+Food" class="im-subcategory-link">Wholesale Spices & Herbs</a>
+            <a href="products.html?q=Rice+Grains&cat=Agriculture+%26+Food" class="im-subcategory-link">Rice, Wheat & Pulses</a>
+            <a href="products.html?q=Edible+Oils&cat=Agriculture+%26+Food" class="im-subcategory-link">Bulk Edible Oils</a>
+            <a href="products.html?q=Fresh+Produce&cat=Agriculture+%26+Food" class="im-subcategory-link">Fruits & Vegetables</a>
+            <a href="products.html?q=Fertilizers&cat=Agriculture+%26+Food" class="im-subcategory-link">Bio-Fertilizers & Feeds</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Agriculture+%26+Food" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Agriculture</a></div>
+        </div>
+
+        <!-- 9. Renewable Energy & Solar -->
+        <div class="im-category-card">
+          <div class="im-category-header">☀️ Renewable Energy & Solar</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Solar+Panels&cat=Renewable+Energy" class="im-subcategory-link">Tier-1 Solar Panels</a>
+            <a href="products.html?q=Inverters&cat=Renewable+Energy" class="im-subcategory-link">Solar Inverters & MPPT</a>
+            <a href="products.html?q=Lithium+Batteries&cat=Renewable+Energy" class="im-subcategory-link">Lithium Battery Packs</a>
+            <a href="products.html?q=Wind+Turbines&cat=Renewable+Energy" class="im-subcategory-link">Wind Power Systems</a>
+            <a href="products.html?q=EV+Chargers&cat=Renewable+Energy" class="im-subcategory-link">Commercial EV Chargers</a>
+            <a href="products.html?q=Solar+Pumps&cat=Renewable+Energy" class="im-subcategory-link">Solar Water Pumps</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Renewable+Energy" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Solar</a></div>
+        </div>
+
+        <!-- 10. Automotive & Parts -->
+        <div class="im-category-card">
+          <div class="im-category-header">🚗 Automotive & Auto Parts</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Engine+Parts&cat=Automotive+%26+Parts" class="im-subcategory-link">Engine Components</a>
+            <a href="products.html?q=Brakes&cat=Automotive+%26+Parts" class="im-subcategory-link">Brake Discs & Pads</a>
+            <a href="products.html?q=Tyres&cat=Automotive+%26+Parts" class="im-subcategory-link">Commercial Tyres & Tubes</a>
+            <a href="products.html?q=Batteries&cat=Automotive+%26+Parts" class="im-subcategory-link">Lead Acid & EV Batteries</a>
+            <a href="products.html?q=Bearings&cat=Automotive+%26+Parts" class="im-subcategory-link">Automotive Bearings</a>
+            <a href="products.html?q=Filters&cat=Automotive+%26+Parts" class="im-subcategory-link">Oil & Air Filters</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Automotive+%26+Parts" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Automotive</a></div>
+        </div>
+
+        <!-- 11. Metals & Minerals -->
+        <div class="im-category-card">
+          <div class="im-category-header">⚙️ Metals, Minerals & Metallurgy</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Stainless+Steel&cat=Metals+%26+Minerals" class="im-subcategory-link">Stainless Steel Coils/Sheets</a>
+            <a href="products.html?q=Aluminum&cat=Metals+%26+Minerals" class="im-subcategory-link">Aluminum Extrusions</a>
+            <a href="products.html?q=Copper&cat=Metals+%26+Minerals" class="im-subcategory-link">Copper Pipes & Wire Rods</a>
+            <a href="products.html?q=Metal+Scrap&cat=Metals+%26+Minerals" class="im-subcategory-link">Metal Scrap & Billets</a>
+            <a href="products.html?q=Brass&cat=Metals+%26+Minerals" class="im-subcategory-link">Brass Precision Parts</a>
+            <a href="products.html?q=Iron+Ore&cat=Metals+%26+Minerals" class="im-subcategory-link">Minerals & Rare Earths</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Metals+%26+Minerals" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Metals</a></div>
+        </div>
+
+        <!-- 12. Furniture & Decor -->
+        <div class="im-category-card">
+          <div class="im-category-header">🛋️ Furniture & Commercial Decor</div>
+          <div class="im-category-body">
+            <a href="products.html?q=Office+Chairs&cat=Furniture+%26+Decor" class="im-subcategory-link">Ergonomic Office Chairs</a>
+            <a href="products.html?q=Modular+Desks&cat=Furniture+%26+Decor" class="im-subcategory-link">Modular Workstations</a>
+            <a href="products.html?q=Hotel+Furniture&cat=Furniture+%26+Decor" class="im-subcategory-link">Hotel & Resort Furniture</a>
+            <a href="products.html?q=Sofas&cat=Furniture+%26+Decor" class="im-subcategory-link">Commercial Sofas</a>
+            <a href="products.html?q=Carpets&cat=Furniture+%26+Decor" class="im-subcategory-link">Carpets & Acoustic Panels</a>
+            <a href="products.html?q=Storage&cat=Furniture+%26+Decor" class="im-subcategory-link">Steel Filing Cabinets</a>
+          </div>
+          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html?cat=Furniture+%26+Decor" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Furniture</a></div>
+        </div>
+
+      </div>
+
+      <!-- Verified Wholesale Products Section -->
+      <div class="section-header" style="margin-top: 4.5rem; align-items:center;">
+        <div>
+          <h2 class="section-title" style="margin-bottom:0.25rem;">Trending Wholesale Products Worldwide</h2>
+          <p style="color:var(--color-text-muted); font-size:0.875rem; margin:0;">Direct factory pricing from top verified exporters.</p>
+        </div>
+        <a href="products.html" class="btn btn-primary" style="padding:0.5rem 1.25rem;">Explore Full 1.5M+ Catalog →</a>
+      </div>
+      
+      <div class="product-grid" id="homepageProductGrid">
+        <!-- Products populated via JS -->
+      </div>
+      
+    </div>
+  </main>
+
+  <a href="rfq.html" class="get-quotes-floating">
+    ✉️ Post Buy Requirement (RFQ)
+  </a>
+
+  <footer class="site-footer" style="margin-top: 5rem;">
+    <div class="container footer-grid">
+      <div class="footer-col">
+        <a href="index.html" class="brand" style="display:flex; align-items:center;">
+          <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
+        </a>
+        <p class="text-muted" style="font-size: 0.875rem; margin-top:0.75rem;">Global B2B Marketplace connecting buyers and verified manufacturers across 190+ countries worldwide.</p>
+      </div>
+      <div class="footer-col">
+        <h4>For Global Buyers</h4>
+        <ul>
+          <li><a href="products.html">Browse Worldwide Products</a></li>
+          <li><a href="business-directory.html">Search Global Suppliers</a></li>
+          <li><a href="rfq.html">Post a Buy Requirement (RFQ)</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>For Global Suppliers</h4>
+        <ul>
+          <li><a href="sell.html">Register as an Exporter/Supplier</a></li>
+          <li><a href="business-software.html">Flenko B2B CRM</a></li>
+          <li><a href="supplier-dashboard.html">Seller Operations Panel</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Global Trade Network</h4>
+        <ul>
+          <li><a href="products.html?country=United+States">🇺🇸 North America Trade</a></li>
+          <li><a href="products.html?country=Germany">🇪🇺 European Union Trade</a></li>
+          <li><a href="products.html?country=United+Arab+Emirates">🇦🇪 Middle East Hub</a></li>
+          <li><a href="products.html?country=India">🇮🇳 Asia & South Asia</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Flenko.com. All rights reserved. Worldwide B2B Marketplace & Supplier Directory.
+    </div>
+  </footer>
+
   <script src="js/auth.js"></script>
+  <script src="js/countries.js"></script>
+  <script src="js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
+      // Check auth state for header buttons
       const token = auth.getToken();
       const actionsDiv = document.getElementById('headerActions');
       
@@ -209,7 +522,7 @@
           if (profileData && profileData.user) {
             actionsDiv.innerHTML = `
               <button class="action-item" onclick="window.location.href='buyer-dashboard.html'" style="text-align: left;">
-                <small>My Purchases</small>
+                <small>My Inquiries</small>
                 <strong>Buyer Panel</strong>
               </button>
               <button class="action-item" onclick="window.location.href='supplier-dashboard.html'" style="text-align: left; margin-left: 1rem;">
@@ -221,302 +534,23 @@
           }
         } catch(e){}
       }
+
+      // Initialize Country Pickers
+      new FlenkoCountryPicker({
+        container: '#heroCountryPicker',
+        style: 'hero',
+        inputName: 'country'
+      });
+
+      new FlenkoCountryPicker({
+        container: '#headerCountryContainer',
+        style: 'dropdown',
+        inputName: 'header_country',
+        onSelect: (c) => {
+          // Redirect or save preference
+        }
+      });
     });
   </script>
-
-  <main>
-    <section class="hero-im">
-      <div class="container">
-        <h1>Search for Products, Verified Suppliers & Buyers</h1>
-        <form class="search-im" action="products.html" method="GET">
-          <select class="form-control" style="width: 150px; font-weight: 600;">
-            <option>All India</option>
-            <option>Mumbai</option>
-            <option>Delhi</option>
-            <option>Pune</option>
-            <option>Ahmedabad</option>
-          </select>
-          <input type="text" name="q" class="form-control" placeholder="Enter product / service to search" style="flex: 1; font-size: 1.125rem;">
-          <button type="submit" class="btn btn-primary">Search</button>
-          <button type="button" class="btn btn-secondary" style="border-left: none; border-radius: 0 var(--radius-md) var(--radius-md) 0;" onclick="window.location.href='rfq.html'">Post Buy Requirement</button>
-        </form>
-        
-        <div class="stats-bar">
-          <div><strong>45,000+</strong><span>Suppliers</span></div>
-          <div><strong>1.2M+</strong><span>Products</span></div>
-          <div><strong>Verified</strong><span>Business Profiles</span></div>
-        </div>
-      </div>
-    </section>
-
-    <div class="container">
-      
-      <!-- IndiaMART style heavy category grid -->
-      <div class="im-category-section">
-        
-        <div class="im-category-card">
-          <div class="im-category-header">🏗️ Building & Construction</div>
-          <div class="im-category-body">
-            <a href="products.html?sub=cement" class="im-subcategory-link">Cement & Concrete</a>
-            <a href="products.html?sub=tmt" class="im-subcategory-link">TMT Bars & Steel</a>
-            <a href="products.html?sub=bricks" class="im-subcategory-link">Bricks & Blocks</a>
-            <a href="products.html?sub=tiles" class="im-subcategory-link">Floor Tiles</a>
-            <a href="products.html?sub=plywood" class="im-subcategory-link">Plywood & Boards</a>
-            <a href="products.html?sub=plumbing" class="im-subcategory-link">Plumbing Fittings</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Construction</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">⚙️ Industrial Machinery</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">CNC Machines</a>
-            <a href="#" class="im-subcategory-link">Packaging Machines</a>
-            <a href="#" class="im-subcategory-link">Lathe Machines</a>
-            <a href="#" class="im-subcategory-link">Food Processing</a>
-            <a href="#" class="im-subcategory-link">Air Compressors</a>
-            <a href="#" class="im-subcategory-link">Water Treatment</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Machinery</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">📦 Packaging Material</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Corrugated Boxes</a>
-            <a href="#" class="im-subcategory-link">Packaging Tapes</a>
-            <a href="#" class="im-subcategory-link">Plastic Pouches</a>
-            <a href="#" class="im-subcategory-link">Glass Bottles</a>
-            <a href="#" class="im-subcategory-link">Wooden Pallets</a>
-            <a href="#" class="im-subcategory-link">Stretch Film</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Packaging</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🧪 Chemicals & Dyes</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Industrial Chemicals</a>
-            <a href="#" class="im-subcategory-link">Organic Solvents</a>
-            <a href="#" class="im-subcategory-link">Textile Dyes</a>
-            <a href="#" class="im-subcategory-link">Agrochemicals</a>
-            <a href="#" class="im-subcategory-link">Water Treatment Chemicals</a>
-            <a href="#" class="im-subcategory-link">Resins</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Chemicals</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🏥 Medical & Pharma</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Active Pharma Ingredients</a>
-            <a href="#" class="im-subcategory-link">Surgical Instruments</a>
-            <a href="#" class="im-subcategory-link">Hospital Furniture</a>
-            <a href="#" class="im-subcategory-link">Diagnostic Equipment</a>
-            <a href="#" class="im-subcategory-link">Medical Consumables</a>
-            <a href="#" class="im-subcategory-link">Herbal Extracts</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Pharma</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">👕 Apparel & Textiles</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Cotton Fabrics</a>
-            <a href="#" class="im-subcategory-link">Mens Wear</a>
-            <a href="#" class="im-subcategory-link">Womens Wear</a>
-            <a href="#" class="im-subcategory-link">Uniforms</a>
-            <a href="#" class="im-subcategory-link">Yarn & Threads</a>
-            <a href="#" class="im-subcategory-link">Home Furnishing</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Apparel</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🔌 Electronics & Electricals</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Electrical Switches</a>
-            <a href="#" class="im-subcategory-link">Wires & Cables</a>
-            <a href="#" class="im-subcategory-link">LED Lights</a>
-            <a href="#" class="im-subcategory-link">Inverters & UPS</a>
-            <a href="#" class="im-subcategory-link">Transformers</a>
-            <a href="#" class="im-subcategory-link">Sensors</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Electronics</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🌾 Agriculture & Farming</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Spices & Masala</a>
-            <a href="#" class="im-subcategory-link">Rice & Grains</a>
-            <a href="#" class="im-subcategory-link">Fresh Fruits</a>
-            <a href="#" class="im-subcategory-link">Vegetables</a>
-            <a href="#" class="im-subcategory-link">Agricultural Machines</a>
-            <a href="#" class="im-subcategory-link">Fertilizers</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Agriculture</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🚗 Automotive & Accessories</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Car Accessories</a>
-            <a href="#" class="im-subcategory-link">Engine Parts</a>
-            <a href="#" class="im-subcategory-link">Tyres & Tubes</a>
-            <a href="#" class="im-subcategory-link">Batteries</a>
-            <a href="#" class="im-subcategory-link">Bearings</a>
-            <a href="#" class="im-subcategory-link">Brake Parts</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Automotive</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">⚙️ Metals & Minerals</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Steel Pipes</a>
-            <a href="#" class="im-subcategory-link">Aluminum Sheets</a>
-            <a href="#" class="im-subcategory-link">Copper Scrap</a>
-            <a href="#" class="im-subcategory-link">Iron Ore</a>
-            <a href="#" class="im-subcategory-link">Brass Fittings</a>
-            <a href="#" class="im-subcategory-link">Zinc Alloys</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Metals</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🛋️ Furniture & Supplies</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Office Furniture</a>
-            <a href="#" class="im-subcategory-link">Wooden Beds</a>
-            <a href="#" class="im-subcategory-link">Sofas & Couches</a>
-            <a href="#" class="im-subcategory-link">Wall Art</a>
-            <a href="#" class="im-subcategory-link">Curtains & Blinds</a>
-            <a href="#" class="im-subcategory-link">Rugs & Carpets</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Furniture</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">💻 IT & Telecom</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Computers & Laptops</a>
-            <a href="#" class="im-subcategory-link">Networking Devices</a>
-            <a href="#" class="im-subcategory-link">Servers</a>
-            <a href="#" class="im-subcategory-link">CCTV Cameras</a>
-            <a href="#" class="im-subcategory-link">Software Solutions</a>
-            <a href="#" class="im-subcategory-link">Smartphones</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All IT</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">📄 Paper Products</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Kraft Paper</a>
-            <a href="#" class="im-subcategory-link">Notebooks</a>
-            <a href="#" class="im-subcategory-link">A4 Copier Paper</a>
-            <a href="#" class="im-subcategory-link">Tissue Paper</a>
-            <a href="#" class="im-subcategory-link">Paper Cups</a>
-            <a href="#" class="im-subcategory-link">Cardboard</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Paper</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🧴 Cosmetics & Care</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Skin Care</a>
-            <a href="#" class="im-subcategory-link">Hair Oils</a>
-            <a href="#" class="im-subcategory-link">Perfumes</a>
-            <a href="#" class="im-subcategory-link">Essential Oils</a>
-            <a href="#" class="im-subcategory-link">Soaps & Shampoos</a>
-            <a href="#" class="im-subcategory-link">Makeup Products</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Cosmetics</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🍔 Food & Beverage</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Bakery Products</a>
-            <a href="#" class="im-subcategory-link">Dairy Products</a>
-            <a href="#" class="im-subcategory-link">Snacks & Namkeen</a>
-            <a href="#" class="im-subcategory-link">Health Drinks</a>
-            <a href="#" class="im-subcategory-link">Edible Oils</a>
-            <a href="#" class="im-subcategory-link">Packaged Water</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Food</a></div>
-        </div>
-
-        <div class="im-category-card">
-          <div class="im-category-header">🛠️ Housewares & Supplies</div>
-          <div class="im-category-body">
-            <a href="#" class="im-subcategory-link">Kitchen Utensils</a>
-            <a href="#" class="im-subcategory-link">Cleaning Supplies</a>
-            <a href="#" class="im-subcategory-link">Storage Containers</a>
-            <a href="#" class="im-subcategory-link">Glassware</a>
-            <a href="#" class="im-subcategory-link">Plastic Buckets</a>
-            <a href="#" class="im-subcategory-link">Home Appliances</a>
-          </div>
-          <div style="padding: 0.5rem 1rem 1rem;"><a href="products.html" class="btn btn-outline" style="width: 100%; font-size: 0.75rem;">View All Housewares</a></div>
-        </div>
-
-      </div>
-
-      <!-- Verified Wholesale Products Banner -->
-      <div class="section-header" style="margin-top: 4rem;">
-        <h2 class="section-title">Trending Wholesale Products</h2>
-        <a href="products.html" class="btn btn-outline">Explore Catalog</a>
-      </div>
-      <div class="product-grid" id="homepageProductGrid">
-        <!-- Products populated via JS -->
-      </div>
-      
-    </div>
-  </main>
-
-  <a href="rfq.html" class="get-quotes-floating">
-    ✉️ Post Buy Requirement
-  </a>
-
-  <footer class="site-footer" style="margin-top: 5rem;">
-    <!-- ... existing footer content ... -->
-    <div class="container footer-grid">
-      <div class="footer-col">
-        <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
-        <p class="text-muted" style="font-size: 0.875rem;">Commerce Meets Business. The unified platform for discovery, RFQs, and business operations.</p>
-      </div>
-      <div class="footer-col">
-        <h4>For Buyers</h4>
-        <ul>
-          <li><a href="products.html">Browse Products</a></li>
-          <li><a href="business-directory.html">Find Suppliers</a></li>
-          <li><a href="rfq.html">Post a Buy Requirement</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>For Suppliers</h4>
-        <ul>
-          <li><a href="sell.html">Sell Your Products</a></li>
-          <li><a href="business-software.html">Flenko CRM</a></li>
-          <li><a href="supplier-dashboard.html">Supplier Dashboard</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Platform</h4>
-        <ul>
-          <li><a href="#">About Us</a></li>
-          <li><a href="#">Privacy Policy</a></li>
-          <li><a href="#">Terms of Service</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      &copy; 2026 Flenko.com. All rights reserved. Demo prototype for internal development.
-    </div>
-  </footer>
-
-  <script src="js/app.js"></script>
 </body>
 </html>

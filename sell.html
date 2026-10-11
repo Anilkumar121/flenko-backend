@@ -72,22 +72,26 @@
   <section class="sell-hero">
     <div class="container sell-hero-container">
       <div>
-        <h1 style="font-size: 3rem; color: var(--color-white); margin-bottom: 1.5rem; line-height: 1.2;">Expand Your Business.<br>Get Genuine Buyers.</h1>
-        <p style="font-size: 1.125rem; opacity: 0.9; margin-bottom: 2rem;">Join India's fastest-growing B2B marketplace. Connect with over 1.2M+ active buyers, receive verified RFQs, and manage leads using our built-in CRM.</p>
+        <h1 style="font-size: 3rem; color: var(--color-white); margin-bottom: 1.5rem; line-height: 1.2;">Expand Your Business Globally.<br>Get Verified Buyers Worldwide.</h1>
+        <p style="font-size: 1.125rem; opacity: 0.9; margin-bottom: 2rem;">Join Flenko.com - The unified global B2B marketplace. Connect with over 1.5M+ active wholesale buyers and verified importers across 190+ countries, receive verified RFQs, and close high-value export orders.</p>
         <ul style="list-style: none; padding: 0; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.75rem;">
-          <li>✅ Create a free catalog with unlimited products</li>
-          <li>✅ Access to Pan-India Buyers</li>
-          <li>✅ Integrated CRM & WhatsApp automation</li>
-          <li>✅ Zero commission on leads (Subscription based)</li>
+          <li>✅ Create a free worldwide catalog with unlimited products</li>
+          <li>✅ Access to Verified Global Buyers across 190+ Countries</li>
+          <li>✅ Integrated CRM & WhatsApp inquiry automation</li>
+          <li>✅ Zero commission on deals (Direct buyer inquiries)</li>
         </ul>
       </div>
 
       <div class="registration-form">
-        <h3>Create Your Free Catalog</h3>
+        <h3>Create Your Global Seller Account</h3>
         <form id="regForm">
           <div class="form-group">
             <label class="form-label">Company Name</label>
-            <input type="text" id="regCompany" class="form-control" required placeholder="e.g. Apex Manufacturing">
+            <input type="text" id="regCompany" class="form-control" required placeholder="e.g. Apex Global Exports LLC">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Country</label>
+            <input type="text" id="regCountry" class="form-control" placeholder="e.g. United States, Germany, India, UAE" value="India">
           </div>
           <div class="form-group">
             <label class="form-label">Mobile Number</label>
@@ -97,14 +101,14 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Email Address</label>
+            <label class="form-label">Business Email Address</label>
             <input type="email" id="regEmail" class="form-control" required placeholder="sales@yourcompany.com">
           </div>
           <div class="form-group">
-            <label class="form-label">City</label>
-            <input type="text" id="regCity" class="form-control" required placeholder="e.g. Delhi">
+            <label class="form-label">City / State</label>
+            <input type="text" id="regCity" class="form-control" required placeholder="e.g. New York or Mumbai">
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.125rem; padding: 0.875rem; margin-top: 1rem; background-color: var(--color-teal); border-color: var(--color-teal);">Start Selling Now</button>
+          <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.125rem; padding: 0.875rem; margin-top: 1rem; background-color: var(--color-teal); border-color: var(--color-teal);">Start Selling Globally</button>
         </form>
 
         <form id="otpForm" class="hidden">
@@ -131,9 +135,10 @@
       e.preventDefault();
       sellerData = {
         name: document.getElementById('regCompany').value,
+        country: document.getElementById('regCountry') ? document.getElementById('regCountry').value : 'India',
         phone: document.getElementById('regPhone').value,
         email: document.getElementById('regEmail').value,
-        city: document.getElementById('regCity').value,
+        city: document.getElementById('regCity').value + (document.getElementById('regCountry') && document.getElementById('regCountry').value ? ', ' + document.getElementById('regCountry').value : ''),
         isSellerRegistration: true
       };
 
@@ -144,8 +149,9 @@
            regForm.classList.add('hidden');
            otpForm.classList.remove('hidden');
            if (res._devOtp) {
-             regStatusMsg.innerHTML = `⚠️ System WhatsApp not scanned! Demo OTP: <strong style="font-size:1.2rem;">${res._devOtp}</strong>`;
-             regStatusMsg.style.color = '#b45309';
+             console.log("Dev OTP:", res._devOtp);
+              regStatusMsg.innerHTML = "OTP Sent! Please enter the 6-digit code.";
+              regStatusMsg.style.color = "var(--color-teal)";
            } else {
              regStatusMsg.innerHTML = `OTP Sent! Please check your WhatsApp.`;
              regStatusMsg.style.color = 'var(--color-teal)';
@@ -170,7 +176,7 @@
            auth.setToken(res.token);
            
            // Account created, now create the business profile in backend
-           fetch('/api/businesses', {
+           fetch('https://flenko-backend.onrender.com/api/businesses', {
              method: 'POST',
              headers: {
                'Content-Type': 'application/json',

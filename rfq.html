@@ -87,9 +87,14 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Destination City</label>
-              <input type="text" id="rfqCity" class="form-control" required placeholder="e.g. Mumbai 400001">
+              <label class="form-label">Destination Country</label>
+              <input type="text" id="rfqCountry" class="form-control" placeholder="e.g. United States, Germany, India, UAE" value="Worldwide">
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Destination Port / City</label>
+            <input type="text" id="rfqCity" class="form-control" required placeholder="e.g. Los Angeles, Hamburg, Dubai, or Mumbai">
           </div>
 
           <div class="form-group">
@@ -114,9 +119,14 @@
       const productId = urlParams.get('product');
       let targetSupplierId = null;
 
+      const productNameParam = urlParams.get('name');
+      if (productNameParam) {
+        document.getElementById('rfqProduct').value = decodeURIComponent(productNameParam);
+      }
+
       if (productId) {
         try {
-          const res = await fetch('/api/public/products/' + productId);
+          const res = await fetch('https://flenko-backend.onrender.com/api/public/products/' + productId);
           if (res.ok) {
             const data = await res.json();
             const p = data.product;
@@ -158,7 +168,7 @@
           supplier_id: s_id,
           product_needed: document.getElementById('rfqProduct').value + ` (Qty: ${document.getElementById('rfqQty').value} ${document.getElementById('rfqUnit').value})`,
           buyer_phone: document.getElementById('rfqPhone').value,
-          details: `Deliver to: ${document.getElementById('rfqCity').value}.\n\nRequirements: ${document.getElementById('rfqDetails').value}`
+          details: `Destination: ${document.getElementById('rfqCity').value} (${document.getElementById('rfqCountry').value}).\n\nRequirements: ${document.getElementById('rfqDetails').value}`
         };
 
         const btn = document.getElementById('rfqSubmitBtn');
@@ -167,7 +177,7 @@
         btn.innerText = 'Sending to Supplier...';
 
         try {
-          const response = await fetch('/api/public/leads', {
+          const response = await fetch('https://flenko-backend.onrender.com/api/public/leads', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

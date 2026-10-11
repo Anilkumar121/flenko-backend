@@ -263,5 +263,17 @@
   
   /* Buttons */
   .btn { width: 100%; text-align: center; justify-content: center; }
-  .im-panel-header .btn { width: auto; } /* Don't stretch header buttons */
+  .im-panel-header .btn,
+  .header-search .btn,
+  .site-header .btn,
+  .action-item,
+  .btn-auto { width: auto !important; } /* Don't stretch header/search buttons */
+  
+  /* Mobile Layout Sidebar fix */
+  .layout-sidebar {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    margin-top: 1rem !important;
+  }
 }
+
