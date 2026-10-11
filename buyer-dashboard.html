@@ -100,7 +100,7 @@
           target_price: document.getElementById('rfqPrice').value,
           details: document.getElementById('rfqDetails').value
         };
-        const res = await fetch('/api/buyer/rfqs', {
+        const res = await fetch('https://flenko-backend.onrender.com/api/buyer/rfqs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.getToken()}` },
           body: JSON.stringify(payload)
@@ -120,7 +120,7 @@
 
     async function loadRFQs() {
       try {
-        const res = await fetch('/api/buyer/rfqs', {
+        const res = await fetch('https://flenko-backend.onrender.com/api/buyer/rfqs', {
           headers: { 'Authorization': `Bearer ${auth.getToken()}` }
         });
         const data = await res.json();

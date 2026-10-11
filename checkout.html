@@ -131,7 +131,7 @@
       // Simulate bank verification delay
       setTimeout(async () => {
         try {
-          const res = await fetch('/api/subscriptions/upgrade', {
+          const res = await fetch('https://flenko-backend.onrender.com/api/subscriptions/upgrade', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

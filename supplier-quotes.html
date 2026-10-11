@@ -84,7 +84,7 @@
 
     async function loadRFQs() {
       try {
-        const res = await fetch('/api/supplier/rfqs', {
+        const res = await fetch('https://flenko-backend.onrender.com/api/supplier/rfqs', {
           headers: { 'Authorization': `Bearer ${auth.getToken()}` }
         });
         const data = await res.json();
@@ -127,7 +127,7 @@
           message: document.getElementById('qMessage').value
         };
 
-        const res = await fetch(`/api/supplier/rfqs/${rfqId}/quote`, {
+        const res = await fetch(`https://flenko-backend.onrender.com/api/supplier/rfqs/${rfqId}/quote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.getToken()}` },
           body: JSON.stringify(payload)

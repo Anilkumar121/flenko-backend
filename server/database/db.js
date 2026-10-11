@@ -1,14 +1,18 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-  connectionTimeoutMillis: 2000,
-});
+const poolConfig = process.env.DATABASE_URL
+  ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+  : {
+      user: process.env.DB_USER,
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      password: process.env.DB_PASSWORD,
+      port: process.env.DB_PORT,
+      connectionTimeoutMillis: 3000,
+    };
+
+const pool = new Pool(poolConfig);
 
 const fs = require('fs');
 const path = require('path');
@@ -48,8 +52,93 @@ function saveMockDB() {
 
 let useMock = false;
 
-pool.query('SELECT 1').catch(() => {
-  console.warn('⚠️ WARNING: PostgreSQL connection failed (ECONNREFUSED). Using IN-MEMORY DEVELOPMENT ADAPTER. Data is saved to db.json. Please setup Postgres as per README for production.');
+async function ensureTables() {
+  const schema = `
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      phone VARCHAR(20) UNIQUE NOT NULL,
+      name VARCHAR(100),
+      email VARCHAR(100),
+      city VARCHAR(100),
+      role VARCHAR(20) DEFAULT 'buyer',
+      subscription VARCHAR(50) DEFAULT 'free',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS otp_requests (
+      id SERIAL PRIMARY KEY,
+      phone VARCHAR(20) NOT NULL,
+      otp VARCHAR(10) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS businesses (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      company_name VARCHAR(200) NOT NULL,
+      category VARCHAR(100),
+      gst_number VARCHAR(20),
+      business_type VARCHAR(50),
+      address TEXT,
+      city VARCHAR(100),
+      is_verified BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(200) NOT NULL,
+      price DECIMAL(12, 2),
+      category VARCHAR(100),
+      moq INTEGER DEFAULT 1,
+      unit VARCHAR(50) DEFAULT 'pieces',
+      image_url TEXT,
+      seo_tags TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      buyer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      product_needed VARCHAR(255),
+      buyer_phone VARCHAR(20),
+      details TEXT,
+      status VARCHAR(50) DEFAULT 'New',
+      is_direct BOOLEAN DEFAULT FALSE,
+      is_paid BOOLEAN DEFAULT FALSE,
+      replies JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS rfqs (
+      id SERIAL PRIMARY KEY,
+      buyer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      product VARCHAR(255) NOT NULL,
+      qty VARCHAR(50),
+      target_price VARCHAR(50),
+      details TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS quotations (
+      id SERIAL PRIMARY KEY,
+      rfq_id INTEGER REFERENCES rfqs(id) ON DELETE CASCADE,
+      supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      price_quoted VARCHAR(50),
+      message TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  try {
+    await pool.query(schema);
+    console.log('✅ PostgreSQL schema verified and synchronized successfully.');
+  } catch (err) {
+    console.warn('⚠️ Could not auto-sync PG schema:', err.message);
+  }
+}
+
+pool.query('SELECT 1').then(() => {
+  console.log('✅ PostgreSQL connected successfully!');
+  ensureTables();
+}).catch(() => {
+  console.warn('⚠️ PostgreSQL connection failed. Using IN-MEMORY DEVELOPMENT ADAPTER (Data saved to db.json).');
   useMock = true;
 });
 
@@ -67,16 +156,32 @@ module.exports = {
     // DEVELOPMENT ADAPTER LOGIC
     // This is a naive regex parser just to handle the basic queries in app.js for the demo
     if (text.includes('INSERT INTO otp_requests')) {
-      mockDB.otp_requests.push({ phone: params[0], otp: params[1], expires_at: params[2], created_at: new Date() });
+      mockDB.otp_requests = mockDB.otp_requests || [];
+      const cleanPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      mockDB.otp_requests.push({ 
+        phone: cleanPhone, 
+        otp: (params[1] || '').toString().trim(), 
+        expires_at: params[2], 
+        created_at: new Date() 
+      });
       saveMockDB();
       return { rows: [] };
     }
     if (text.includes('SELECT * FROM otp_requests')) {
-      const row = mockDB.otp_requests.find(o => o.phone === params[0] && o.otp === params[1] && new Date(o.expires_at) > new Date());
+      const targetPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      const targetOtp = (params[1] || '').toString().trim();
+      mockDB.otp_requests = mockDB.otp_requests || [];
+      const row = mockDB.otp_requests.find(o => 
+        (o.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone && 
+        (o.otp || '').toString().trim() === targetOtp && 
+        new Date(o.expires_at).getTime() > Date.now()
+      );
       return { rows: row ? [row] : [] };
     }
     if (text.includes('SELECT * FROM users WHERE phone = $1')) {
-      const row = mockDB.users.find(u => u.phone === params[0]);
+      const targetPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      mockDB.users = mockDB.users || [];
+      const row = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
       return { rows: row ? [row] : [] };
     }
     if (text.includes('SELECT id, phone, name FROM users WHERE subscription')) {
@@ -84,19 +189,22 @@ module.exports = {
       return { rows };
     }
     if (text.includes('INSERT INTO users')) {
-      const newUser = { id: mockDB.idCounter++, phone: params[0], name: params[1], email: params[2], city: params[3], role: params[4] };
+      const cleanPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      const newUser = { id: mockDB.idCounter++, phone: cleanPhone, name: params[1], email: params[2], city: params[3], role: params[4], subscription: 'free' };
       mockDB.users.push(newUser);
       saveMockDB();
       return { rows: [newUser] };
     }
     if (text.includes('UPDATE users SET')) {
-      const user = mockDB.users.find(u => u.phone === params[3]);
+      const targetPhone = (params[3] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      const user = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
       if (user) { user.name = params[0]; user.email = params[1]; user.city = params[2]; }
       saveMockDB();
       return { rows: [] };
     }
     if (text.includes('DELETE FROM otp_requests')) {
-      mockDB.otp_requests = mockDB.otp_requests.filter(o => o.phone !== params[0]);
+      const targetPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      mockDB.otp_requests = (mockDB.otp_requests || []).filter(o => (o.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) !== targetPhone);
       saveMockDB();
       return { rows: [] };
     }

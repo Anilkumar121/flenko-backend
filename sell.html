@@ -183,14 +183,8 @@
         if (res.success) {
            regForm.classList.add('hidden');
            otpForm.classList.remove('hidden');
-           if (res._devOtp) {
-             console.log("Dev OTP:", res._devOtp);
-              regStatusMsg.innerHTML = "OTP Sent! Please enter the 6-digit code.";
-              regStatusMsg.style.color = "var(--color-teal)";
-           } else {
-             regStatusMsg.innerHTML = `OTP Sent! Please check your WhatsApp.`;
-             regStatusMsg.style.color = 'var(--color-teal)';
-           }
+           regStatusMsg.innerHTML = res.message || 'OTP sent to your phone! Please enter the 6-digit code.';
+           regStatusMsg.style.color = 'var(--color-teal)';
         } else {
            regStatusMsg.innerText = res.error || 'Failed to send OTP';
            regStatusMsg.style.color = 'red';

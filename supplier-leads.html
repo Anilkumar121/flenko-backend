@@ -220,7 +220,7 @@
       const utr = prompt('This lead requires ₹50 to unlock.\nPlease scan the Flenko QR and enter your 12-digit UTR/Reference below to unlock it:');
       if(utr && utr.length >= 10) {
         try {
-          const res = await fetch(`/api/leads/${leadId}/pay`, {
+          const res = await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/pay`, {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + auth.getToken() }
           });
@@ -239,7 +239,7 @@
 
     async function updateStatus(leadId, newStatus) {
       try {
-        const res = await fetch(`/api/leads/${leadId}/status`, {
+        const res = await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -277,7 +277,7 @@
       btn.innerText = 'Sending...';
       
       try {
-        const res = await fetch(`/api/leads/${leadId}/reply`, {
+        const res = await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/reply`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

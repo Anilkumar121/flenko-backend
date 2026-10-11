@@ -56,20 +56,15 @@
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      currentPhone = document.getElementById('phoneInput').value;
+      currentPhone = document.getElementById('phoneInput').value.replace(/[^0-9]/g, '').slice(-10);
       statusMsg.innerText = 'Sending OTP...';
       try {
         const res = await auth.requestOtp(currentPhone);
         if (res.success) {
            loginForm.classList.add('hidden');
            otpForm.classList.remove('hidden');
-           if (res._devOtp) {
-              statusMsg.innerHTML = `⚠️ System WhatsApp not scanned! Demo OTP: <strong style="font-size:1.2rem;">${res._devOtp}</strong>`;
-              statusMsg.style.color = '#b45309';
-           } else {
-              statusMsg.innerHTML = `OTP Sent! Please check your WhatsApp.`;
-              statusMsg.style.color = 'var(--color-teal)';
-           }
+           statusMsg.innerHTML = res.message || 'OTP sent to your phone! Please enter the 6-digit code.';
+           statusMsg.style.color = 'var(--color-teal)';
         } else {
            statusMsg.innerText = res.error || 'Failed to send OTP';
            statusMsg.style.color = 'red';
@@ -82,13 +77,19 @@
 
     otpForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const otp = document.getElementById('otpInput').value;
+      const otp = document.getElementById('otpInput').value.trim();
       statusMsg.innerText = 'Verifying...';
       try {
         const res = await auth.verifyOtp({ phone: currentPhone, otp });
         if (res.success) {
            auth.setToken(res.token);
-           window.location.href = 'index.html'; // Unified portal
+           if (res.user && res.user.role === 'admin') {
+              window.location.href = 'admin-dashboard.html';
+           } else if (res.user && res.user.role === 'supplier') {
+              window.location.href = 'supplier-dashboard.html';
+           } else {
+              window.location.href = 'index.html';
+           }
         } else {
            statusMsg.innerText = res.error || 'Invalid OTP';
            statusMsg.style.color = 'red';

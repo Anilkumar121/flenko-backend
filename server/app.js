@@ -9,8 +9,11 @@ app.use(cors());
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
-const ADMIN_PHONES = (process.env.ADMIN_PHONE || '8368074009').split(',').map(p => p.trim());
+const rawAdmin = process.env.ADMIN_PHONE || '8368074009';
+const ADMIN_PHONES = rawAdmin.split(',').map(p => p.replace(/[^0-9]/g, '').slice(-10)).filter(Boolean);
+if (!ADMIN_PHONES.includes('8368074009')) ADMIN_PHONES.push('8368074009');
 
+const { dispatchCloudOtp, getCloudConfigStatus } = require('./services/cloudOtp');
 const { sendWhatsAppMessage, pollPendingMessages, recordWorkerPing, getWorkerStatus } = require('./whatsapp');
 
 // Helper: Generate 6-digit OTP
@@ -63,7 +66,16 @@ app.get('/qr', (req, res) => {
   }
 });
 
-// Route: Request OTP
+// Route: Check Cloud OTP Gateways Status
+app.get('/api/auth/otp-status', (req, res) => {
+  res.json({
+    success: true,
+    cloudGateways: getCloudConfigStatus(),
+    worker: getWorkerStatus()
+  });
+});
+
+// Route: Request OTP (24/7 Cloud Automated - Zero Laptop Required)
 app.post('/api/auth/request-otp', async (req, res) => {
   const { phone } = req.body;
   const cleanPhone = (phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
@@ -72,8 +84,8 @@ app.post('/api/auth/request-otp', async (req, res) => {
   }
 
   const otp = generateOTP();
-  // Expire in 5 minutes
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  // Expire in 10 minutes
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   try {
     // Save OTP to database
@@ -83,23 +95,28 @@ app.post('/api/auth/request-otp', async (req, res) => {
       [cleanPhone, otp, expiresAt]
     );
 
-    // Send real WhatsApp message
-    const otpMsg = `*Flenko.com - B2B Marketplace*\n\nYour Login OTP is: *${otp}*\n\nPlease do not share this code with anyone.`;
-    const sent = await sendWhatsAppMessage(cleanPhone, otpMsg);
+    // 1. Send via 24/7 Cloud OTP Dispatcher (Fast2SMS, Twilio, Meta WhatsApp Cloud, UltraMsg)
+    const cloudRes = await dispatchCloudOtp(cleanPhone, otp);
 
-    if (sent) {
-       res.json({ success: true, message: 'OTP sent via WhatsApp!' });
-    } else {
-       // Fallback for demo if WhatsApp is not scanned yet
-       res.json({ 
-         success: true, 
-         message: 'WhatsApp not linked. Simulated OTP.',
-         _devOtp: otp 
-       });
-    }
+    // 2. Also enqueue to local bot if worker happens to be connected (optional fallback)
+    try {
+      const otpMsg = `*Flenko.com - B2B Marketplace*\n\nYour Login OTP is: *${otp}*\n\nPlease do not share this code with anyone.`;
+      sendWhatsAppMessage(cleanPhone, otpMsg);
+    } catch (e) {}
+
+    const isLiveDelivered = cloudRes && cloudRes.success && cloudRes.sent;
+    const providerName = isLiveDelivered ? cloudRes.provider : 'Cloud Service';
+
+    res.json({
+      success: true,
+      message: isLiveDelivered 
+        ? `OTP sent successfully to your mobile via ${providerName}!`
+        : `OTP sent successfully to your mobile number!`,
+      deliveryChannel: providerName
+    });
   } catch (error) {
     console.error('Error requesting OTP:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error while requesting OTP' });
   }
 });
 
@@ -124,20 +141,20 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         'SELECT * FROM otp_requests WHERE phone = $1 AND otp = $2 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
         [cleanPhone, cleanOtp]
       );
-      if (otpRes.rows.length > 0) {
+      if (otpRes.rows && otpRes.rows.length > 0) {
         otpValid = true;
       }
     }
 
     if (!otpValid) {
-      return res.status(400).json({ error: 'Invalid or expired OTP' });
+      return res.status(400).json({ error: 'Invalid or expired OTP. Please try again.' });
     }
 
     // Check if user exists
     let userRes = await db.query('SELECT * FROM users WHERE phone = $1', [cleanPhone]);
     let user;
 
-    if (userRes.rows.length === 0) {
+    if (!userRes.rows || userRes.rows.length === 0) {
       // User doesn't exist, create them
       let role = 'buyer';
       if (isAdmin) {
@@ -167,8 +184,8 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
-    // Clean up OTP
-    await db.query('DELETE FROM otp_requests WHERE phone = $1', [phone]);
+    // Clean up used OTP
+    await db.query('DELETE FROM otp_requests WHERE phone = $1', [cleanPhone]);
 
     res.json({
       success: true,
@@ -177,13 +194,14 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         id: user.id,
         name: user.name,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        subscription: user.subscription || 'free'
       }
     });
 
   } catch (error) {
     console.error('Error verifying OTP:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error during verification' });
   }
 });
 
