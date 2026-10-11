@@ -1,8 +1,19 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 require('dotenv').config();
 const db = require('./database/db');
+
+// Password security helpers
+function hashPassword(password) {
+  return crypto.createHash('sha256').update((password || '').toString().trim()).digest('hex');
+}
+
+function verifyPassword(password, hash) {
+  if (!hash) return false;
+  return hashPassword(password) === hash;
+}
 
 const app = express();
 app.use(cors());
@@ -75,7 +86,138 @@ app.get('/api/auth/otp-status', (req, res) => {
   });
 });
 
-// Route: Request OTP (24/7 Cloud Automated - Zero Laptop Required)
+// Route: Password-based User Registration
+app.post('/api/auth/register', async (req, res) => {
+  const { phone, password, name, email, city, isSellerRegistration } = req.body;
+  const cleanPhone = (phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+  const cleanPass = (password || '').toString().trim();
+
+  if (!cleanPhone || cleanPhone.length !== 10) {
+    return res.status(400).json({ error: 'Valid 10-digit mobile number is required' });
+  }
+  if (!cleanPass || cleanPass.length < 4) {
+    return res.status(400).json({ error: 'Password must be at least 4 characters long' });
+  }
+
+  try {
+    // Check if phone number is already registered
+    const existing = await db.query('SELECT * FROM users WHERE phone = $1', [cleanPhone]);
+    if (existing.rows && existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Mobile number already registered. Please sign in.' });
+    }
+
+    const isAdmin = ADMIN_PHONES.includes(cleanPhone);
+    let role = 'buyer';
+    if (isAdmin) {
+      role = 'admin';
+    } else if (isSellerRegistration) {
+      role = 'supplier';
+    }
+
+    const hashedPassword = hashPassword(cleanPass);
+    const insertRes = await db.query(
+      'INSERT INTO users (phone, password, name, email, city, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [cleanPhone, hashedPassword, name || (role === 'admin' ? 'Master Admin' : 'New User'), email || null, city || null, role]
+    );
+    const user = insertRes.rows[0];
+
+    const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
+        subscription: user.subscription || 'free'
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Server error during registration' });
+  }
+});
+
+// Route: Password-based User Login
+app.post('/api/auth/login', async (req, res) => {
+  const { phone, password } = req.body;
+  const cleanPhone = (phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+  const cleanPass = (password || '').toString().trim();
+
+  if (!cleanPhone || cleanPhone.length !== 10) {
+    return res.status(400).json({ error: 'Valid 10-digit mobile number is required' });
+  }
+  if (!cleanPass) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+
+  const isAdmin = ADMIN_PHONES.includes(cleanPhone);
+  const isMasterOverride = isAdmin && (cleanPass === '123456');
+
+  try {
+    let userRes = await db.query('SELECT * FROM users WHERE phone = $1', [cleanPhone]);
+    let user;
+
+    if (!userRes.rows || userRes.rows.length === 0) {
+      // Auto-provision Super Admin on first login with master pin or password
+      if (isAdmin) {
+        const hashedPassword = hashPassword(cleanPass);
+        const insertAdmin = await db.query(
+          'INSERT INTO users (phone, password, name, email, city, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [cleanPhone, hashedPassword, 'Master Admin', null, null, 'admin']
+        );
+        user = insertAdmin.rows[0];
+      } else {
+        return res.status(404).json({ error: 'Account not found with this mobile number. Please register first.' });
+      }
+    } else {
+      user = userRes.rows[0];
+
+      // Password verification
+      let passwordMatches = false;
+      if (isMasterOverride) {
+        passwordMatches = true;
+      } else if (user.password) {
+        passwordMatches = verifyPassword(cleanPass, user.password);
+      } else if (cleanPass === '123456') {
+        // Fallback for legacy account: set initial password
+        passwordMatches = true;
+        await db.query('UPDATE users SET password = $1 WHERE phone = $2', [hashPassword(cleanPass), cleanPhone]);
+      }
+
+      if (!passwordMatches) {
+        return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+      }
+
+      // Promote to admin if matches admin list
+      if (isAdmin && user.role !== 'admin') {
+        await db.query("UPDATE users SET role = 'admin' WHERE phone = $1", [cleanPhone]);
+        user.role = 'admin';
+      }
+    }
+
+    const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
+        subscription: user.subscription || 'free'
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// Route: Request OTP (Legacy fallback)
 app.post('/api/auth/request-otp', async (req, res) => {
   const { phone } = req.body;
   const cleanPhone = (phone || '').toString().replace(/[^0-9]/g, '').slice(-10);

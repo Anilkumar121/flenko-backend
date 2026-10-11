@@ -3,10 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Flenko.com</title>
+  <title>Login & Register - Flenko.com</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <style>
+    .auth-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--color-border);
+      margin-bottom: 1.5rem;
+    }
+    .auth-tab-btn {
+      flex: 1;
+      padding: 0.75rem;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s ease;
+    }
+    .auth-tab-btn.active {
+      color: var(--color-teal);
+      border-bottom-color: var(--color-teal);
+    }
+    .auth-footer-link {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    .auth-footer-link a {
+      color: var(--color-teal);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .auth-footer-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body style="background: var(--color-bg-light); display: flex; flex-direction: column; min-height: 100vh;">
   <header class="site-header">
@@ -16,92 +54,162 @@
   </header>
 
   <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-    <div class="card" style="width: 100%; max-width: 400px; padding: 2rem;">
-      <h2 style="margin-bottom: 0.5rem; text-align: center;">Sign in to Flenko</h2>
-      <p class="text-muted text-center" style="margin-bottom: 2rem; font-size: 0.875rem;">Manage your RFQs, orders, and business connections securely.</p>
+    <div class="card" style="width: 100%; max-width: 420px; padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-radius: var(--radius-lg);">
       
+      <!-- Auth Switcher Tabs -->
+      <div class="auth-tabs">
+        <button type="button" id="tabSignIn" class="auth-tab-btn active" onclick="switchAuthTab('login')">Sign In</button>
+        <button type="button" id="tabSignUp" class="auth-tab-btn" onclick="switchAuthTab('register')">Create Buyer Account</button>
+      </div>
+
+      <!-- Sign In Form -->
       <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label">Mobile Number</label>
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-weight: 600;">Mobile Number</label>
           <div style="display: flex;">
-            <span class="form-control" style="width: auto; border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--color-bg-light);">🇮🇳 +91</span>
-            <input type="tel" id="phoneInput" class="form-control" required placeholder="10-digit number" pattern="[0-9]{10}" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">
+            <span class="form-control" style="width: auto; border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); background: #f1f5f9; font-weight: 500;">🇮🇳 +91</span>
+            <input type="tel" id="loginPhone" class="form-control" required placeholder="10-digit number" pattern="[0-9]{10}" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">
           </div>
         </div>
-        
-        <div class="form-group" style="margin-top: 1.5rem;">
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">Get OTP</button>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" style="font-weight: 600;">Password</label>
+          <input type="password" id="loginPassword" class="form-control" required placeholder="Enter password" style="border-radius: var(--radius-md);">
         </div>
+        
+        <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 600; background-color: var(--color-teal); border-color: var(--color-teal);">Sign In</button>
       </form>
 
-      <form id="otpForm" class="hidden">
-        <div class="form-group">
-          <label class="form-label">Enter OTP</label>
-          <input type="text" id="otpInput" class="form-control" required placeholder="6-digit OTP" maxlength="6" style="letter-spacing: 2px; text-align: center; font-size: 1.2rem;">
+      <!-- Create Buyer Account Form -->
+      <form id="registerForm" class="hidden">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-weight: 600;">Full Name</label>
+          <input type="text" id="regName" class="form-control" required placeholder="e.g. Rahul Sharma" style="border-radius: var(--radius-md);">
         </div>
-        <div class="form-group" style="margin-top: 1.5rem;">
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; background-color: var(--color-teal); border-color: var(--color-teal);">Verify & Login</button>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-weight: 600;">Mobile Number</label>
+          <div style="display: flex;">
+            <span class="form-control" style="width: auto; border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); background: #f1f5f9; font-weight: 500;">🇮🇳 +91</span>
+            <input type="tel" id="regPhone" class="form-control" required placeholder="10-digit number" pattern="[0-9]{10}" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">
+          </div>
         </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" style="font-weight: 600;">Create Password</label>
+          <input type="password" id="regPassword" class="form-control" required placeholder="At least 4 characters" minlength="4" style="border-radius: var(--radius-md);">
+        </div>
+
+        <button type="submit" id="regSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 600; background-color: var(--color-teal); border-color: var(--color-teal);">Create Free Buyer Account</button>
       </form>
-      <p id="statusMsg" class="text-center text-muted" style="font-size: 0.75rem; margin-top: 1rem;">OTP will be sent via SMS / WhatsApp.</p>
+
+      <!-- Status Feedback -->
+      <div id="statusMsg" class="text-center" style="font-size: 0.875rem; margin-top: 1rem; min-height: 1.25rem;"></div>
+
+      <div class="auth-footer-link" style="border-top: 1px solid var(--color-border); padding-top: 1rem; margin-top: 1.5rem;">
+        Are you a manufacturer or supplier? <br>
+        <a href="sell.html">Register as a Seller &rarr;</a>
+      </div>
     </div>
   </main>
 
   <script src="js/auth.js"></script>
   <script>
     const loginForm = document.getElementById('loginForm');
-    const otpForm = document.getElementById('otpForm');
+    const registerForm = document.getElementById('registerForm');
+    const tabSignIn = document.getElementById('tabSignIn');
+    const tabSignUp = document.getElementById('tabSignUp');
     const statusMsg = document.getElementById('statusMsg');
-    let currentPhone = '';
 
+    function switchAuthTab(tab) {
+      statusMsg.innerText = '';
+      if (tab === 'login') {
+        tabSignIn.classList.add('active');
+        tabSignUp.classList.remove('active');
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+      } else {
+        tabSignUp.classList.add('active');
+        tabSignIn.classList.remove('active');
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+      }
+    }
+
+    // Handle Login
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      currentPhone = document.getElementById('phoneInput').value.replace(/[^0-9]/g, '').slice(-10);
-      statusMsg.innerText = 'Sending OTP...';
+      const phone = document.getElementById('loginPhone').value.replace(/[^0-9]/g, '').slice(-10);
+      const password = document.getElementById('loginPassword').value.trim();
+      const btn = document.getElementById('loginSubmitBtn');
+
+      statusMsg.innerText = 'Signing in...';
+      statusMsg.style.color = '#64748b';
+      btn.disabled = true;
+
       try {
-        const res = await auth.requestOtp(currentPhone);
+        const res = await auth.login(phone, password);
         if (res.success) {
-           loginForm.classList.add('hidden');
-           otpForm.classList.remove('hidden');
-           if (res.testOtp) {
-             document.getElementById('otpInput').value = res.testOtp;
-             statusMsg.innerHTML = `Free Test Mode: Code auto-filled (<b>${res.testOtp}</b>). Click Verify & Login!`;
-           } else {
-             statusMsg.innerHTML = res.message || 'OTP sent to your phone! Please enter the 6-digit code.';
-           }
-           statusMsg.style.color = 'var(--color-teal)';
+          auth.setToken(res.token);
+          statusMsg.innerText = 'Login successful! Redirecting...';
+          statusMsg.style.color = 'var(--color-teal)';
+          setTimeout(() => {
+            if (res.user && res.user.role === 'admin') {
+              window.location.href = 'admin-dashboard.html';
+            } else if (res.user && res.user.role === 'supplier') {
+              window.location.href = 'supplier-dashboard.html';
+            } else {
+              window.location.href = 'index.html';
+            }
+          }, 400);
         } else {
-           statusMsg.innerText = res.error || 'Failed to send OTP';
-           statusMsg.style.color = 'red';
+          statusMsg.innerText = res.error || 'Login failed. Please check mobile and password.';
+          statusMsg.style.color = '#ef4444';
+          btn.disabled = false;
         }
       } catch (err) {
-        statusMsg.innerText = 'Server error. Make sure backend is running.';
-        statusMsg.style.color = 'red';
+        statusMsg.innerText = 'Server connection error. Please try again.';
+        statusMsg.style.color = '#ef4444';
+        btn.disabled = false;
       }
     });
 
-    otpForm.addEventListener('submit', async (e) => {
+    // Handle Buyer Registration
+    registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const otp = document.getElementById('otpInput').value.trim();
-      statusMsg.innerText = 'Verifying...';
+      const name = document.getElementById('regName').value.trim();
+      const phone = document.getElementById('regPhone').value.replace(/[^0-9]/g, '').slice(-10);
+      const password = document.getElementById('regPassword').value.trim();
+      const btn = document.getElementById('regSubmitBtn');
+
+      statusMsg.innerText = 'Creating account...';
+      statusMsg.style.color = '#64748b';
+      btn.disabled = true;
+
       try {
-        const res = await auth.verifyOtp({ phone: currentPhone, otp });
+        const res = await auth.register({
+          name,
+          phone,
+          password,
+          isSellerRegistration: false
+        });
+
         if (res.success) {
-           auth.setToken(res.token);
-           if (res.user && res.user.role === 'admin') {
-              window.location.href = 'admin-dashboard.html';
-           } else if (res.user && res.user.role === 'supplier') {
-              window.location.href = 'supplier-dashboard.html';
-           } else {
-              window.location.href = 'index.html';
-           }
+          auth.setToken(res.token);
+          statusMsg.innerText = 'Account created successfully! Redirecting...';
+          statusMsg.style.color = 'var(--color-teal)';
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 400);
         } else {
-           statusMsg.innerText = res.error || 'Invalid OTP';
-           statusMsg.style.color = 'red';
+          statusMsg.innerText = res.error || 'Registration failed.';
+          statusMsg.style.color = '#ef4444';
+          btn.disabled = false;
         }
       } catch (err) {
-        statusMsg.innerText = 'Server error during verification.';
-        statusMsg.style.color = 'red';
+        statusMsg.innerText = 'Server error during registration.';
+        statusMsg.style.color = '#ef4444';
+        btn.disabled = false;
       }
     });
   </script>

@@ -13,6 +13,22 @@ const auth = {
     localStorage.removeItem('flenko_token');
     window.location.href = 'index.html';
   },
+  async login(phone, password) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, password })
+    });
+    return res.json();
+  },
+  async register(payload) {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
   async requestOtp(phone) {
     const res = await fetch(`${API_BASE}/auth/request-otp`, {
       method: 'POST',

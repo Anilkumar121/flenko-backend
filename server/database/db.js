@@ -57,6 +57,7 @@ async function ensureTables() {
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       phone VARCHAR(20) UNIQUE NOT NULL,
+      password VARCHAR(255),
       name VARCHAR(100),
       email VARCHAR(100),
       city VARCHAR(100),
@@ -64,6 +65,7 @@ async function ensureTables() {
       subscription VARCHAR(50) DEFAULT 'free',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
     CREATE TABLE IF NOT EXISTS otp_requests (
       id SERIAL PRIMARY KEY,
       phone VARCHAR(20) NOT NULL,
@@ -190,10 +192,42 @@ module.exports = {
     }
     if (text.includes('INSERT INTO users')) {
       const cleanPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
-      const newUser = { id: mockDB.idCounter++, phone: cleanPhone, name: params[1], email: params[2], city: params[3], role: params[4], subscription: 'free' };
+      let newUser;
+      if (params.length >= 6) {
+        // (phone, password, name, email, city, role)
+        newUser = { 
+          id: mockDB.idCounter++, 
+          phone: cleanPhone, 
+          password: params[1], 
+          name: params[2], 
+          email: params[3], 
+          city: params[4], 
+          role: params[5], 
+          subscription: 'free' 
+        };
+      } else {
+        // (phone, name, email, city, role)
+        newUser = { 
+          id: mockDB.idCounter++, 
+          phone: cleanPhone, 
+          password: null, 
+          name: params[1], 
+          email: params[2], 
+          city: params[3], 
+          role: params[4], 
+          subscription: 'free' 
+        };
+      }
       mockDB.users.push(newUser);
       saveMockDB();
       return { rows: [newUser] };
+    }
+    if (text.includes('UPDATE users SET password = $1 WHERE phone = $2')) {
+      const targetPhone = (params[1] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      const user = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
+      if (user) { user.password = params[0]; }
+      saveMockDB();
+      return { rows: [] };
     }
     if (text.includes('UPDATE users SET')) {
       const targetPhone = (params[3] || '').toString().replace(/[^0-9]/g, '').slice(-10);
