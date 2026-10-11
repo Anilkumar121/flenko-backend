@@ -9,6 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
+const ADMIN_PHONES = (process.env.ADMIN_PHONE || '8368074009').split(',').map(p => p.trim());
 
 const { sendWhatsAppMessage, getLatestQR } = require('./whatsapp');
 
@@ -112,14 +113,24 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
     if (userRes.rows.length === 0) {
       // User doesn't exist, create them
-      const role = isSellerRegistration ? 'supplier' : 'buyer';
+      let role = 'buyer';
+      if (ADMIN_PHONES.includes(phone)) {
+        role = 'admin';
+      } else if (isSellerRegistration) {
+        role = 'supplier';
+      }
       const insertUser = await db.query(
         'INSERT INTO users (phone, name, email, city, role) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [phone, name || 'New User', email || null, city || null, role]
+        [phone, name || (role === 'admin' ? 'Master Admin' : 'New User'), email || null, city || null, role]
       );
       user = insertUser.rows[0];
     } else {
       user = userRes.rows[0];
+      // If user phone matches admin, automatically promote to admin
+      if (ADMIN_PHONES.includes(phone) && user.role !== 'admin') {
+        await db.query("UPDATE users SET role = 'admin' WHERE phone = $1", [phone]);
+        user.role = 'admin';
+      }
       // Update name/email if provided during a new registration flow but user already existed
       if (name && user.name === 'New User') {
          await db.query('UPDATE users SET name = $1, email = $2, city = $3 WHERE phone = $4', [name, email, city, phone]);
@@ -158,6 +169,24 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Middleware to verify Admin role
+const adminMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ error: 'Access Denied: Administrator rights required.' });
+    }
     req.user = decoded;
     next();
   } catch (err) {
@@ -580,10 +609,10 @@ app.post('/api/supplier/rfqs/:id/quote', authMiddleware, async (req, res) => {
 });
 
 // ==========================
-// Admin Routes (Module 5)
+// Admin Routes (Module 5) - Strictly Protected
 // ==========================
 // Route: Admin Dashboard Stats
-app.get('/api/admin/stats', authMiddleware, async (req, res) => {
+app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   try {
     const statsRes = await db.query('SELECT (SELECT COUNT(*) FROM users) as users, (SELECT COUNT(*) FROM leads) as leads, (SELECT COUNT(*) FROM products) as products');
     const recentUsers = await db.query('SELECT id, name, phone, role, subscription FROM users ORDER BY id DESC LIMIT 10');
@@ -599,7 +628,7 @@ app.get('/api/admin/stats', authMiddleware, async (req, res) => {
 });
 
 // Route: Admin Delete User
-app.delete('/api/admin/users/:id', authMiddleware, async (req, res) => {
+app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
   try {
     const deleted = await db.query('DELETE FROM users WHERE id = $1 RETURNING *', [parseInt(req.params.id)]);
     if (deleted.rows.length === 0) {
@@ -613,7 +642,7 @@ app.delete('/api/admin/users/:id', authMiddleware, async (req, res) => {
 });
 
 // Route: Admin Get User Leads
-app.get('/api/admin/users/:id/leads', authMiddleware, async (req, res) => {
+app.get('/api/admin/users/:id/leads', adminMiddleware, async (req, res) => {
   try {
     const leadsRes = await db.query('SELECT * FROM leads WHERE supplier_id = $1 ORDER BY created_at DESC', [parseInt(req.params.id)]);
     res.json({ success: true, leads: leadsRes.rows });
