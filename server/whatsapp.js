@@ -7,6 +7,7 @@ try {
 let isReady = false;
 let latestQRDataUrl = null;
 let client = null;
+let lastError = null;
 
 try {
   client = new Client({
@@ -62,9 +63,11 @@ try {
 
   client.initialize().catch(err => {
     console.error('WhatsApp initialization error:', err.message);
+    lastError = err.message || err.toString();
   });
 } catch (err) {
   console.error('WhatsApp client setup error:', err.message);
+  lastError = err.message || err.toString();
 }
 
 async function sendWhatsAppMessage(phone, messageText) {
@@ -93,4 +96,8 @@ function getLatestQR() {
   return latestQRDataUrl;
 }
 
-module.exports = { sendWhatsAppMessage, getLatestQR };
+function getWhatsAppStatus() {
+  return { isReady, error: lastError, hasQR: !!latestQRDataUrl };
+}
+
+module.exports = { sendWhatsAppMessage, getLatestQR, getWhatsAppStatus };

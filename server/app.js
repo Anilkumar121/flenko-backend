@@ -11,7 +11,7 @@ app.use(express.json());
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const ADMIN_PHONES = (process.env.ADMIN_PHONE || '8368074009').split(',').map(p => p.trim());
 
-const { sendWhatsAppMessage, getLatestQR } = require('./whatsapp');
+const { sendWhatsAppMessage, getLatestQR, getWhatsAppStatus } = require('./whatsapp');
 
 // Helper: Generate 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -24,13 +24,24 @@ app.get('/api/health', (req, res) => {
 // Route: Dynamic QR Page for WhatsApp Link
 app.get('/qr', (req, res) => {
   const qrData = getLatestQR();
+  const waStatus = getWhatsAppStatus ? getWhatsAppStatus() : {};
   
-  if (qrData === 'READY') {
+  if (qrData === 'READY' || waStatus.isReady) {
     return res.send('<h2>✅ WhatsApp is successfully connected! You can close this window.</h2>');
   }
   
+  if (waStatus.error) {
+    return res.send(`
+      <div style="font-family:sans-serif; padding:30px; max-width:650px; margin:40px auto; border:2px solid #ef4444; border-radius:8px; background:#fef2f2;">
+        <h2 style="color:#b91c1c;">⚠️ WhatsApp Bot Status</h2>
+        <p>Puppeteer/Chromium encountered an issue on this server environment:</p>
+        <pre style="background:#18181b; color:#f87171; padding:15px; border-radius:6px; overflow:auto; white-space:pre-wrap;">${waStatus.error}</pre>
+      </div>
+    `);
+  }
+  
   if (!qrData) {
-    return res.send('<meta http-equiv="refresh" content="2"><h2>🔄 Loading QR Code... Please wait...</h2>');
+    return res.send('<meta http-equiv="refresh" content="3"><div style="font-family:sans-serif; text-align:center; margin-top:50px;"><h2>🔄 Launching WhatsApp Chromium... Please wait 10-20 seconds...</h2><p>Generating QR code...</p></div>');
   }
 
   res.send(`
