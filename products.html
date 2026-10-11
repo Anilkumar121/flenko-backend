@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B2B Products - Flenko.com</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <style>
+    .layout-sidebar {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    .filters-card {
+      padding: 1.5rem;
+    }
+    .filter-group {
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 1.5rem;
+    }
+    .filter-group:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+    .filter-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--color-navy-midnight);
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--color-text-main);
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-top">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <form class="header-search" action="products.html" method="GET">
+        <input type="text" name="q" class="form-control" placeholder="Search products, brands, or suppliers..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
+        <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">Search</button>
+      </form>
+      <div class="header-actions">
+        <button class="action-item" onclick="window.location.href='index.html'"><strong>Back to Home</strong></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout-sidebar">
+      <aside class="card filters-card">
+        <div class="filter-group">
+          <h4 class="filter-title">Categories</h4>
+          <label class="checkbox-label"><input type="checkbox" checked> All Categories</label>
+          <label class="checkbox-label"><input type="checkbox"> Industrial Machinery</label>
+          <label class="checkbox-label"><input type="checkbox"> Packaging</label>
+          <label class="checkbox-label"><input type="checkbox"> Electronics</label>
+        </div>
+        <div class="filter-group">
+          <h4 class="filter-title">Supplier Type</h4>
+          <label class="checkbox-label"><input type="checkbox"> Verified Supplier ✓</label>
+          <label class="checkbox-label"><input type="checkbox"> Manufacturer</label>
+          <label class="checkbox-label"><input type="checkbox"> Wholesaler</label>
+        </div>
+        <div class="filter-group">
+          <h4 class="filter-title">Min. Order Quantity (MOQ)</h4>
+          <input type="number" class="form-control" placeholder="Max MOQ e.g. 100">
+        </div>
+      </aside>
+      
+      <section>
+        <div class="section-header" style="padding-top: 0;">
+          <h2 class="section-title">Wholesale Products</h2>
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <label style="font-size: 0.875rem;">Sort By:</label>
+            <select class="form-control" style="width: 200px;">
+              <option>Relevance</option>
+              <option>Price: Low to High</option>
+              <option>MOQ: Low to High</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="product-grid" id="productsPageGrid">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const grid = document.getElementById("productsPageGrid");
+      if (!grid) return;
+      
+      let allProducts = [...b2bProducts];
+
+      try {
+        const res = await fetch('/api/public/products');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.products && data.products.length > 0) {
+            const liveProducts = data.products.map(p => ({
+              id: p.id,
+              name: p.name,
+              category: p.category,
+              supplier: { name: "Supplier ID: " + p.supplier_id, verified: true, location: "Pan-India" },
+              price: p.price,
+              moq: p.moq,
+              unit: p.unit || "Pieces",
+              image: p.image_url,
+              badge: "NEW",
+              leadTime: "TBD"
+            }));
+            allProducts = [...liveProducts, ...allProducts];
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch live products", err);
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const query = urlParams.get('q');
+      const cat = urlParams.get('cat');
+
+      if (query) {
+        allProducts = allProducts.filter(p => 
+          p.name.toLowerCase().includes(query.toLowerCase()) || 
+          p.category.toLowerCase().includes(query.toLowerCase())
+        );
+      }
+      if (cat) {
+        allProducts = allProducts.filter(p => p.category.toLowerCase() === cat.toLowerCase());
+      }
+
+      if (allProducts.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; padding: 3rem; text-align: center; color: var(--color-text-muted);">No products or services found for your search. Please try a different keyword or post an <a href="rfq.html" style="color:var(--color-blue-primary);">RFQ</a>.</div>';
+        return;
+      }
+
+      grid.innerHTML = allProducts.map(p => `
+        <article class="product-card">
+          <div class="product-img-wrapper">
+            <img src="${p.image}" alt="${p.name}" class="product-img" loading="lazy" onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+            ${p.badge ? `<div class="product-badges"><span class="badge badge-teal">${p.badge}</span></div>` : ''}
+          </div>
+          <div class="product-info">
+            <div class="product-vendor">${p.supplier.name} ${p.supplier.verified ? '<span style="color:var(--color-blue-primary);" title="Verified Supplier">✓</span>' : ''}</div>
+            <h3 class="product-title">${p.name}</h3>
+            <div class="product-meta">
+              <div>📍 ${p.supplier.location}</div>
+            </div>
+            <div class="product-price-row">
+              <div>
+                <div class="product-price">${formatCurrency(p.price)} <small>/ ${p.unit}</small></div>
+                <div class="product-moq">Min. Order: ${p.moq} ${p.unit}</div>
+              </div>
+            </div>
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+              <button class="btn btn-outline" style="flex:1;" onclick="window.location.href='rfq.html?product=${p.id}'">Contact Supplier</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    });
+  </script>
+</body>
+</html>

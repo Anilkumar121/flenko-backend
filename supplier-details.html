@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Packaging Solutions - Supplier Profile</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .supplier-hero {
+      background: var(--color-white);
+      border-bottom: 1px solid var(--color-border);
+      padding: 3rem 0;
+    }
+    .supplier-hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 3rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .supplier-hero-grid { grid-template-columns: 1fr; }
+    }
+    .supplier-header-info h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--color-navy-deep);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .meta-tags {
+      display: flex;
+      gap: 1.5rem;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .meta-tags div { display: flex; align-items: center; gap: 0.25rem; }
+    
+    .contact-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 100px;
+    }
+    
+    .content-section {
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .content-section:last-child { border-bottom: none; }
+    
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .service-card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .service-card img { width: 100%; height: 150px; object-fit: cover; }
+    .service-card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; }
+    .service-title { font-weight: 600; margin-bottom: 0.5rem; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-top">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <form class="header-search">
+        <input type="text" class="form-control" placeholder="Search businesses..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
+        <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">Search</button>
+      </form>
+      <div class="header-actions">
+        <button class="action-item" onclick="window.location.href='index.html'"><strong>Back to Directory</strong></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="supplier-hero">
+    <div class="container supplier-hero-grid">
+      <div class="supplier-header-info">
+        <h1>
+          Apex Packaging Solutions 
+          <span class="badge badge-teal" style="font-size: 0.75rem;">Verified Supplier ✓</span>
+        </h1>
+        <div class="meta-tags">
+          <div>📍 Mumbai, Maharashtra</div>
+          <div>🏢 Manufacturer & Wholesaler</div>
+          <div>⭐ 4.8/5 Rating</div>
+          <div>📅 Est. 2012</div>
+        </div>
+        <p style="color: var(--color-text-main); line-height: 1.6; max-width: 800px;">
+          Apex Packaging Solutions is a leading manufacturer of high-quality industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.
+        </p>
+      </div>
+
+      <div class="contact-card">
+        <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Contact Supplier</h3>
+        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1.5rem;">Send a direct message to request quotes or details.</p>
+        
+        <form onsubmit="event.preventDefault(); alert('Inquiry Sent! The supplier will see this in their Flenko CRM dashboard.');">
+          <div class="form-group">
+            <input type="text" class="form-control" required placeholder="What product/service do you need?">
+          </div>
+          <div class="form-group">
+            <input type="tel" class="form-control" required placeholder="Your mobile number">
+          </div>
+          <div class="form-group">
+            <textarea class="form-control" rows="3" required placeholder="Describe your requirement..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 0.75rem;">Send Inquiry Now</button>
+        </form>
+        <p class="text-center text-muted" style="font-size: 0.75rem; margin-top: 1rem;">🔒 Your contact details are secure.</p>
+      </div>
+    </div>
+  </div>
+
+  <main class="container">
+    <section class="content-section">
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Products & Services Catalog</h2>
+      <p class="text-muted">Browse the offerings provided by this business.</p>
+      
+      <div class="service-grid">
+        <div class="service-card">
+          <img src="https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80" alt="Corrugated Boxes">
+          <div class="service-card-body">
+            <h4 class="service-title">Heavy-Duty Corrugated Boxes</h4>
+            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">Available in 3-ply, 5-ply, and 7-ply for industrial goods transport.</p>
+            <div style="margin-top: auto;">
+              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="alert('Scrolling up to Contact Form')">Get Latest Price</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-card">
+          <img src="https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80" alt="Packaging Tape">
+          <div class="service-card-body">
+            <h4 class="service-title">Custom Printed BOPP Tapes</h4>
+            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">Branded sealing tapes for secure and professional packaging.</p>
+            <div style="margin-top: auto;">
+              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="alert('Scrolling up to Contact Form')">Get Latest Price</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-card">
+          <img src="https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80" alt="Stretch Film">
+          <div class="service-card-body">
+            <h4 class="service-title">Industrial Stretch Wrapping Film</h4>
+            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">High puncture resistance film for pallet wrapping.</p>
+            <div style="margin-top: auto;">
+              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="alert('Scrolling up to Contact Form')">Get Latest Price</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="content-section" style="padding-bottom: 5rem;">
+      <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Company Details</h2>
+      <table class="table" style="max-width: 600px; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
+        <tbody>
+          <tr>
+            <th style="width: 200px;">Business Type</th>
+            <td>Manufacturer, Wholesaler</td>
+          </tr>
+          <tr>
+            <th>Primary Market</th>
+            <td>Pan-India</td>
+          </tr>
+          <tr>
+            <th>Year Established</th>
+            <td>2012</td>
+          </tr>
+          <tr>
+            <th>GST Number</th>
+            <td>27AADCAXXXXX1Z5 (Verified)</td>
+          </tr>
+          <tr>
+            <th>Registered Address</th>
+            <td>Andheri East, Mumbai, Maharashtra - 400069</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

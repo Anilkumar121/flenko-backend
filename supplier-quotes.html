@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Quotations - Flenko Seller Panel</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    body { background-color: #f1f3f6; }
+    .im-panel-header { background: var(--color-white); border-bottom: 2px solid var(--color-navy-deep); padding: 0.5rem 0; position: sticky; top: 0; z-index: 100; }
+    .im-panel-layout { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; padding: 1.5rem 0; max-width: 1350px; margin: 0 auto; }
+    .im-sidebar { background: var(--color-white); border: 1px solid var(--color-border); height: max-content; position: sticky; top: 80px; }
+    .im-menu a { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; color: var(--color-text-main); font-weight: 500; font-size: 0.875rem; border-left: 3px solid transparent; border-bottom: 1px solid var(--color-bg-light); cursor: pointer; text-decoration: none;}
+    .im-menu a:hover, .im-menu a.active { background: rgba(22, 119, 210, 0.05); color: var(--color-blue-primary); border-left-color: var(--color-blue-primary); }
+    .panel-card { background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: 1.5rem; }
+    .panel-card-header { padding: 1rem; border-bottom: 1px solid var(--color-border); font-weight: 700; font-size: 1.125rem; color: var(--color-navy-deep); }
+    .rfq-list { padding: 1.5rem; }
+    .rfq-item { border: 1px solid var(--color-border); padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; }
+    .rfq-title { font-size: 1.125rem; color: var(--color-blue-primary); font-weight: 600; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header class="im-panel-header">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1350px;">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="auth.logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="im-panel-layout">
+    <aside class="im-sidebar">
+      <nav class="im-menu">
+        <a href="supplier-dashboard.html">📊 Dashboard</a>
+        <a href="supplier-leads.html">✉️ Messages & Leads</a>
+        <a href="supplier-quotes.html" class="active">🧾 RFQs & Quotations</a>
+        <a href="supplier-products.html">📋 Manage Products</a>
+      </nav>
+    </aside>
+
+    <section>
+      <div class="panel-card">
+        <div class="panel-card-header">
+          Live B2B Purchase Requests (RFQs)
+        </div>
+        <div class="rfq-list" id="rfqList">
+          <div style="text-align: center; padding: 2rem;">Loading RFQs...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Quote Modal -->
+  <div id="quoteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; width: 400px; max-width: 90%;">
+      <h3 style="margin-bottom: 1.5rem;">Submit Quotation</h3>
+      <form id="quoteForm">
+        <input type="hidden" id="qRfqId">
+        <div class="form-group">
+          <label class="form-label">Your Quoted Price (₹)</label>
+          <input type="number" id="qPrice" class="form-control" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message / Terms</label>
+          <textarea id="qMessage" class="form-control" rows="3" placeholder="Delivery time, payment terms, etc." required></textarea>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+          <button type="button" class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('quoteModal').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1;">Send Quote</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!auth.getToken()) return window.location.href = 'login.html';
+      loadRFQs();
+    });
+
+    async function loadRFQs() {
+      try {
+        const res = await fetch('/api/supplier/rfqs', {
+          headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+        });
+        const data = await res.json();
+        const listEl = document.getElementById('rfqList');
+        
+        if (data.rfqs && data.rfqs.length > 0) {
+          listEl.innerHTML = data.rfqs.map(r => `
+            <div class="rfq-item">
+              <div class="rfq-title">${r.product} (Qty: ${r.qty})</div>
+              <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+                Posted: ${new Date(r.created_at).toLocaleDateString()} | Buyer Target Price: ₹${r.target_price || 'Open'}
+              </div>
+              <p style="font-size: 0.875rem; margin-bottom: 1.5rem; color: var(--color-text-main);">${r.details}</p>
+              
+              ${r.has_quoted ? 
+                `<button class="btn btn-outline" disabled style="background:#f1f3f6;">Quotation Sent</button>` : 
+                `<button class="btn btn-primary" onclick="openQuoteModal(${r.id})">Send Quotation</button>`
+              }
+            </div>
+          `).join('');
+        } else {
+          listEl.innerHTML = '<div style="text-align: center; color: var(--color-text-muted);">No open RFQs matching your business profile right now.</div>';
+        }
+      } catch(e) {
+        document.getElementById('rfqList').innerHTML = '<div style="color:red; text-align:center;">Error loading RFQs</div>';
+      }
+    }
+
+    function openQuoteModal(rfqId) {
+      document.getElementById('qRfqId').value = rfqId;
+      document.getElementById('quoteModal').style.display = 'flex';
+    }
+
+    document.getElementById('quoteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const rfqId = document.getElementById('qRfqId').value;
+        const payload = {
+          price_quoted: document.getElementById('qPrice').value,
+          message: document.getElementById('qMessage').value
+        };
+
+        const res = await fetch(`/api/supplier/rfqs/${rfqId}/quote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.getToken()}` },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          alert('Quotation Sent Successfully!');
+          document.getElementById('quoteModal').style.display = 'none';
+          document.getElementById('quoteForm').reset();
+          loadRFQs();
+        } else {
+          alert('Failed to send quote.');
+        }
+      } catch(err) {
+        alert('Network Error');
+      }
+    });
+  </script>
+</body>
+</html>

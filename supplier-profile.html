@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company Profile - Flenko Seller Panel</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    body { background-color: #f1f3f6; }
+    .im-panel-header {
+      background: var(--color-white); border-bottom: 2px solid var(--color-navy-deep);
+      padding: 0.5rem 0; position: sticky; top: 0; z-index: 100;
+    }
+    .im-panel-layout {
+      display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem;
+      padding: 1.5rem 0; max-width: 1350px; margin: 0 auto;
+    }
+    .im-sidebar {
+      background: var(--color-white); border: 1px solid var(--color-border);
+      height: max-content; position: sticky; top: 80px;
+    }
+    .im-menu a {
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem;
+      color: var(--color-text-main); font-weight: 500; font-size: 0.875rem;
+      border-left: 3px solid transparent; border-bottom: 1px solid var(--color-bg-light);
+    }
+    .im-menu a:hover, .im-menu a.active {
+      background: rgba(22, 119, 210, 0.05); color: var(--color-blue-primary); border-left-color: var(--color-blue-primary);
+    }
+    .panel-card {
+      background: var(--color-white); border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm); margin-bottom: 1.5rem;
+    }
+    .panel-card-header {
+      padding: 1rem; border-bottom: 1px solid var(--color-border);
+      font-weight: 700; font-size: 1.125rem; color: var(--color-navy-deep);
+    }
+    .panel-card-body { padding: 1.5rem; }
+  </style>
+</head>
+<body>
+  <header class="im-panel-header">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1350px;">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="auth.logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="im-panel-layout">
+    <aside class="im-sidebar">
+      <nav class="im-menu">
+        <a href="supplier-dashboard.html">📊 Dashboard</a>
+        <a href="supplier-leads.html">✉️ Messages & Leads</a>
+        <a href="supplier-products.html">📋 Manage Products</a>
+        <a href="supplier-profile.html" class="active">💼 Company Profile</a>
+      </nav>
+    </aside>
+
+    <section>
+      <div class="panel-card">
+        <div class="panel-card-header">Edit Company Details</div>
+        <div class="panel-card-body">
+          <form id="profileForm" onsubmit="event.preventDefault(); alert('Profile Updated Successfully!');">
+            <div class="form-group">
+              <label class="form-label">Company Name</label>
+              <input type="text" id="companyName" class="form-control" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+              <div class="form-group">
+                <label class="form-label">Business Type</label>
+                <select id="bizType" class="form-control">
+                  <option>Manufacturer</option>
+                  <option>Wholesaler</option>
+                  <option>Distributor</option>
+                  <option>Service Provider</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Primary Business Category</label>
+                <select id="bizCategory" class="form-control" required>
+                  <option value="" disabled selected>Select Primary Category</option>
+                  <optgroup label="Manufacturing & Industrial">
+                    <option>Industrial Machinery</option><option>Packaging Material</option><option>Chemicals & Dyes</option><option>Metal & Hardware</option>
+                  </optgroup>
+                  <optgroup label="Construction & Real Estate">
+                    <option>Building Materials</option><option>Architectural Services</option><option>Interior & Furnishings</option>
+                  </optgroup>
+                  <optgroup label="Software & IT Services">
+                    <option>Web & App Development</option><option>Digital Marketing & SEO</option><option>ERP & Business Software</option><option>Cloud Hosting</option>
+                  </optgroup>
+                  <optgroup label="Medical & Hospitality">
+                    <option>Medical Equipment</option><option>Hospital Furniture</option><option>Surgical Supplies</option><option>Hotel & Restaurant Supplies</option>
+                  </optgroup>
+                  <optgroup label="Textile & Apparel">
+                    <option>Garments & Fabric</option><option>Fashion Accessories</option><option>Yarn & Threads</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option>Agriculture & Food</option><option>Electronics & Electrical</option><option>Printing & Signage</option><option>Uncategorized</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+              <div class="form-group">
+                <label class="form-label">GST Number</label>
+                <input type="text" id="gstNumber" class="form-control" placeholder="Optional">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Complete Address</label>
+              <textarea id="address" class="form-control" rows="3" placeholder="Shop/Plot No, Street, Landmark..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Profile Details</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!auth.getToken()) return window.location.href = 'login.html';
+      const data = await auth.getProfile();
+      if (data && data.user && data.user.business) {
+        document.getElementById('companyName').value = data.user.business.company_name || '';
+        document.getElementById('gstNumber').value = data.user.business.gst_number || '';
+        document.getElementById('bizType').value = data.user.business.business_type || 'Manufacturer';
+        document.getElementById('bizCategory').value = data.user.business.category || '';
+        document.getElementById('address').value = data.user.business.address || '';
+      }
+    });
+
+    document.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.innerText = 'Saving...';
+      try {
+        const res = await fetch('/api/businesses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + auth.getToken()
+          },
+          body: JSON.stringify({
+            company_name: document.getElementById('companyName').value,
+            gst_number: document.getElementById('gstNumber').value,
+            business_type: document.getElementById('bizType').value,
+            category: document.getElementById('bizCategory').value,
+            address: document.getElementById('address').value,
+            city: 'Unknown' // default since not in form
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Profile saved successfully!');
+        } else {
+          alert('Failed to save profile: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error saving profile');
+      }
+      btn.innerText = 'Save Profile Details';
+    });
+  </script>
+</body>
+</html>

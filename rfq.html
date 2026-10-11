@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post RFQ - Flenko.com</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-top">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <div class="header-actions">
+        <button class="btn btn-outline" onclick="window.history.back()">Back</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="max-width: 800px; margin-top: 4rem;">
+    <div class="card">
+      <div class="card-body">
+        <h2 style="margin-bottom: 0.5rem;" id="rfqTitle">Request for Quotation (RFQ)</h2>
+        <p class="text-muted" style="margin-bottom: 2rem;" id="rfqSubtitle">Send your purchasing requirements to verified suppliers to get bulk pricing.</p>
+        
+        <form id="rfqForm">
+          <div class="form-group">
+            <label class="form-label">Product or Material Needed</label>
+            <input type="text" id="rfqProduct" class="form-control" required placeholder="e.g. Industrial Packaging Boxes">
+          </div>
+          
+          <div class="responsive-grid" style="display: grid; gap: 1.5rem;">
+            <div class="form-group">
+              <label class="form-label">Quantity</label>
+              <input type="number" id="rfqQty" class="form-control" required placeholder="e.g. 5000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Unit of Measurement</label>
+              <select id="rfqUnit" class="form-control" required>
+                <optgroup label="General / Quantity">
+                  <option>Pieces</option>
+                  <option>Units</option>
+                  <option>Sets</option>
+                  <option>Cartons</option>
+                  <option>Dozens</option>
+                </optgroup>
+                <optgroup label="Construction & Area">
+                  <option>Sq. Ft. (Square Feet)</option>
+                  <option>Sq. Mtr. (Square Meters)</option>
+                  <option>Running Ft.</option>
+                  <option>Cubic Mtr.</option>
+                </optgroup>
+                <optgroup label="Weight & Mass">
+                  <option>Kg (Kilograms)</option>
+                  <option>Grams</option>
+                  <option>Tons (Metric)</option>
+                  <option>Quintals</option>
+                </optgroup>
+                <optgroup label="Length">
+                  <option>Meters</option>
+                  <option>Centimeters</option>
+                  <option>Inches</option>
+                  <option>Feet</option>
+                </optgroup>
+                <optgroup label="Volume & Liquid">
+                  <option>Liters</option>
+                  <option>Milliliters</option>
+                  <option>Gallons</option>
+                </optgroup>
+                <optgroup label="Services (Hospitality/B2B)">
+                  <option>Projects</option>
+                  <option>Man-Days</option>
+                  <option>Hours</option>
+                  <option>Contracts</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+
+          <div class="responsive-grid" style="display: grid; gap: 1.5rem;">
+            <div class="form-group">
+              <label class="form-label">Your Mobile Number (For Supplier to Contact)</label>
+              <div style="display: flex;">
+                <span class="form-control" style="width: auto; border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--color-bg-light);">+91</span>
+                <input type="tel" id="rfqPhone" class="form-control" required placeholder="10-digit mobile" pattern="[0-9]{10}" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Destination City</label>
+              <input type="text" id="rfqCity" class="form-control" required placeholder="e.g. Mumbai 400001">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Technical Specifications & Additional Notes</label>
+            <textarea id="rfqDetails" class="form-control" rows="4" placeholder="Describe specific dimensions, material grades, target budget, or certifications required..."></textarea>
+          </div>
+
+          <div class="form-group" style="margin-top: 2rem;">
+            <button type="submit" id="rfqSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem; background-color: var(--color-teal); border-color: var(--color-teal);">Submit RFQ</button>
+          </div>
+          <p id="rfqStatusMsg" class="text-center" style="margin-top: 1rem; font-weight: 500;"></p>
+        </form>
+      </div>
+    </div>
+  </main>
+  
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 1. Fetch Product details if ?product=ID is present
+      const urlParams = new URLSearchParams(window.location.search);
+      const productId = urlParams.get('product');
+      let targetSupplierId = null;
+
+      if (productId) {
+        try {
+          const res = await fetch('/api/public/products/' + productId);
+          if (res.ok) {
+            const data = await res.json();
+            const p = data.product;
+            targetSupplierId = p.supplier_id;
+            
+            document.getElementById('rfqProduct').value = p.name;
+            document.getElementById('rfqProduct').readOnly = true; // Lock the product name
+            
+            document.getElementById('rfqTitle').innerText = 'Request Quotation for ' + p.name;
+            if (p.supplier) {
+              document.getElementById('rfqSubtitle').innerHTML = `Direct inquiry to <strong>${p.supplier.company_name}</strong> (${p.supplier.city})`;
+            }
+          }
+        } catch (e) {
+          console.warn('Could not fetch product details');
+        }
+      }
+
+      // Auto-fill phone if buyer is logged in
+      const token = auth.getToken();
+      if (token) {
+        try {
+          const profileData = await auth.getProfile();
+          if (profileData && profileData.user && profileData.user.phone) {
+            document.getElementById('rfqPhone').value = profileData.user.phone;
+          }
+        } catch(e){}
+      }
+
+      // 2. Handle Form Submission
+      document.getElementById('rfqForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Ensure we have a target supplier. If accessed without ?product=ID, use 0 for general broadcast
+        const profile = await auth.getProfile();
+        const s_id = targetSupplierId || 0; 
+        
+        const payload = {
+          supplier_id: s_id,
+          product_needed: document.getElementById('rfqProduct').value + ` (Qty: ${document.getElementById('rfqQty').value} ${document.getElementById('rfqUnit').value})`,
+          buyer_phone: document.getElementById('rfqPhone').value,
+          details: `Deliver to: ${document.getElementById('rfqCity').value}.\n\nRequirements: ${document.getElementById('rfqDetails').value}`
+        };
+
+        const btn = document.getElementById('rfqSubmitBtn');
+        const msg = document.getElementById('rfqStatusMsg');
+        btn.disabled = true;
+        btn.innerText = 'Sending to Supplier...';
+
+        try {
+          const response = await fetch('/api/public/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            msg.innerText = '✅ RFQ successfully sent! The supplier will contact you soon.';
+            msg.style.color = 'green';
+            setTimeout(() => { window.location.href = 'index.html'; }, 3000);
+          } else {
+            msg.innerText = '❌ Failed to send RFQ. Please try again.';
+            msg.style.color = 'red';
+            btn.disabled = false;
+            btn.innerText = 'Submit RFQ';
+          }
+        } catch (error) {
+          msg.innerText = '❌ Server Error. Please make sure the backend is running.';
+          msg.style.color = 'red';
+          btn.disabled = false;
+          btn.innerText = 'Submit RFQ';
+        }
+      });
+    });
+  </script>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buyer Procurement Dashboard - Flenko</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    body { background-color: #f1f3f6; }
+    .im-panel-header { background: var(--color-white); border-bottom: 2px solid var(--color-navy-deep); padding: 0.5rem 0; position: sticky; top: 0; z-index: 100; }
+    .im-panel-layout { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; padding: 1.5rem 0; max-width: 1350px; margin: 0 auto; }
+    .im-sidebar { background: var(--color-white); border: 1px solid var(--color-border); height: max-content; position: sticky; top: 80px; }
+    .im-menu a { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; color: var(--color-text-main); font-weight: 500; font-size: 0.875rem; border-left: 3px solid transparent; border-bottom: 1px solid var(--color-bg-light); cursor: pointer; }
+    .im-menu a:hover, .im-menu a.active { background: rgba(22, 119, 210, 0.05); color: var(--color-blue-primary); border-left-color: var(--color-blue-primary); }
+    .panel-card { background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: 1.5rem; padding: 1.5rem; }
+    
+    .rfq-card { border: 1px solid var(--color-border); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; }
+    .rfq-card h4 { color: var(--color-navy-deep); margin-bottom: 0.25rem; }
+    .rfq-card .meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.75rem; }
+    
+    .quote-card { background: var(--color-bg-light); padding: 1rem; border-left: 3px solid var(--color-teal); margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <header class="im-panel-header">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1350px;">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <span style="font-weight: 600; color: var(--color-navy-deep);" id="userNameDisplay">Buyer</span>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="auth.logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="im-panel-layout">
+    <aside class="im-sidebar">
+      <nav class="im-menu">
+        <a class="active">📝 Post RFQ</a>
+        <a>📦 My Purchase Orders</a>
+        <a>💬 Supplier Quotations</a>
+        <a>📊 Expenditure Reports</a>
+      </nav>
+    </aside>
+
+    <section>
+      <div class="panel-card">
+        <h2 style="margin-bottom: 1.5rem; color: var(--color-navy-deep);">Post Request for Quotation (RFQ)</h2>
+        <form id="rfqForm">
+          <div class="form-group">
+            <label class="form-label">What are you looking to buy?</label>
+            <input type="text" id="rfqProduct" class="form-control" placeholder="e.g. 5-Ply Corrugated Boxes" required>
+          </div>
+          <div style="display:flex; gap:1rem; margin-bottom: 1rem;">
+            <div class="form-group" style="flex:1; margin-bottom:0;">
+              <label class="form-label">Quantity Required</label>
+              <input type="number" id="rfqQty" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex:1; margin-bottom:0;">
+              <label class="form-label">Target Price per unit (Optional)</label>
+              <input type="number" id="rfqPrice" class="form-control" placeholder="₹">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Detailed Requirements / Technical Specs</label>
+            <textarea id="rfqDetails" class="form-control" rows="4" placeholder="Describe material, size, usage, location of delivery..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Broadcast RFQ to Suppliers</button>
+        </form>
+      </div>
+
+      <div class="panel-card">
+        <h2 style="margin-bottom: 1.5rem; color: var(--color-navy-deep);">My Active RFQs & Quotations</h2>
+        <div id="rfqList">
+          Loading RFQs...
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const token = auth.getToken();
+      if (!token) return window.location.href = 'login.html';
+      
+      const profile = await auth.getProfile();
+      if(profile) document.getElementById('userNameDisplay').innerText = profile.user.name;
+
+      loadRFQs();
+    });
+
+    document.getElementById('rfqForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const payload = {
+          product: document.getElementById('rfqProduct').value,
+          qty: document.getElementById('rfqQty').value,
+          target_price: document.getElementById('rfqPrice').value,
+          details: document.getElementById('rfqDetails').value
+        };
+        const res = await fetch('/api/buyer/rfqs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.getToken()}` },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.success) {
+          alert('RFQ Broadcasted to Premium Suppliers successfully!');
+          document.getElementById('rfqForm').reset();
+          loadRFQs();
+        } else {
+          alert('Failed to post RFQ.');
+        }
+      } catch(err) {
+        alert('Network Error');
+      }
+    });
+
+    async function loadRFQs() {
+      try {
+        const res = await fetch('/api/buyer/rfqs', {
+          headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+        });
+        const data = await res.json();
+        
+        if (data.rfqs && data.rfqs.length > 0) {
+          document.getElementById('rfqList').innerHTML = data.rfqs.map(r => `
+            <div class="rfq-card">
+              <div style="display:flex; justify-content:space-between;">
+                <h4>${r.product}</h4>
+                <span class="badge" style="background:var(--color-navy-deep); color:white;">Qty: ${r.qty}</span>
+              </div>
+              <div class="meta">Posted on: ${new Date(r.created_at).toLocaleDateString()} | Target Price: ₹${r.target_price || 'N/A'}</div>
+              <p style="font-size: 0.875rem; color: var(--color-text-main);">${r.details}</p>
+              
+              <div style="margin-top: 1rem; border-top: 1px dashed var(--color-border); padding-top: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">Received Quotations (${r.quotes ? r.quotes.length : 0})</h5>
+                ${(r.quotes || []).map(q => `
+                  <div class="quote-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                      <strong style="color:var(--color-teal);">Supplier: ${q.supplier_name}</strong>
+                      <strong style="color:var(--color-navy-deep);">Quoted: ₹${q.price_quoted}</strong>
+                    </div>
+                    <p style="font-size:0.875rem; margin-bottom:0.5rem;">${q.message}</p>
+                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="alert('Creating Purchase Order for ₹${q.price_quoted}...')">Generate Purchase Order</button>
+                  </div>
+                `).join('')}
+                ${!(r.quotes && r.quotes.length > 0) ? '<p style="font-size:0.75rem; color:var(--color-text-muted);">Waiting for suppliers to respond...</p>' : ''}
+              </div>
+            </div>
+          `).join('');
+        } else {
+          document.getElementById('rfqList').innerHTML = '<p>You have not posted any RFQs yet.</p>';
+        }
+      } catch(err) {
+        document.getElementById('rfqList').innerHTML = '<p style="color:red;">Error loading RFQs.</p>';
+      }
+    }
+  </script>
+</body>
+</html>

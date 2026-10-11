@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing Plans - Flenko B2B</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+    .pricing-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+    }
+    .pricing-card.popular {
+      border: 2px solid var(--color-teal);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .popular-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-teal);
+      color: white;
+      padding: 0.25rem 1rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .price-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--color-navy-deep);
+      margin: 1rem 0;
+    }
+    .emi-text {
+      color: var(--color-blue-primary);
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: inline-block;
+      background: rgba(22, 119, 210, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+    }
+    .feature-list {
+      list-style: none;
+      text-align: left;
+      margin: 2rem 0;
+    }
+    .feature-list li {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 0.875rem;
+      color: var(--color-text-main);
+    }
+    .feature-list li::before {
+      content: '✅';
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-top">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <div class="header-actions">
+        <button class="btn btn-outline" onclick="window.history.back()">Back</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 4rem 1rem;">
+    <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+      <h1 style="font-size: 2.5rem; color: var(--color-navy-deep); margin-bottom: 1rem;">Grow Your B2B Business</h1>
+      <p style="color: var(--color-text-muted); font-size: 1.125rem;">Upgrade to a premium plan to unlock unlimited leads, priority SEO listing, and verified trust badges.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Basic Plan -->
+      <div class="pricing-card">
+        <h2 style="font-size: 1.5rem; color: var(--color-navy-deep);">Basic</h2>
+        <div class="price-value">₹10K<span style="font-size:1rem;font-weight:normal;color:var(--color-text-muted)">/yr</span></div>
+        <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: -1rem; margin-bottom: 1rem;">Inclusive of all taxes</div>
+        <div class="emi-text">No Cost EMI @ ₹833/mo</div>
+        
+        <ul class="feature-list">
+          <li>Unlimited RFQ Leads</li>
+          <li>Auto SEO on Products</li>
+          <li>Basic Storefront</li>
+          <li>Email Support</li>
+        </ul>
+        <button class="btn btn-outline" style="width: 100%;" onclick="upgradePlan('basic')">Choose Basic</button>
+      </div>
+
+      <!-- Pro Plan -->
+      <div class="pricing-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <h2 style="font-size: 1.5rem; color: var(--color-teal);">Pro Standard</h2>
+        <div class="price-value">₹20K<span style="font-size:1rem;font-weight:normal;color:var(--color-text-muted)">/yr</span></div>
+        <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: -1rem; margin-bottom: 1rem;">Inclusive of all taxes</div>
+        <div class="emi-text">No Cost EMI @ ₹1,666/mo</div>
+        
+        <ul class="feature-list">
+          <li>Everything in Basic</li>
+          <li>Verified Supplier Badge</li>
+          <li>Priority Search Ranking</li>
+          <li>WhatsApp Automation</li>
+        </ul>
+        <button class="btn btn-primary" style="width: 100%;" onclick="upgradePlan('pro')">Choose Pro</button>
+      </div>
+
+      <!-- Enterprise Plan -->
+      <div class="pricing-card">
+        <h2 style="font-size: 1.5rem; color: var(--color-navy-deep);">Enterprise</h2>
+        <div class="price-value">₹30K<span style="font-size:1rem;font-weight:normal;color:var(--color-text-muted)">/yr</span></div>
+        <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: -1rem; margin-bottom: 1rem;">Inclusive of all taxes</div>
+        <div class="emi-text">No Cost EMI @ ₹2,500/mo</div>
+        
+        <ul class="feature-list">
+          <li>Everything in Pro</li>
+          <li>Dedicated Account Manager</li>
+          <li>Top-Spot Ad Placements</li>
+          <li>Custom CRM Integration</li>
+        </ul>
+        <button class="btn btn-outline" style="width: 100%;" onclick="upgradePlan('enterprise')">Choose Enterprise</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script>
+    function upgradePlan(plan) {
+      if(!auth.getToken()) {
+        alert('Please login first to upgrade.');
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Redirect to the checkout page with the selected plan
+      window.location.href = 'checkout.html?plan=' + plan;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Flenko.com</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body style="background: var(--color-bg-light); display: flex; flex-direction: column; min-height: 100vh;">
+  <header class="site-header">
+    <div class="container header-top">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+    </div>
+  </header>
+
+  <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+    <div class="card" style="width: 100%; max-width: 400px; padding: 2rem;">
+      <h2 style="margin-bottom: 0.5rem; text-align: center;">Sign in to Flenko</h2>
+      <p class="text-muted text-center" style="margin-bottom: 2rem; font-size: 0.875rem;">Manage your RFQs, orders, and business connections securely.</p>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <div style="display: flex;">
+            <span class="form-control" style="width: auto; border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--color-bg-light);">🇮🇳 +91</span>
+            <input type="tel" id="phoneInput" class="form-control" required placeholder="10-digit number" pattern="[0-9]{10}" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">Get OTP</button>
+        </div>
+      </form>
+
+      <form id="otpForm" class="hidden">
+        <div class="form-group">
+          <label class="form-label">Enter OTP</label>
+          <input type="text" id="otpInput" class="form-control" required placeholder="6-digit OTP" maxlength="6" style="letter-spacing: 2px; text-align: center; font-size: 1.2rem;">
+        </div>
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; background-color: var(--color-teal); border-color: var(--color-teal);">Verify & Login</button>
+        </div>
+      </form>
+      <p id="statusMsg" class="text-center text-muted" style="font-size: 0.75rem; margin-top: 1rem;">OTP will be sent via SMS / WhatsApp.</p>
+    </div>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const otpForm = document.getElementById('otpForm');
+    const statusMsg = document.getElementById('statusMsg');
+    let currentPhone = '';
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentPhone = document.getElementById('phoneInput').value;
+      statusMsg.innerText = 'Sending OTP...';
+      try {
+        const res = await auth.requestOtp(currentPhone);
+        if (res.success) {
+           loginForm.classList.add('hidden');
+           otpForm.classList.remove('hidden');
+           if (res._devOtp) {
+              statusMsg.innerHTML = `⚠️ System WhatsApp not scanned! Demo OTP: <strong style="font-size:1.2rem;">${res._devOtp}</strong>`;
+              statusMsg.style.color = '#b45309';
+           } else {
+              statusMsg.innerHTML = `OTP Sent! Please check your WhatsApp.`;
+              statusMsg.style.color = 'var(--color-teal)';
+           }
+        } else {
+           statusMsg.innerText = res.error || 'Failed to send OTP';
+           statusMsg.style.color = 'red';
+        }
+      } catch (err) {
+        statusMsg.innerText = 'Server error. Make sure backend is running.';
+        statusMsg.style.color = 'red';
+      }
+    });
+
+    otpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const otp = document.getElementById('otpInput').value;
+      statusMsg.innerText = 'Verifying...';
+      try {
+        const res = await auth.verifyOtp({ phone: currentPhone, otp });
+        if (res.success) {
+           auth.setToken(res.token);
+           window.location.href = 'index.html'; // Unified portal
+        } else {
+           statusMsg.innerText = res.error || 'Invalid OTP';
+           statusMsg.style.color = 'red';
+        }
+      } catch (err) {
+        statusMsg.innerText = 'Server error during verification.';
+        statusMsg.style.color = 'red';
+      }
+    });
+  </script>
+</body>
+</html>

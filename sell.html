@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sell on Flenko - Grow Your B2B Business</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .sell-hero {
+      background: linear-gradient(135deg, var(--color-navy-deep), var(--color-teal));
+      color: var(--color-white);
+      padding: 4rem 0;
+    }
+    .sell-hero-container {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 4rem;
+      align-items: center;
+    }
+    @media (max-width: 768px) {
+      .sell-hero-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .sell-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-top: -3rem;
+      position: relative;
+      z-index: 10;
+    }
+    .feature-card {
+      background: var(--color-white);
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      border: 1px solid var(--color-border);
+    }
+    .feature-card .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    .registration-form {
+      background: var(--color-white);
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      color: var(--color-text-main);
+    }
+    .registration-form h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--color-navy-deep);
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-top">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
+      <div class="header-actions">
+        <span class="text-muted" style="font-size: 0.875rem;">Already a seller?</span>
+        <button class="btn btn-outline" onclick="window.location.href='login.html'">Login to Dashboard</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="sell-hero">
+    <div class="container sell-hero-container">
+      <div>
+        <h1 style="font-size: 3rem; color: var(--color-white); margin-bottom: 1.5rem; line-height: 1.2;">Expand Your Business.<br>Get Genuine Buyers.</h1>
+        <p style="font-size: 1.125rem; opacity: 0.9; margin-bottom: 2rem;">Join India's fastest-growing B2B marketplace. Connect with over 1.2M+ active buyers, receive verified RFQs, and manage leads using our built-in CRM.</p>
+        <ul style="list-style: none; padding: 0; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.75rem;">
+          <li>✅ Create a free catalog with unlimited products</li>
+          <li>✅ Access to Pan-India Buyers</li>
+          <li>✅ Integrated CRM & WhatsApp automation</li>
+          <li>✅ Zero commission on leads (Subscription based)</li>
+        </ul>
+      </div>
+
+      <div class="registration-form">
+        <h3>Create Your Free Catalog</h3>
+        <form id="regForm">
+          <div class="form-group">
+            <label class="form-label">Company Name</label>
+            <input type="text" id="regCompany" class="form-control" required placeholder="e.g. Apex Manufacturing">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile Number</label>
+            <div style="display: flex;">
+              <span class="form-control" style="width: auto; border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--color-bg-light);">+91</span>
+              <input type="tel" id="regPhone" class="form-control" required placeholder="10-digit mobile" pattern="[0-9]{10}" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="regEmail" class="form-control" required placeholder="sales@yourcompany.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input type="text" id="regCity" class="form-control" required placeholder="e.g. Delhi">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.125rem; padding: 0.875rem; margin-top: 1rem; background-color: var(--color-teal); border-color: var(--color-teal);">Start Selling Now</button>
+        </form>
+
+        <form id="otpForm" class="hidden">
+          <div class="form-group">
+            <label class="form-label">Enter OTP Sent to Mobile</label>
+            <input type="text" id="regOtpInput" class="form-control" required placeholder="6-digit OTP" maxlength="6" style="letter-spacing: 2px; text-align: center; font-size: 1.2rem;">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem; margin-top: 1rem; background-color: var(--color-teal); border-color: var(--color-teal);">Verify & Complete Registration</button>
+        </form>
+        <p id="regStatusMsg" class="text-center text-muted" style="font-size: 0.875rem; margin-top: 1rem;"></p>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/auth.js"></script>
+  <script>
+    const regForm = document.getElementById('regForm');
+    const otpForm = document.getElementById('otpForm');
+    const regStatusMsg = document.getElementById('regStatusMsg');
+    
+    let sellerData = {};
+
+    regForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      sellerData = {
+        name: document.getElementById('regCompany').value,
+        phone: document.getElementById('regPhone').value,
+        email: document.getElementById('regEmail').value,
+        city: document.getElementById('regCity').value,
+        isSellerRegistration: true
+      };
+
+      regStatusMsg.innerText = 'Sending OTP...';
+      try {
+        const res = await auth.requestOtp(sellerData.phone);
+        if (res.success) {
+           regForm.classList.add('hidden');
+           otpForm.classList.remove('hidden');
+           if (res._devOtp) {
+             regStatusMsg.innerHTML = `⚠️ System WhatsApp not scanned! Demo OTP: <strong style="font-size:1.2rem;">${res._devOtp}</strong>`;
+             regStatusMsg.style.color = '#b45309';
+           } else {
+             regStatusMsg.innerHTML = `OTP Sent! Please check your WhatsApp.`;
+             regStatusMsg.style.color = 'var(--color-teal)';
+           }
+        } else {
+           regStatusMsg.innerText = res.error || 'Failed to send OTP';
+           regStatusMsg.style.color = 'red';
+        }
+      } catch (err) {
+        regStatusMsg.innerText = 'Server error.';
+        regStatusMsg.style.color = 'red';
+      }
+    });
+
+    otpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const otp = document.getElementById('regOtpInput').value;
+      regStatusMsg.innerText = 'Verifying and creating account...';
+      try {
+        const res = await auth.verifyOtp({ ...sellerData, otp });
+        if (res.success) {
+           auth.setToken(res.token);
+           
+           // Account created, now create the business profile in backend
+           fetch('/api/businesses', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${res.token}`
+             },
+             body: JSON.stringify({
+               company_name: sellerData.name,
+               city: sellerData.city,
+               business_type: 'Manufacturer' // Default
+             })
+           }).then(() => {
+              window.location.href = 'supplier-dashboard.html';
+           });
+           
+        } else {
+           regStatusMsg.innerText = res.error || 'Invalid OTP';
+           regStatusMsg.style.color = 'red';
+        }
+      } catch (err) {
+        regStatusMsg.innerText = 'Server error during verification.';
+        regStatusMsg.style.color = 'red';
+      }
+    });
+  </script>
+
+  <section class="container" style="padding-bottom: 5rem;">
+    <div class="sell-features">
+      <div class="feature-card">
+        <div class="icon">📈</div>
+        <h4 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Visibility</h4>
+        <p class="text-muted" style="font-size: 0.875rem;">Get higher search rankings and a verified supplier badge to build trust.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔔</div>
+        <h4 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Live RFQs</h4>
+        <p class="text-muted" style="font-size: 0.875rem;">Get instant alerts for relevant buyer requirements (RFQs) in your category.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">💼</div>
+        <h4 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Flenko CRM</h4>
+        <p class="text-muted" style="font-size: 0.875rem;">Manage all buyer inquiries, generate quotes, and track your sales pipeline.</p>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
