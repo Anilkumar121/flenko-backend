@@ -567,38 +567,37 @@
         onSelect: (c) => sidebarCountryPicker.selectCountry(c)
       });
 
-      // Load products
-      let allProducts = [...b2bProducts];
+      // Load real live products from backend
+      let allProducts = [];
 
       try {
         const res = await fetch('https://flenko-backend.onrender.com/api/public/products');
         if (res.ok) {
           const data = await res.json();
           if (data.products && data.products.length > 0) {
-            const live = data.products.map(p => ({
+            allProducts = data.products.map(p => ({
               id: p.id,
               name: p.name,
               category: p.category || "General B2B",
-              country: p.country || "India",
-              flag: p.country === "United States" ? "🇺🇸" : (p.country === "Germany" ? "🇩🇪" : "🇮🇳"),
-              years: "3 Yrs",
-              rating: "4.9",
-              reviews: 20,
+              country: p.country || "Worldwide",
+              flag: p.country === "United States" ? "🇺🇸" : (p.country === "Germany" ? "🇩🇪" : (p.country === "India" ? "🇮🇳" : "🌐")),
+              years: "Verified",
+              rating: "5.0",
+              reviews: 1,
               supplier: { 
-                name: "Verified Factory #" + p.supplier_id, 
+                name: p.supplier_name || ("Verified Supplier #" + p.supplier_id), 
                 verified: true, 
-                location: (p.city || "Pan-India") + (p.country ? ", " + p.country : "") 
+                location: (p.city || "Global Hub") + (p.country ? ", " + p.country : "") 
               },
-              price: p.price,
-              priceMax: p.price * 1.15,
+              price: parseFloat(p.price) || 0,
+              priceMax: (parseFloat(p.price) || 0) * 1.15,
               moq: p.moq || 1,
               unit: p.unit || "Pieces",
-              image: p.image_url || "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80",
+              image: p.image_url || "assets/images/logo.png",
               badge: "VERIFIED PRO",
               tradeAssurance: true,
-              responseTime: "≤ 2h"
+              responseTime: "Active"
             }));
-            allProducts = [...live, ...allProducts];
           }
         }
       } catch(e) {}
