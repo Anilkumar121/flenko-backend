@@ -819,7 +819,7 @@ app.use('/assets', express.static(path.join(__dirname, '../assets')));
 
 // Route: Add a Product
 app.post('/api/products', authMiddleware, upload.single('image'), async (req, res) => {
-  const { name, price, category, moq, unit } = req.body;
+  const { name, price, category, moq, unit, stock_quantity } = req.body;
   
   // Create an absolute URL for the image so it loads correctly when HTML is opened via file://
   const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -830,8 +830,8 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
 
   try {
     const newProd = await db.query(
-      'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [req.user.id, name, price || 0, category || 'Uncategorized', moq || 1, unit || 'Pieces', image_url, autoSeoTags]
+      'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [req.user.id, name, price || 0, category || 'Uncategorized', moq || 1, unit || 'Pieces', image_url, autoSeoTags, parseInt(stock_quantity) || 500]
     );
     res.json({ success: true, product: newProd.rows[0], seo_generated: autoSeoTags });
   } catch (error) {
@@ -842,17 +842,17 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
 
 // Route: Update Product
 app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req, res) => {
-  const { name, price, category, moq, unit } = req.body;
+  const { name, price, category, moq, unit, stock_quantity } = req.body;
   
   try {
-    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5 WHERE id = $6 AND supplier_id = $7 RETURNING *';
-    let params = [name, price, category || 'Uncategorized', moq, unit || 'Pieces', parseInt(req.params.id), req.user.id];
+    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6 WHERE id = $7 AND supplier_id = $8 RETURNING *';
+    let params = [name, price, category || 'Uncategorized', moq, unit || 'Pieces', parseInt(stock_quantity) || 500, parseInt(req.params.id), req.user.id];
 
     if (req.file) {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const image_url = `${baseUrl}/assets/images/products/${req.file.filename}`;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, image_url = $6 WHERE id = $7 AND supplier_id = $8 RETURNING *';
-      params = [name, price, category || 'Uncategorized', moq, unit || 'Pieces', image_url, parseInt(req.params.id), req.user.id];
+      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, image_url = $7 WHERE id = $8 AND supplier_id = $9 RETURNING *';
+      params = [name, price, category || 'Uncategorized', moq, unit || 'Pieces', parseInt(stock_quantity) || 500, image_url, parseInt(req.params.id), req.user.id];
     }
     
     const updatedProd = await db.query(updateQuery, params);

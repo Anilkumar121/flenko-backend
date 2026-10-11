@@ -47,6 +47,23 @@
       padding: 1rem; text-align: center; background: var(--color-bg-light);
     }
     .product-edit-card img { width: 100%; height: 120px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 1rem; }
+    .preset-pill {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .preset-pill:hover {
+      background: var(--color-teal);
+      color: white;
+      border-color: var(--color-teal);
+    }
   </style>
 </head>
 <body>
@@ -132,33 +149,62 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Price (₹)</label>
+          <label class="form-label">Price (₹) <small style="font-weight: normal; color: #64748b;">(per piece / unit)</small></label>
           <input type="number" id="pPrice" class="form-control" required placeholder="0.00">
         </div>
         <div class="form-group">
-          <label class="form-label">Minimum Order Qty (MOQ)</label>
+          <label class="form-label">Unit of Measurement & Minimum Order Qty (MOQ)</label>
           <div style="display: flex; gap: 1rem;">
-            <input type="number" id="pMoq" class="form-control" required value="1" style="flex: 1;">
-            <select id="pUnit" class="form-control" style="flex: 1;" required>
+            <input type="number" id="pMoq" class="form-control" required value="1" min="1" style="flex: 1;" placeholder="MOQ">
+            <select id="pUnit" class="form-control" style="flex: 1;" required onchange="syncUnitLabels('add')">
               <optgroup label="General / Quantity">
-                <option>Pieces</option><option>Units</option><option>Sets</option><option>Cartons</option><option>Dozens</option>
+                <option value="Pieces" selected>Pieces</option>
+                <option value="Units">Units</option>
+                <option value="Sets">Sets</option>
+                <option value="Cartons">Cartons</option>
+                <option value="Dozens">Dozens</option>
               </optgroup>
               <optgroup label="Construction & Area">
-                <option>Sq. Ft.</option><option>Sq. Mtr.</option><option>Running Ft.</option><option>Cubic Mtr.</option>
+                <option value="Sq. Ft.">Sq. Ft.</option><option value="Sq. Mtr.">Sq. Mtr.</option><option value="Running Ft.">Running Ft.</option><option value="Cubic Mtr.">Cubic Mtr.</option>
               </optgroup>
               <optgroup label="Weight & Mass">
-                <option>Kg</option><option>Grams</option><option>Tons</option><option>Quintals</option>
+                <option value="Kg">Kg</option><option value="Grams">Grams</option><option value="Tons">Tons</option><option value="Quintals">Quintals</option>
               </optgroup>
               <optgroup label="Length">
-                <option>Meters</option><option>Centimeters</option><option>Inches</option><option>Feet</option>
+                <option value="Meters">Meters</option><option value="Centimeters">Centimeters</option><option value="Inches">Inches</option><option value="Feet">Feet</option>
               </optgroup>
               <optgroup label="Volume & Liquid">
-                <option>Liters</option><option>Milliliters</option><option>Gallons</option>
+                <option value="Liters">Liters</option><option value="Milliliters">Milliliters</option><option value="Gallons">Gallons</option>
               </optgroup>
               <optgroup label="Services (Hospitality/B2B)">
-                <option>Projects</option><option>Man-Days</option><option>Hours</option><option>Contracts</option>
+                <option value="Projects">Projects</option><option value="Man-Days">Man-Days</option><option value="Hours">Hours</option><option value="Contracts">Contracts</option>
               </optgroup>
             </select>
+          </div>
+          <div style="display: flex; gap: 0.35rem; align-items: center; margin-top: 0.4rem; flex-wrap: wrap;">
+            <small style="font-size: 0.72rem; color: #64748b; font-weight: 600;">MOQ Presets:</small>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('add', 1)">1</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('add', 10)">10</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('add', 50)">50</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('add', 100)">100</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('add', 500)">500</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('add', 1000)">1000+</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Total Available Stock / Quantity</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="number" id="pStock" class="form-control" required value="500" min="1" style="flex: 1;" placeholder="e.g. 500">
+            <span id="pStockUnitLabel" style="font-weight: 600; color: #64748b; font-size: 0.85rem; min-width: 65px;">Pieces</span>
+          </div>
+          <div style="display: flex; gap: 0.35rem; align-items: center; margin-top: 0.4rem; flex-wrap: wrap;">
+            <small style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Quantity Presets:</small>
+            <button type="button" class="preset-pill" onclick="setStockPreset('add', 50)">50</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('add', 100)">100</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('add', 500)">500</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('add', 1000)">1,000</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('add', 5000)">5,000</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('add', 10000)">10,000+</button>
           </div>
         </div>
         <div class="form-group">
@@ -189,9 +235,12 @@
             <img src="${p.image_url}" alt="${p.name}">
             <h4 style="font-size: 0.875rem; margin-bottom: 0.25rem;">${p.name}</h4>
             <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Price: ₹${p.price} / ${p.unit || 'Pieces'}</div>
-            <div style="font-size: 0.75rem; color: var(--color-teal); font-weight: bold; margin-bottom: 0.5rem;">MOQ: ${p.moq} ${p.unit || 'Pieces'}</div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.5rem; gap: 4px;">
+              <span style="color: var(--color-teal); font-weight: bold;">MOQ: ${p.moq} ${p.unit || 'Pieces'}</span>
+              <span style="color: #2563eb; font-weight: 600;">Stock: ${p.stock_quantity || 500} ${p.unit || 'Pieces'}</span>
+            </div>
             <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.25rem;" onclick="openEditModal(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.moq}, '${p.unit || 'Pieces'}', '${p.category || 'Uncategorized'}')">Edit</button>
+              <button class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.25rem;" onclick="openEditModal(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.moq}, '${p.unit || 'Pieces'}', '${p.category || 'Uncategorized'}', ${p.stock_quantity || 500})">Edit</button>
               <button class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.25rem; color: #e91e63; border-color: #e91e63;" onclick="deleteProduct(${p.id})">Delete</button>
             </div>
           </div>
@@ -211,6 +260,22 @@
       }
     }
 
+    function setMoqPreset(type, val) {
+      const el = document.getElementById(type === 'add' ? 'pMoq' : 'eMoq');
+      if (el) el.value = val;
+    }
+
+    function setStockPreset(type, val) {
+      const el = document.getElementById(type === 'add' ? 'pStock' : 'eStock');
+      if (el) el.value = val;
+    }
+
+    function syncUnitLabels(type) {
+      const unit = document.getElementById(type === 'add' ? 'pUnit' : 'eUnit').value;
+      const label = document.getElementById(type === 'add' ? 'pStockUnitLabel' : 'eStockUnitLabel');
+      if (label) label.innerText = unit;
+    }
+
     document.getElementById('addProductForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('addBtn');
@@ -222,6 +287,7 @@
       formData.append('price', document.getElementById('pPrice').value);
       formData.append('moq', document.getElementById('pMoq').value);
       formData.append('unit', document.getElementById('pUnit').value);
+      formData.append('stock_quantity', document.getElementById('pStock').value || 500);
       
       const imageFile = document.getElementById('pImage').files[0];
       if (imageFile) {
@@ -230,7 +296,7 @@
 
       const res = await auth.addProduct(formData);
       if (res.success) {
-        alert('Product Added! Auto-SEO Generated:\\n\\n' + res.seo_generated);
+        alert('Product Added! Auto-SEO Generated:\n\n' + res.seo_generated);
         document.getElementById('addProductModal').style.display = 'none';
         document.getElementById('addProductForm').reset();
         await loadProducts();
@@ -241,13 +307,15 @@
     });
 
     let editingProductId = null;
-    function openEditModal(id, name, price, moq, unit, category) {
+    function openEditModal(id, name, price, moq, unit, category, stock_quantity) {
       editingProductId = id;
       document.getElementById('eName').value = name;
       document.getElementById('eCategory').value = category || 'Uncategorized';
       document.getElementById('ePrice').value = price;
       document.getElementById('eMoq').value = moq;
       document.getElementById('eUnit').value = unit || 'Pieces';
+      document.getElementById('eStock').value = stock_quantity || 500;
+      syncUnitLabels('edit');
       document.getElementById('editProductModal').style.display = 'flex';
     }
 
@@ -263,6 +331,7 @@
       formData.append('price', document.getElementById('ePrice').value);
       formData.append('moq', document.getElementById('eMoq').value);
       formData.append('unit', document.getElementById('eUnit').value);
+      formData.append('stock_quantity', document.getElementById('eStock').value || 500);
       
       const imageFile = document.getElementById('eImage').files[0];
       if (imageFile) {
@@ -337,33 +406,58 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Price (₹)</label>
+          <label class="form-label">Price (₹) <small style="font-weight: normal; color: #64748b;">(per piece / unit)</small></label>
           <input type="number" id="ePrice" class="form-control" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Minimum Order Qty</label>
+          <label class="form-label">Unit of Measurement & Minimum Order Qty (MOQ)</label>
           <div style="display: flex; gap: 1rem;">
-            <input type="number" id="eMoq" class="form-control" required style="flex: 1;">
-            <select id="eUnit" class="form-control" style="flex: 1;" required>
+            <input type="number" id="eMoq" class="form-control" required style="flex: 1;" min="1" placeholder="MOQ">
+            <select id="eUnit" class="form-control" style="flex: 1;" required onchange="syncUnitLabels('edit')">
               <optgroup label="General / Quantity">
-                <option>Pieces</option><option>Units</option><option>Sets</option><option>Cartons</option><option>Dozens</option>
+                <option value="Pieces">Pieces</option><option value="Units">Units</option><option value="Sets">Sets</option><option value="Cartons">Cartons</option><option value="Dozens">Dozens</option>
               </optgroup>
               <optgroup label="Construction & Area">
-                <option>Sq. Ft.</option><option>Sq. Mtr.</option><option>Running Ft.</option><option>Cubic Mtr.</option>
+                <option value="Sq. Ft.">Sq. Ft.</option><option value="Sq. Mtr.">Sq. Mtr.</option><option value="Running Ft.">Running Ft.</option><option value="Cubic Mtr.">Cubic Mtr.</option>
               </optgroup>
               <optgroup label="Weight & Mass">
-                <option>Kg</option><option>Grams</option><option>Tons</option><option>Quintals</option>
+                <option value="Kg">Kg</option><option value="Grams">Grams</option><option value="Tons">Tons</option><option value="Quintals">Quintals</option>
               </optgroup>
               <optgroup label="Length">
-                <option>Meters</option><option>Centimeters</option><option>Inches</option><option>Feet</option>
+                <option value="Meters">Meters</option><option value="Centimeters">Centimeters</option><option value="Inches">Inches</option><option value="Feet">Feet</option>
               </optgroup>
               <optgroup label="Volume & Liquid">
-                <option>Liters</option><option>Milliliters</option><option>Gallons</option>
+                <option value="Liters">Liters</option><option value="Milliliters">Milliliters</option><option value="Gallons">Gallons</option>
               </optgroup>
               <optgroup label="Services (Hospitality/B2B)">
-                <option>Projects</option><option>Man-Days</option><option>Hours</option><option>Contracts</option>
+                <option value="Projects">Projects</option><option value="Man-Days">Man-Days</option><option value="Hours">Hours</option><option value="Contracts">Contracts</option>
               </optgroup>
             </select>
+          </div>
+          <div style="display: flex; gap: 0.35rem; align-items: center; margin-top: 0.4rem; flex-wrap: wrap;">
+            <small style="font-size: 0.72rem; color: #64748b; font-weight: 600;">MOQ Presets:</small>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('edit', 1)">1</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('edit', 10)">10</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('edit', 50)">50</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('edit', 100)">100</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('edit', 500)">500</button>
+            <button type="button" class="preset-pill" onclick="setMoqPreset('edit', 1000)">1000+</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Total Available Stock / Quantity</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="number" id="eStock" class="form-control" required value="500" min="1" style="flex: 1;" placeholder="e.g. 500">
+            <span id="eStockUnitLabel" style="font-weight: 600; color: #64748b; font-size: 0.85rem; min-width: 65px;">Pieces</span>
+          </div>
+          <div style="display: flex; gap: 0.35rem; align-items: center; margin-top: 0.4rem; flex-wrap: wrap;">
+            <small style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Quantity Presets:</small>
+            <button type="button" class="preset-pill" onclick="setStockPreset('edit', 50)">50</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('edit', 100)">100</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('edit', 500)">500</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('edit', 1000)">1,000</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('edit', 5000)">5,000</button>
+            <button type="button" class="preset-pill" onclick="setStockPreset('edit', 10000)">10,000+</button>
           </div>
         </div>
         <div class="form-group">

@@ -57,6 +57,7 @@ async function renderHomepageProducts() {
           price: parseFloat(p.price) || 0,
           priceMax: (parseFloat(p.price) || 0) * 1.15,
           moq: p.moq || 1,
+          stock: p.stock_quantity || 500,
           unit: p.unit || "Pieces",
           image: p.image_url || "assets/images/logo.png",
           badge: "NEW LISTING",
@@ -109,8 +110,9 @@ async function renderHomepageProducts() {
           ${formatPriceRange(p)} <small style="font-size:0.75rem; font-weight:normal; color:#64748b;">/ ${p.unit}</small>
         </div>
         
-        <div class="alibaba-card-moq">
-          Min. order: <strong>${p.moq} ${p.unit}</strong>
+        <div class="alibaba-card-moq" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Min. order: <strong>${p.moq} ${p.unit}</strong></span>
+          <span style="color:#028867; font-weight:600; font-size:0.72rem;">✓ ${p.stock || 500} ${p.unit} In Stock</span>
         </div>
 
         <h3 class="alibaba-card-title" title="${p.name}">

@@ -96,8 +96,10 @@ async function ensureTables() {
       unit VARCHAR(50) DEFAULT 'pieces',
       image_url TEXT,
       seo_tags TEXT,
+      stock_quantity INTEGER DEFAULT 500,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 500;
     CREATE TABLE IF NOT EXISTS leads (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -402,6 +404,7 @@ module.exports = {
         unit: params[5],
         image_url: params[6], 
         seo_tags: params[7],
+        stock_quantity: params[8] !== undefined ? parseInt(params[8]) : 500,
         created_at: new Date() 
       };
       mockDB.products = mockDB.products || [];
@@ -414,27 +417,35 @@ module.exports = {
       const rows = mockDB.products.filter(p => p.supplier_id === params[0]);
       return { rows };
     }
-    if (text.includes('UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, image_url = $6')) {
-      const prod = mockDB.products.find(p => p.id == params[6] && p.supplier_id == params[7]);
+    if (text.includes('UPDATE products') && text.includes('image_url')) {
+      const prod = mockDB.products.find(p => p.id == params[params.length - 2] && p.supplier_id == params[params.length - 1]);
       if (prod) {
         prod.name = params[0];
         prod.price = params[1];
         prod.category = params[2];
         prod.moq = params[3];
         prod.unit = params[4];
-        prod.image_url = params[5];
+        if (params.length >= 8) {
+          prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
+          prod.image_url = params[6];
+        } else {
+          prod.image_url = params[5];
+        }
         saveMockDB();
       }
       return { rows: prod ? [prod] : [] };
     }
-    if (text.includes('UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5 WHERE id')) {
-      const prod = mockDB.products.find(p => p.id == params[5] && p.supplier_id == params[6]);
+    if (text.includes('UPDATE products') && !text.includes('image_url')) {
+      const prod = mockDB.products.find(p => p.id == params[params.length - 2] && p.supplier_id == params[params.length - 1]);
       if (prod) {
         prod.name = params[0];
         prod.price = params[1];
         prod.category = params[2];
         prod.moq = params[3];
         prod.unit = params[4];
+        if (params.length >= 7) {
+          prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
+        }
         saveMockDB();
       }
       return { rows: prod ? [prod] : [] };

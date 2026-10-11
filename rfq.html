@@ -123,6 +123,20 @@
       if (productNameParam) {
         document.getElementById('rfqProduct').value = decodeURIComponent(productNameParam);
       }
+      const qtyParam = urlParams.get('qty');
+      if (qtyParam) {
+        document.getElementById('rfqQty').value = qtyParam;
+      }
+      const unitParam = urlParams.get('unit');
+      if (unitParam) {
+        const uSelect = document.getElementById('rfqUnit');
+        for (let opt of uSelect.options) {
+          if (opt.value.toLowerCase() === unitParam.toLowerCase()) {
+            opt.selected = true;
+            break;
+          }
+        }
+      }
 
       if (productId) {
         try {
@@ -134,6 +148,18 @@
             
             document.getElementById('rfqProduct').value = p.name;
             document.getElementById('rfqProduct').readOnly = true; // Lock the product name
+            if (p.moq && !document.getElementById('rfqQty').value) {
+              document.getElementById('rfqQty').value = p.moq;
+            }
+            if (p.unit) {
+              const uSelect = document.getElementById('rfqUnit');
+              for (let opt of uSelect.options) {
+                if (opt.value.toLowerCase() === p.unit.toLowerCase()) {
+                  opt.selected = true;
+                  break;
+                }
+              }
+            }
             
             document.getElementById('rfqTitle').innerText = 'Request Quotation for ' + p.name;
             if (p.supplier) {
