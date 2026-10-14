@@ -350,7 +350,7 @@
 
     let editingProductId = null;
     function openEditModal(id) {
-      const p = (window.currentProducts || []).find(x => x.id === id);
+      const p = (window.currentProducts || []).find(x => x.id == id);
       if (!p) return;
       editingProductId = id;
       document.getElementById('eName').value = p.name || '';

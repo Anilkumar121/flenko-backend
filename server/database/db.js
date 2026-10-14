@@ -190,8 +190,11 @@ module.exports = {
       try {
         return await pool.query(text, params);
       } catch (err) {
-        console.warn('Postgres query failed, switching to mock:', err.message);
-        useMock = true;
+        console.warn('Postgres query failed:', err.message);
+        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || (err.message && err.message.includes('Connection terminated')) || (err.message && err.message.includes('timeout'))) {
+          console.warn('Switching to mock adapter due to connection loss.');
+          useMock = true;
+        }
       }
     }
     
@@ -485,46 +488,36 @@ module.exports = {
       return { rows };
     }
     if (text.includes('UPDATE products') && text.includes('image_url')) {
-      const targetId = params[params.length - 2];
-      const targetSupplier = params[params.length - 1];
-      let prod = mockDB.products.find(p => p.id == targetId && (p.supplier_id == targetSupplier || !p.supplier_id));
-      if (!prod) prod = mockDB.products.find(p => p.id == targetId);
+      const targetId = parseInt(params[params.length - 1]) || parseInt(params[params.length - 2]);
+      let prod = mockDB.products.find(p => p.id == targetId);
       if (prod) {
-        prod.name = params[0];
-        prod.price = (params[1] !== undefined && params[1] !== null && params[1] !== '' && !isNaN(Number(params[1]))) ? Number(params[1]) : null;
-        prod.category = params[2];
-        prod.moq = params[3];
-        prod.unit = params[4];
-        if (params.length >= 9) {
+        prod.name = params[0] || prod.name;
+        prod.price = (params[1] !== undefined && params[1] !== null && params[1] !== '' && !isNaN(Number(params[1]))) ? Number(params[1]) : prod.price;
+        prod.category = params[2] || prod.category;
+        prod.moq = parseInt(params[3]) || prod.moq || 1;
+        prod.unit = params[4] || prod.unit || 'Pieces';
+        const imgParam = params.find(p => typeof p === 'string' && (p.startsWith('http') || p.startsWith('data:') || p.includes('assets/')));
+        if (imgParam) prod.image_url = imgParam;
+        if (params.length >= 8) {
           prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
           prod.country = params[6] || prod.country || 'India';
-          prod.image_url = params[7];
-        } else if (params.length >= 8) {
-          prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
-          prod.image_url = params[6];
-        } else {
-          prod.image_url = params[5];
         }
         saveMockDB();
       }
       return { rows: prod ? [prod] : [] };
     }
     if (text.includes('UPDATE products') && !text.includes('image_url')) {
-      const targetId = params[params.length - 2];
-      const targetSupplier = params[params.length - 1];
-      let prod = mockDB.products.find(p => p.id == targetId && (p.supplier_id == targetSupplier || !p.supplier_id));
-      if (!prod) prod = mockDB.products.find(p => p.id == targetId);
+      const targetId = parseInt(params[params.length - 1]) || parseInt(params[params.length - 2]);
+      let prod = mockDB.products.find(p => p.id == targetId);
       if (prod) {
-        prod.name = params[0];
-        prod.price = (params[1] !== undefined && params[1] !== null && params[1] !== '' && !isNaN(Number(params[1]))) ? Number(params[1]) : null;
-        prod.category = params[2];
-        prod.moq = params[3];
-        prod.unit = params[4];
+        prod.name = params[0] || prod.name;
+        prod.price = (params[1] !== undefined && params[1] !== null && params[1] !== '' && !isNaN(Number(params[1]))) ? Number(params[1]) : prod.price;
+        prod.category = params[2] || prod.category;
         if (params.length >= 8) {
+          prod.moq = parseInt(params[3]) || prod.moq || 1;
+          prod.unit = params[4] || prod.unit || 'Pieces';
           prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
           prod.country = params[6] || prod.country || 'India';
-        } else if (params.length >= 7) {
-          prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
         }
         saveMockDB();
       }

@@ -1246,26 +1246,29 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
   const cleanPrice = (price !== undefined && price !== null && price !== '' && !isNaN(Number(price))) ? Number(price) : null;
   const effectiveCategory = classifyCategory(cleanName, category);
   const effectiveCountry = (country || 'India').trim();
+  const cleanMoq = parseInt(moq) || 1;
+  const cleanStock = parseInt(stock_quantity) || 500;
+  const productId = parseInt(req.params.id);
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
   
   try {
     let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7 WHERE id = $8 RETURNING *';
-    let params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, parseInt(req.params.id)];
+    let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productId];
 
     if (req.file) {
       const image_url = `${backendHost}/assets/images/products/${req.file.filename}`;
       updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, image_url, parseInt(req.params.id)];
+      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productId];
     } else if (req.body.image_data) {
       const image_url = req.body.image_data;
       updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, image_url, parseInt(req.params.id)];
+      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productId];
     }
 
     const updated = await db.query(updateQuery, params);
     if (!updated.rows || updated.rows.length === 0) {
       // Fallback update by id
-      const directUpdate = await db.query('UPDATE products SET name = $1, price = $2, category = $3 WHERE id = $4 RETURNING *', [cleanName, cleanPrice, effectiveCategory, parseInt(req.params.id)]);
+      const directUpdate = await db.query('UPDATE products SET name = $1, price = $2, category = $3 WHERE id = $4 RETURNING *', [cleanName, cleanPrice, effectiveCategory, productId]);
       if (directUpdate.rows && directUpdate.rows.length > 0) {
         return res.json({ success: true, product: directUpdate.rows[0] });
       }
