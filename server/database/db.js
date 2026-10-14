@@ -335,6 +335,12 @@ module.exports = {
       saveMockDB();
       return { rows: [] };
     }
+    if (text.includes('UPDATE users SET name = $1 WHERE id = $2')) {
+      const user = (mockDB.users || []).find(u => u.id == params[1]);
+      if (user) { user.name = params[0]; }
+      saveMockDB();
+      return { rows: [] };
+    }
     if (text.includes('UPDATE users SET')) {
       const targetPhone = (params[3] || '').toString().replace(/[^0-9]/g, '').slice(-10);
       const user = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
