@@ -134,11 +134,16 @@
         <button type="button" id="tabSignUp" class="auth-tab-btn" onclick="switchAuthTab('register')">👤 New Account</button>
       </div>
 
-      <!-- WhatsApp OTP Login Form (Default Primary) -->
+      <!-- WhatsApp OTP Login Form (Universal for Buyers, Suppliers, and All Members) -->
       <form id="otpForm">
         <!-- Step 1: Phone input -->
         <div id="otpStepPhone">
-          <div class="form-group" style="margin-bottom: 1.25rem;">
+          <div style="text-align:center; margin-bottom:1.25rem;">
+            <h2 style="font-size:1.2rem; font-weight:700; color:var(--color-navy-deep); margin-bottom:4px;">Universal WhatsApp Sign In</h2>
+            <p style="font-size:0.82rem; color:#64748b; margin:0;">One-click login & registration for all Buyers & Suppliers</p>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
             <label class="form-label" style="font-weight: 600; display:flex; justify-content:space-between; align-items:center;">
               <span>WhatsApp Mobile Number</span>
               <span style="color:#16a34a; font-size:0.75rem; font-weight:700;">🟢 Live Bot Connected</span>
@@ -182,6 +187,13 @@
             <small style="color: #64748b; font-size: 0.75rem; margin-top: 4px; display: block;">
               We will send a 6-digit one-time code to your WhatsApp.
             </small>
+          </div>
+
+          <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px;">
+            <input type="checkbox" id="otpIsSeller" style="accent-color: #0F4C9B; width: 17px; height: 17px; cursor: pointer;">
+            <label for="otpIsSeller" style="font-size: 0.82rem; color: #1e293b; cursor: pointer; user-select: none; margin: 0;">
+              I am a <strong>Manufacturer / Supplier</strong> (Sign in to Seller Panel)
+            </label>
           </div>
 
           <button type="button" id="btnSendOtp" class="whatsapp-btn" onclick="handleSendWhatsAppOtp()">
@@ -330,13 +342,6 @@
       <div class="auth-footer-link" style="border-top: 1px solid var(--color-border); padding-top: 1rem; margin-top: 1.5rem;">
         Are you a manufacturer or supplier? <br>
         <a href="sell.html">Register as a Seller (Sell Globally) &rarr;</a>
-      </div>
-
-      <!-- Quick Admin Login Option -->
-      <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #e2e8f0;">
-        <button type="button" onclick="quickFillAdmin()" style="background: none; border: none; color: #94a3b8; font-size: 0.76rem; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-          <span>⚡ Quick Master Admin: 8368074009 / 123456</span>
-        </button>
       </div>
     </div>
   </main>
@@ -488,10 +493,12 @@
       btn.innerText = 'Verifying OTP...';
 
       try {
+        const isSellerCheckbox = document.getElementById('otpIsSeller') && document.getElementById('otpIsSeller').checked;
         const res = await auth.verifyOtp({
           phone: currentOtpPhone,
           otp: code,
-          name: 'Flenko Member'
+          isSellerRegistration: !!isSellerCheckbox,
+          name: isSellerCheckbox ? 'Supplier Member' : 'Buyer Member'
         });
 
         if (res && res.success) {
@@ -558,10 +565,15 @@
       }
     } catch(e) {}
 
-    // Check for ?tab= in URL
+    // Check for ?tab= or ?role= in URL
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
+      const roleParam = urlParams.get('role');
+      if (roleParam === 'supplier' || roleParam === 'seller') {
+        const chk = document.getElementById('otpIsSeller');
+        if (chk) chk.checked = true;
+      }
       if (tabParam === 'register' || tabParam === 'signup') {
         switchAuthTab('register');
       } else if (tabParam === 'login' || tabParam === 'signin') {
