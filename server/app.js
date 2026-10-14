@@ -1080,9 +1080,9 @@ app.get('/api/buyer/leads', authMiddleware, async (req, res) => {
 
 // Route: Submit an Inquiry/Lead (Public / Guest / Registered Buyer)
 const handleLeadSubmission = async (req, res) => {
-  const { supplier_id, product_needed, buyer_phone, details, quantity, unit, target_price, message } = req.body;
+  const { supplier_id, product_needed, buyer_phone, details, quantity, unit, target_price, message, product, item_name } = req.body;
   const leadDetails = details || `Quantity: ${quantity || 'Flexible'} ${unit || 'Pieces'} | Target: ${target_price || 'Best Market Rate'} | Message: ${message || 'Please send quotations.'}`;
-  const effectiveProduct = product_needed || 'Wholesale Requirement';
+  const effectiveProduct = product_needed || product || item_name || 'Wholesale Requirement';
   const effectivePhone = buyer_phone || (req.user ? req.user.phone : '9999999999');
   const buyerId = req.user ? req.user.id : null;
   const cleanPhone10 = (effectivePhone || '').replace(/[^0-9]/g, '').slice(-10);
