@@ -303,11 +303,9 @@
           regSubmitBtn.disabled = false;
         }
       } catch (err) {
-        regStatusMsg.innerText = 'Account created successfully! Setting up your store...';
-        regStatusMsg.style.color = 'var(--color-teal)';
-        setTimeout(() => {
-          window.location.href = 'supplier-dashboard.html';
-        }, 500);
+        regStatusMsg.innerText = 'Could not connect to server. Please check your internet connection and try again.';
+        regStatusMsg.style.color = 'red';
+        regSubmitBtn.disabled = false;
       }
     });
   </script>

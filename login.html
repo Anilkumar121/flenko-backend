@@ -620,11 +620,9 @@
           btn.disabled = false;
         }
       } catch (err) {
-        statusMsg.innerText = 'Account ready! Redirecting to your dashboard...';
-        statusMsg.style.color = '#10b981';
-        setTimeout(() => {
-          redirectAfterLogin({ role: isSupplier ? 'supplier' : 'buyer' });
-        }, 500);
+        statusMsg.innerText = 'Server error during registration. Please check your internet connection and try again.';
+        statusMsg.style.color = '#ef4444';
+        btn.disabled = false;
       }
     });
   </script>

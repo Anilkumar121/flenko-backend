@@ -271,7 +271,29 @@ app.post('/api/auth/register', async (req, res) => {
     // Zero-friction: if already registered, auto-sign in if password matches!
     if (existingUser) {
       if (verifyPassword(cleanPass, existingUser.password) || cleanPass === '123456') {
-        const token = jwt.sign({ id: existingUser.id, phone: existingUser.phone, role: existingUser.role, email: existingUser.email }, JWT_SECRET, { expiresIn: '30d' });
+        let finalRole = existingUser.role;
+        if (isSellerRegistration && existingUser.role !== 'admin') {
+          finalRole = 'supplier';
+          try {
+            await db.query('UPDATE users SET role = $1 WHERE id = $2', ['supplier', existingUser.id]);
+          } catch(e) {}
+          existingUser.role = 'supplier';
+        }
+
+        // Ensure business profile exists if seller
+        if (finalRole === 'supplier') {
+          try {
+            const bCheck = await db.query('SELECT id FROM businesses WHERE user_id = $1', [existingUser.id]);
+            if (!bCheck.rows || bCheck.rows.length === 0) {
+              await db.query(
+                'INSERT INTO businesses (user_id, company_name, city, is_verified) VALUES ($1, $2, $3, $4)',
+                [existingUser.id, cleanName || existingUser.name, city || existingUser.city || 'Industrial Hub', true]
+              );
+            }
+          } catch(bErr) {}
+        }
+
+        const token = jwt.sign({ id: existingUser.id, phone: existingUser.phone, role: finalRole, email: existingUser.email }, JWT_SECRET, { expiresIn: '30d' });
         return res.json({
           success: true,
           alreadyExisted: true,
@@ -282,7 +304,7 @@ app.post('/api/auth/register', async (req, res) => {
             phone: existingUser.phone,
             email: existingUser.email,
             name: existingUser.name,
-            role: existingUser.role,
+            role: finalRole,
             subscription: existingUser.subscription || 'free'
           }
         });
@@ -309,6 +331,16 @@ app.post('/api/auth/register', async (req, res) => {
       [userPhone, hashedPassword, cleanName, cleanEmail || null, city || null, role]
     );
     const user = insertRes.rows[0];
+
+    // If seller registration, automatically create business profile record
+    if (role === 'supplier' || isSellerRegistration) {
+      try {
+        await db.query(
+          'INSERT INTO businesses (user_id, company_name, city, is_verified) VALUES ($1, $2, $3, $4)',
+          [user.id, cleanName, city || 'Industrial Hub', true]
+        );
+      } catch(bErr) {}
+    }
 
     const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
 
@@ -1186,9 +1218,12 @@ app.get('/api/public/products/:id', async (req, res) => {
 // Route: Get Products for a Supplier
 app.get('/api/products', authMiddleware, async (req, res) => {
   try {
-    let prods = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY created_at DESC', [req.user.id]);
-    if (!prods.rows || prods.rows.length === 0) {
+    const isMasterAdmin = req.user && (req.user.role === 'admin' || req.user.id === 1);
+    let prods;
+    if (isMasterAdmin && req.query.all === 'true') {
       prods = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+    } else {
+      prods = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY created_at DESC', [req.user.id]);
     }
     res.json({ products: prods.rows || [] });
   } catch (error) {
@@ -1204,6 +1239,8 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const cleanPrice = (price !== undefined && price !== null && price !== '' && !isNaN(Number(price))) ? Number(price) : null;
   const effectiveCategory = classifyCategory(cleanName, category);
   const effectiveCountry = (country || 'India').trim();
+  const cleanMoq = parseInt(moq) || 1;
+  const cleanStock = parseInt(stock_quantity) || 500;
   
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
   const image_url = req.file 
@@ -1214,23 +1251,39 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const autoSeoTags = `buy ${cleanName} wholesale, best ${cleanName} supplier, ${cleanName} manufacturers in ${effectiveCountry}, top quality ${effectiveCategory}`;
 
   try {
-    let effectiveSupplierId = (req.user && req.user.id) ? req.user.id : 1;
+    let effectiveSupplierId = (req.user && req.user.id) ? parseInt(req.user.id) : 1;
     try {
-      const uCheck = await db.query('SELECT id FROM users WHERE id = $1', [effectiveSupplierId]);
+      const uCheck = await db.query('SELECT id, name, city FROM users WHERE id = $1', [effectiveSupplierId]);
       if (!uCheck.rows || uCheck.rows.length === 0) {
+        let found = null;
         if (req.user && req.user.phone) {
           const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
           const pCheck = await db.query('SELECT id FROM users WHERE phone = $1 OR phone = $2', [req.user.phone, cleanP]);
-          if (pCheck.rows && pCheck.rows.length > 0) {
-            effectiveSupplierId = pCheck.rows[0].id;
-          }
+          if (pCheck.rows && pCheck.rows.length > 0) found = pCheck.rows[0].id;
         }
+        effectiveSupplierId = found || 1;
       }
-    } catch(e) {}
+    } catch(e) {
+      effectiveSupplierId = 1;
+    }
+
+    // Auto-link business profile if missing
+    try {
+      const bCheck = await db.query('SELECT id FROM businesses WHERE user_id = $1', [effectiveSupplierId]);
+      if (!bCheck.rows || bCheck.rows.length === 0) {
+        const u = await db.query('SELECT name, city FROM users WHERE id = $1', [effectiveSupplierId]);
+        const sName = (u.rows && u.rows[0]) ? u.rows[0].name : (req.user ? req.user.name : 'Verified Supplier');
+        const sCity = (u.rows && u.rows[0]) ? u.rows[0].city : 'Industrial Hub';
+        await db.query(
+          'INSERT INTO businesses (user_id, company_name, city, is_verified) VALUES ($1, $2, $3, $4)',
+          [effectiveSupplierId, sName || 'Verified Supplier', sCity || 'Industrial Hub', true]
+        );
+      }
+    } catch(bErr) {}
 
     const newProd = await db.query(
       'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-      [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, moq || 1, unit || 'Pieces', image_url, autoSeoTags, parseInt(stock_quantity) || 500, effectiveCountry]
+      [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry]
     );
     res.json({ success: true, product: newProd.rows[0], seo_generated: autoSeoTags, category: effectiveCategory, country: effectiveCountry });
   } catch (error) {

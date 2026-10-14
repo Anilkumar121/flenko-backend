@@ -13,12 +13,12 @@ function detectApiBase() {
 
 const API_BASE = detectApiBase();
 window.API_BASE = API_BASE;
-window.API_FALLBACK = (API_BASE === '/api' || API_BASE.includes('flenko-backend')) ? '/api' : 'https://flenko-backend.onrender.com/api';
+window.API_FALLBACK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000/api' : 'https://flenko-backend.onrender.com/api';
 
 const auth = {
   async fetchWithFallback(urlPath, options = {}) {
     const primary = window.API_BASE || 'https://flenko-backend.onrender.com/api';
-    const fallback = window.API_FALLBACK || '/api';
+    const fallback = window.API_FALLBACK || primary;
 
     const isHtml = (res) => {
       const ct = (res.headers && res.headers.get('content-type')) || '';
@@ -27,22 +27,27 @@ const auth = {
 
     try {
       const res = await fetch(`${primary}${urlPath}`, options);
-      if (res.ok && !isHtml(res)) {
+      // If primary returned a valid non-HTML response (JSON body, even for 4xx/5xx like 400/401/404/409), return it!
+      if (!isHtml(res)) {
         return res;
       }
+      // If primary returned HTML (e.g. Render 502/504 Bad Gateway proxy HTML), try fallback if different
       if (primary !== fallback) {
-        const fbRes = await fetch(`${fallback}${urlPath}`, options);
-        if (fbRes.ok && !isHtml(fbRes)) {
-          return fbRes;
-        }
-        return fbRes;
+        try {
+          const fbRes = await fetch(`${fallback}${urlPath}`, options);
+          if (!isHtml(fbRes)) {
+            return fbRes;
+          }
+        } catch(e) {}
       }
       return res;
     } catch (err) {
       if (primary !== fallback) {
         try {
           const fbRes = await fetch(`${fallback}${urlPath}`, options);
-          return fbRes;
+          if (!isHtml(fbRes)) {
+            return fbRes;
+          }
         } catch (e) {}
       }
       throw err;
@@ -290,61 +295,34 @@ const auth = {
       });
       const data = await res.json();
       if (data && data.success) {
-        this.saveLocalUser({
-          id: data.user.id,
-          phone: data.user.phone || cleanPhone,
-          email: data.user.email || cleanEmail,
-          name: data.user.name || cleanName,
-          role: data.user.role || (isSeller ? 'supplier' : 'buyer'),
-          password: cleanPass,
-          city: payload.city || 'India'
-        });
+        if (data.token) this.setToken(data.token);
+        if (data.user) {
+          this.setUser(data.user);
+          this.saveLocalUser({
+            ...data.user,
+            password: cleanPass,
+            city: payload.city || 'India'
+          });
+        }
         return data;
       }
-      if (data && (data.isExisting || (data.error && data.error.toLowerCase().includes('already registered')))) {
-        // Automatically attempt login with the password provided
-        try {
-          const autoLogin = await this.login(cleanPhone || cleanEmail, cleanPass);
-          if (autoLogin && autoLogin.success) {
-            return { ...autoLogin, alreadyExisted: true };
-          }
-        } catch(e) {}
-        const existingLocal = this.findLocalUser(cleanPhone || cleanEmail, cleanPass);
-        if (existingLocal) {
-          return { success: true, token: 'flenko_jwt_local_' + existingLocal.id, user: existingLocal, alreadyExisted: true };
+      if (data && (data.error || data.isExisting)) {
+        // If account already existed, attempt automatic sign-in
+        if (data.isExisting || (data.error && (data.error.toLowerCase().includes('already registered') || data.error.toLowerCase().includes('already exists')))) {
+          try {
+            const autoLogin = await this.login(cleanPhone || cleanEmail, cleanPass);
+            if (autoLogin && autoLogin.success) {
+              return { ...autoLogin, alreadyExisted: true };
+            }
+          } catch(e) {}
         }
-        return { success: false, isExisting: true, error: (data && data.error) || 'Mobile number already registered. Please sign in.' };
+        return { success: false, isExisting: data.isExisting, error: data.error || 'Registration failed.' };
       }
+      return data || { success: false, error: 'Registration failed. Please check your details.' };
     } catch(err) {
-      console.warn('Backend register network error, proceeding with resilient local registration:', err);
+      console.warn('Backend register network error:', err);
+      return { success: false, error: 'Network error connecting to server. Please check your internet connection and try again.' };
     }
-
-    // Resilient local account creation (guarantees account creation never gets blocked)
-    const newLocalUser = {
-      id: Date.now(),
-      phone: cleanPhone || ('+919' + Date.now().toString().slice(-9)),
-      email: cleanEmail || null,
-      name: cleanName,
-      role: isSeller ? 'supplier' : 'buyer',
-      subscription: 'free',
-      city: payload.city || 'India',
-      password: cleanPass,
-      created_at: new Date().toISOString()
-    };
-    this.saveLocalUser(newLocalUser);
-
-    return {
-      success: true,
-      token: 'flenko_jwt_local_' + newLocalUser.id,
-      user: {
-        id: newLocalUser.id,
-        phone: newLocalUser.phone,
-        email: newLocalUser.email,
-        name: newLocalUser.name,
-        role: newLocalUser.role,
-        subscription: 'free'
-      }
-    };
   },
   async forgotPassword(payload) {
     const res = await this.fetchWithFallback(`/auth/forgot-password`, {
@@ -512,11 +490,14 @@ const auth = {
   },
   async addProduct(formData) {
     const token = this.getToken();
+    if (!token) {
+      return { success: false, error: 'You are not logged in. Please log in first.' };
+    }
     let resData = null;
     try {
       const res = await this.fetchWithFallback(`/products`, {
         method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
       resData = await res.json();
@@ -524,76 +505,48 @@ const auth = {
       console.warn('Add product network warning:', e);
     }
 
-    // Extract fields from formData for robust local cache sync
-    const pName = formData.get('name') || 'New Product';
-    const pCat = formData.get('category') || 'General B2B';
-    const pPrice = formData.get('price');
-    const pMoq = formData.get('moq') || 1;
-    const pUnit = formData.get('unit') || 'Pieces';
-    const pStock = formData.get('stock_quantity') || 500;
-    const pCountry = formData.get('country') || 'India';
-    const pUser = this.getUser() || {};
-
-    const cachedProduct = {
-      id: (resData && resData.product && resData.product.id) ? resData.product.id : Date.now(),
-      name: pName,
-      category: pCat,
-      price: (pPrice !== '' && pPrice !== null && !isNaN(pPrice)) ? Number(pPrice) : null,
-      moq: parseInt(pMoq) || 1,
-      unit: pUnit,
-      stock_quantity: parseInt(pStock) || 500,
-      image_url: (resData && resData.product && resData.product.image_url) ? resData.product.image_url : 'assets/images/logo.png',
-      supplier_id: pUser.id || 1,
-      supplier_name: pUser.name || 'Verified Supplier',
-      city: pUser.city || 'Industrial Hub',
-      country: pCountry,
-      created_at: new Date().toISOString()
-    };
-
-    try {
-      const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-      localList.unshift(cachedProduct);
-      localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
-    } catch(e) {}
-
     if (resData && resData.success) {
+      // Also cache in local list for quick display
+      try {
+        const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+        localList.unshift(resData.product);
+        localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
+      } catch(e) {}
       return resData;
     }
-    return {
-      success: true,
-      product: cachedProduct,
-      seo_generated: `buy ${pName} wholesale, best ${pName} supplier, ${pName} manufacturers`,
-      category: pCat
-    };
+
+    return resData || { success: false, error: 'Could not connect to server. Please check your internet connection and try again.' };
   },
   async editProduct(id, formData) {
     const token = this.getToken();
+    if (!token) {
+      return { success: false, error: 'You are not logged in.' };
+    }
     let resData = null;
     try {
       const res = await this.fetchWithFallback(`/products/${id}`, {
         method: 'PUT',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
       resData = await res.json();
-    } catch(e) {}
+    } catch(e) {
+      console.warn('Edit product network warning:', e);
+    }
 
-    try {
-      const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-      const idx = localList.findIndex(p => p.id == id);
-      if (idx !== -1) {
-        if (formData.get('name')) localList[idx].name = formData.get('name');
-        if (formData.get('category')) localList[idx].category = formData.get('category');
-        if (formData.get('country')) localList[idx].country = formData.get('country');
-        if (formData.get('price') !== null) localList[idx].price = formData.get('price') === '' ? null : Number(formData.get('price'));
-        if (formData.get('moq')) localList[idx].moq = parseInt(formData.get('moq')) || 1;
-        if (formData.get('unit')) localList[idx].unit = formData.get('unit');
-        if (formData.get('stock_quantity')) localList[idx].stock_quantity = parseInt(formData.get('stock_quantity')) || 500;
-        localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
-      }
-    } catch(e) {}
+    if (resData && resData.success) {
+      try {
+        const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+        const idx = localList.findIndex(p => p.id == id);
+        if (idx !== -1) {
+          localList[idx] = { ...localList[idx], ...(resData.product || {}) };
+          localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
+        }
+      } catch(e) {}
+      return resData;
+    }
 
-    return resData || { success: true };
+    return resData || { success: false, error: 'Could not connect to server to update product.' };
   },
   async deleteProduct(id) {
     const token = this.getToken();
