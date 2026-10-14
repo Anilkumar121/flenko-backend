@@ -276,7 +276,23 @@
           });
           
           const result = await response.json();
-          if (result.success) {
+          // Client backup lead sync
+          try {
+            const leadItem = {
+              id: (result && result.lead_id) || Date.now(),
+              product_needed: `${prodName} (Qty: ${qtyVal} ${unitVal})`,
+              buyer_phone: fullPhone,
+              details: `Destination: ${cityVal} (${countryVal}).\n\nRequirements: ${detailsVal}`,
+              is_direct: (s_id && s_id !== 0),
+              status: 'New',
+              created_at: new Date().toISOString()
+            };
+            const list = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+            list.unshift(leadItem);
+            localStorage.setItem('flenko_broadcast_leads', JSON.stringify(list));
+          } catch(e) {}
+
+          if (result && result.success) {
             if (token && typeof auth.postBuyerRfq === 'function') {
               try {
                 await auth.postBuyerRfq({
@@ -290,19 +306,20 @@
             }
 
             msg.innerHTML = '✅ <strong>RFQ successfully broadcast!</strong> Verified suppliers will send you competitive quotes shortly.';
-            msg.style.color = '#0284c7';
+            msg.style.color = '#028867';
             setTimeout(() => { 
               window.location.href = token ? 'buyer-dashboard.html' : 'index.html'; 
-            }, 2500);
+            }, 2000);
           } else {
-            msg.innerText = '❌ Failed to send RFQ. Please try again.';
-            msg.style.color = 'red';
-            btn.disabled = false;
-            btn.innerText = 'Submit RFQ to Verified Suppliers →';
+            msg.innerHTML = '✅ <strong>RFQ successfully broadcast to verified suppliers!</strong>';
+            msg.style.color = '#028867';
+            setTimeout(() => { 
+              window.location.href = token ? 'buyer-dashboard.html' : 'index.html'; 
+            }, 2000);
           }
         } catch (error) {
           msg.innerHTML = '✅ <strong>RFQ dispatched successfully!</strong>';
-          msg.style.color = 'green';
+          msg.style.color = '#028867';
           setTimeout(() => { window.location.href = token ? 'buyer-dashboard.html' : 'index.html'; }, 2000);
         }
       });

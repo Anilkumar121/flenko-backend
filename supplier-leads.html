@@ -135,23 +135,46 @@
       if (!token) return window.location.href = 'login.html';
 
       try {
+        let leads = [];
         const leadsData = await auth.getLeads();
-        const listEl = document.getElementById('leadList');
-        
         if (leadsData && leadsData.leads && leadsData.leads.length > 0) {
-          globalLeads = leadsData.leads;
+          leads = leadsData.leads;
+        }
+
+        // Merge local broadcast leads if available
+        try {
+          const localBroadcast = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+          if (localBroadcast.length > 0) {
+            const seenIds = new Set(leads.map(l => String(l.id)));
+            localBroadcast.forEach(lbl => {
+              if (!seenIds.has(String(lbl.id))) {
+                leads.unshift(lbl);
+              }
+            });
+          }
+        } catch(err) {}
+
+        const listEl = document.getElementById('leadList');
+        if (leads.length > 0) {
+          globalLeads = leads;
           listEl.innerHTML = globalLeads.map((lead, index) => `
-            <div class="lead-card" onclick="openLead(${index}, this)">
+            <div class="lead-card ${index === 0 ? 'active' : ''}" onclick="openLead(${index}, this)">
               <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                <span style="font-weight: 600; font-size: 0.875rem; color: var(--color-navy-deep);">${lead.buyer_phone || 'Unknown'}</span>
+                <span style="font-weight: 600; font-size: 0.875rem; color: var(--color-navy-deep);">📞 ${lead.buyer_phone || 'Buyer'}</span>
                 <span style="font-size: 0.75rem; color: var(--color-text-muted);">${new Date(lead.created_at || Date.now()).toLocaleDateString()}</span>
               </div>
-              <div style="font-size: 0.875rem; font-weight: 500; color: var(--color-blue-primary); margin-bottom: 0.25rem;">${lead.product_needed || 'Product Inquiry'}</div>
-              <div style="font-size: 0.75rem; color: var(--color-text-muted);">Status: <span style="color: var(--color-teal); font-weight: 600;">${lead.status || 'New'}</span></div>
+              <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-blue-primary); margin-bottom: 0.25rem;">${lead.product_needed || 'Product Inquiry'}</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                <span style="color: var(--color-text-muted);">Status: <strong style="color: var(--color-teal);">${lead.status || 'New'}</strong></span>
+                ${lead.is_direct === false ? '<span style="background:#ff9800; color:#fff; padding:1px 5px; border-radius:3px; font-size:0.68rem;">Market Lead</span>' : '<span style="background:#028867; color:#fff; padding:1px 5px; border-radius:3px; font-size:0.68rem;">Direct</span>'}
+              </div>
             </div>
           `).join('');
+
+          // Auto-open first lead
+          openLead(0, document.querySelector('.lead-card'));
         } else {
-          listEl.innerHTML = '<div style="padding: 1.5rem; text-align: center; font-size: 0.875rem; color: var(--color-text-muted);">No leads found.</div>';
+          listEl.innerHTML = '<div style="padding: 2rem 1rem; text-align: center; font-size: 0.875rem; color: var(--color-text-muted);">No buyer leads found yet. Check back once buyers submit RFQs.</div>';
         }
       } catch (e) {
         document.getElementById('leadList').innerHTML = `<div style="padding: 1.5rem; text-align: center; color: red;">Error loading leads: ${e.message}</div>`;
@@ -163,6 +186,7 @@
       if(element) element.classList.add('active');
       
       const lead = globalLeads[index];
+      if (!lead) return;
       const detailsEl = document.getElementById('leadDetails');
 
       if (lead.locked) {
@@ -170,7 +194,7 @@
           <div style="text-align:center; padding: 4rem 2rem;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
             <h2 style="color: var(--color-navy-deep); margin-bottom: 1rem;">Unlock Contact Details</h2>
-            <p style="color: var(--color-text-muted); margin-bottom: 2rem;">This is a premium/bonus lead or you have consumed your free limit. Pay ₹50 to unlock buyer contact details and requirements.</p>
+            <p style="color: var(--color-text-muted); margin-bottom: 2rem;">Pay ₹50 to unlock buyer contact details and requirements.</p>
             
             <div style="display:flex; justify-content:center; gap: 1.5rem; flex-wrap: wrap;">
               <div style="border: 1px solid var(--color-border); padding: 1.5rem; border-radius: var(--radius-md); text-align: center; width: 100%; max-width: 250px;">
@@ -181,7 +205,7 @@
               <div style="border: 2px solid var(--color-blue-primary); background: rgba(22, 119, 210, 0.05); padding: 1.5rem; border-radius: var(--radius-md); text-align: center; width: 100%; max-width: 250px;">
                 <h3 style="margin-bottom: 0.5rem; color: var(--color-blue-primary);">Upgrade Plan</h3>
                 <h2 style="color: var(--color-navy-deep); margin-bottom: 0.5rem;">₹10K<span style="font-size:1rem;font-weight:normal;">/yr</span></h2>
-                <p style="font-size: 0.75rem; margin-bottom: 1rem; color: var(--color-text-muted);">No Cost EMI Available</p>
+                <p style="font-size: 0.75rem; margin-bottom: 1rem; color: var(--color-text-muted);">Unlimited Leads</p>
                 <button class="btn btn-primary" style="width: 100%;" onclick="window.location.href='pricing.html'">View Plans</button>
               </div>
             </div>
@@ -189,30 +213,41 @@
         `;
         return;
       }
+
+      const cleanDigits = (lead.buyer_phone || '').replace(/[^0-9]/g, '');
+      const waPhone = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
       
       detailsEl.innerHTML = `
         <div class="crm-details-header">
           <div>
             <h2 style="font-size: 1.25rem; color: var(--color-navy-deep); margin-bottom: 0.25rem;">${lead.product_needed}</h2>
-            <div style="font-size: 0.875rem; color: var(--color-text-muted);">Buyer Contact: +91-${lead.buyer_phone}</div>
+            <div style="font-size: 0.875rem; color: #028867; font-weight: 700;">Buyer Contact: 📞 ${lead.buyer_phone}</div>
           </div>
-          <select class="form-control" id="statusSelect_${lead.id}" style="width: 150px; border-color: var(--color-teal); color: var(--color-teal); font-weight: 600;" onchange="updateStatus(${lead.id}, this.value)">
-            <option value="New" ${lead.status==='New'?'selected':''}>🔵 New Lead</option>
-            <option value="Contacted" ${lead.status==='Contacted'?'selected':''}>🟡 Contacted</option>
-            <option value="Quoted" ${lead.status==='Quoted'?'selected':''}>🟠 Quote Sent</option>
-            <option value="Won" ${lead.status==='Won'?'selected':''}>🟢 Deal Won</option>
-            <option value="Lost" ${lead.status==='Lost'?'selected':''}>🔴 Deal Lost</option>
-          </select>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hello! I received your inquiry for ${lead.product_needed || 'products'} on Flenko.com. Let's discuss pricing and delivery.`)}" target="_blank" class="btn btn-primary" style="background:#25D366; border-color:#25D366; padding:0.4rem 0.85rem; font-size:0.82rem; text-decoration:none; font-weight:700;">
+              💬 WhatsApp
+            </a>
+            <a href="tel:${lead.buyer_phone}" class="btn btn-outline" style="padding:0.4rem 0.75rem; font-size:0.82rem; text-decoration:none;">
+              📞 Call
+            </a>
+            <select class="form-control" id="statusSelect_${lead.id}" style="width: 140px; border-color: var(--color-teal); color: var(--color-teal); font-weight: 600;" onchange="updateStatus(${lead.id}, this.value)">
+              <option value="New" ${lead.status==='New'?'selected':''}>🔵 New Lead</option>
+              <option value="Contacted" ${lead.status==='Contacted'?'selected':''}>🟡 Contacted</option>
+              <option value="Quoted" ${lead.status==='Quoted'?'selected':''}>🟠 Quote Sent</option>
+              <option value="Won" ${lead.status==='Won'?'selected':''}>🟢 Deal Won</option>
+              <option value="Lost" ${lead.status==='Lost'?'selected':''}>🔴 Deal Lost</option>
+            </select>
+          </div>
         </div>
         <div class="crm-chat-area">
-          <div style="background: var(--color-white); border: 1px solid var(--color-border); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; max-width: 80%;">
-            <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">Buyer Requirement - ${new Date(lead.created_at).toLocaleString()}</div>
-            <p style="font-size: 0.875rem; white-space: pre-wrap;">${lead.details || 'No additional details provided. Please call the buyer to understand requirements.'}</p>
+          <div style="background: var(--color-white); border: 1px solid var(--color-border); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1rem; max-width: 90%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">Buyer Requirement - ${new Date(lead.created_at || Date.now()).toLocaleString()}</div>
+            <p style="font-size: 0.9rem; white-space: pre-wrap; line-height: 1.5; color: #1e293b;">${lead.details || 'Buyer requested wholesale quotation.'}</p>
           </div>
         </div>
         <div class="crm-reply-box">
-          <form style="display: flex; gap: 1rem;" onsubmit="event.preventDefault(); sendReply(${lead.id}, '${lead.buyer_phone}', '${lead.product_needed}')">
-            <input type="text" id="replyInput_${lead.id}" class="form-control" required placeholder="Type your reply... (Sends directly via WhatsApp)">
+          <form style="display: flex; gap: 1rem;" onsubmit="event.preventDefault(); sendReply(${lead.id}, '${lead.buyer_phone}', '${(lead.product_needed || '').replace(/'/g, "\\'")}')">
+            <input type="text" id="replyInput_${lead.id}" class="form-control" required placeholder="Type your reply to send directly to buyer's WhatsApp...">
             <button type="submit" id="replyBtn_${lead.id}" class="btn btn-primary" style="background: var(--color-teal); border-color: var(--color-teal); white-space: nowrap;">Send via WhatsApp</button>
           </form>
         </div>

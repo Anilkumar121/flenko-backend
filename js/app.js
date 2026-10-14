@@ -8,10 +8,7 @@ function formatCurrency(n) {
   if (window.currencyManager && typeof window.currencyManager.format === 'function') {
     return window.currencyManager.format(n);
   }
-  if (n < 10 && n % 1 !== 0) {
-    return "$" + n.toFixed(2);
-  }
-  return "$" + Math.round(n).toLocaleString("en-US");
+  return "₹" + Math.round(n).toLocaleString("en-IN");
 }
 
 function formatPriceRange(p) {

@@ -876,13 +876,14 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
 app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (req, res) => {
   const { company_name, gst_number, business_type, address, city, category } = req.body;
   
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-  let logo_url = req.file ? `${baseUrl}/assets/images/logos/${req.file.filename}` : (req.body.logo_url || null);
+  // Use production backend host for image URL if on cloud, otherwise request host
+  const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
+  let logo_url = req.file ? `${backendHost}/assets/images/logos/${req.file.filename}` : (req.body.logo_url || null);
 
   try {
     let targetUserId = req.user.id;
     // Verify user exists in database to satisfy foreign key constraint
-    let userCheck = await db.query('SELECT id FROM users WHERE id = $1', [targetUserId]);
+    let userCheck = await db.query('SELECT id, phone, name FROM users WHERE id = $1', [targetUserId]);
     if (!userCheck.rows || userCheck.rows.length === 0) {
       if (req.user.phone) {
         const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
@@ -892,7 +893,7 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         } else {
           const newUser = await db.query(
             'INSERT INTO users (phone, name, role) VALUES ($1, $2, $3) RETURNING id',
-            [cleanP || ('9' + Date.now().toString().slice(-9)), req.user.name || 'Supplier', 'supplier']
+            [cleanP || ('9' + Date.now().toString().slice(-9)), company_name || req.user.name || 'Supplier', 'supplier']
           );
           targetUserId = newUser.rows[0].id;
         }
@@ -900,6 +901,13 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         const firstUser = await db.query('SELECT id FROM users LIMIT 1');
         targetUserId = firstUser.rows.length > 0 ? firstUser.rows[0].id : 1;
       }
+    }
+
+    // Sync company name to users.name so user identity matches
+    if (company_name) {
+      try {
+        await db.query('UPDATE users SET name = $1 WHERE id = $2', [company_name, targetUserId]);
+      } catch(e) {}
     }
 
     // Check if business exists
@@ -949,15 +957,44 @@ app.get('/api/public/businesses', async (req, res) => {
 // Route: Get Supplier Leads
 app.get('/api/leads', authMiddleware, async (req, res) => {
   try {
-    const leadsRes = await db.query('SELECT * FROM leads WHERE supplier_id = $1 ORDER BY created_at ASC', [req.user.id]);
+    const userPhone = (req.user && req.user.phone) ? req.user.phone.replace(/[^0-9]/g, '').slice(-10) : '';
     
+    // Fetch leads specifically for this supplier OR universal broadcast leads
+    let leadsRes;
+    try {
+      leadsRes = await db.query(
+        'SELECT * FROM leads WHERE (supplier_id = $1 OR supplier_id IS NULL OR supplier_id = 0) ORDER BY created_at DESC',
+        [req.user.id]
+      );
+    } catch(qErr) {
+      leadsRes = await db.query('SELECT * FROM leads ORDER BY created_at DESC');
+    }
+
+    // Deduplicate leads by product_needed + details + buyer_phone to ensure a clean list
+    const seen = new Set();
+    const uniqueLeads = [];
+    for (const lead of (leadsRes.rows || [])) {
+      const bPhone10 = (lead.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+      // Don't show the supplier their own inquiry
+      if (userPhone && bPhone10 && userPhone === bPhone10) continue;
+      
+      const key = `${lead.product_needed}_${bPhone10}_${(lead.details || '').slice(0, 35)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueLeads.push(lead);
+      }
+    }
+
     // Check User Subscription Status (Default to free if null)
-    const userRes = await db.query('SELECT subscription FROM users WHERE id = $1', [req.user.id]);
-    const plan = (userRes.rows[0] && userRes.rows[0].subscription) ? userRes.rows[0].subscription : 'free';
-    
-    let processedLeads = leadsRes.rows.map((lead, index) => {
-      // Bonus/Shared leads cost 50 Rs to unlock contact details
-      if (lead.is_direct === false && !lead.is_paid) {
+    let plan = 'free';
+    try {
+      const userRes = await db.query('SELECT subscription FROM users WHERE id = $1', [req.user.id]);
+      plan = (userRes.rows[0] && userRes.rows[0].subscription) ? userRes.rows[0].subscription : 'free';
+    } catch(e) {}
+
+    let processedLeads = uniqueLeads.map((lead, index) => {
+      // Free suppliers get their first 25 leads 100% UNLOCKED with full buyer phone!
+      if (plan === 'free' && index >= 25 && !lead.is_paid && !lead.is_direct) {
         return {
           ...lead,
           buyer_phone: '********** (Locked - Pay ₹50)',
@@ -965,21 +1002,15 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
           unlock_fee: 50
         };
       }
-      
-      // Free users get 50 direct leads free. After that, they are locked unless individually paid for
-      if (plan === 'free' && index >= 50 && !lead.is_paid && lead.is_direct !== false) {
-        return {
-          ...lead,
-          buyer_phone: '********** (Locked)',
-          locked: true
-        };
-      }
-      return lead;
+      return {
+        ...lead,
+        locked: false
+      };
     });
 
-    // Return descending (newest first)
-    res.json({ leads: processedLeads.reverse(), plan });
+    res.json({ leads: processedLeads, plan });
   } catch (error) {
+    console.error('Error fetching leads:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1054,55 +1085,80 @@ const handleLeadSubmission = async (req, res) => {
   const effectiveProduct = product_needed || 'Wholesale Requirement';
   const effectivePhone = buyer_phone || (req.user ? req.user.phone : '9999999999');
   const buyerId = req.user ? req.user.id : null;
-  
+  const cleanPhone10 = (effectivePhone || '').replace(/[^0-9]/g, '').slice(-10);
+
   try {
-    if (supplier_id && supplier_id !== 0 && supplier_id !== '0') {
+    let directSupplierId = (supplier_id && supplier_id !== 0 && supplier_id !== '0') ? parseInt(supplier_id) : null;
+    
+    // 1. Direct inquiry to a specific supplier
+    if (directSupplierId) {
       await db.query(
         'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
-        [supplier_id, buyerId, effectiveProduct, effectivePhone, leadDetails, true]
+        [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true]
       );
       
-      const supplierRes = await db.query('SELECT phone, name FROM users WHERE id = $1', [supplier_id]);
-      if (supplierRes.rows.length > 0) {
-        const supplier = supplierRes.rows[0];
-        const waMsg = `🚨 *New B2B Lead Received!*\n\n*Product:* ${effectiveProduct}\n*Buyer Contact:* +91-${effectivePhone}\n*Details:* ${leadDetails}\n\nLogin to Flenko Seller Panel to reply and win this deal!`;
-        await sendWhatsAppMessage(supplier.phone, waMsg); 
-      }
+      try {
+        const supplierRes = await db.query('SELECT phone, name FROM users WHERE id = $1', [directSupplierId]);
+        if (supplierRes.rows.length > 0) {
+          const supplier = supplierRes.rows[0];
+          const waMsg = `🚨 *New Direct Inquiry Received on Flenko!*\n\n*Product:* ${effectiveProduct}\n*Buyer Contact:* ${effectivePhone}\n*Details:* ${leadDetails}\n\nLogin to Flenko Seller Panel (flenko.com) to reply and win this deal!`;
+          await sendWhatsAppMessage(supplier.phone, waMsg); 
+        }
+      } catch(e) {}
     }
 
-    const premiumSuppliers = await db.query("SELECT id, phone, name FROM users WHERE subscription != 'free' AND subscription IS NOT NULL AND role = 'supplier' AND id != $1 AND phone != $2", [supplier_id, effectivePhone]);
-    const allProducts = await db.query("SELECT supplier_id, name, category FROM products");
-    const searchTerms = effectiveProduct.toLowerCase().split(' ').filter(w => w.length > 2);
-    
-    let matchedSuppliers = (premiumSuppliers.rows || []).filter(supp => {
-       return (allProducts.rows || []).some(p => {
-         if (p.supplier_id !== supp.id) return false;
-         const pName = (p.name || '').toLowerCase();
-         const pCat = (p.category || '').toLowerCase();
-         return searchTerms.some(term => pName.includes(term) || pCat.includes(term));
-       });
-    });
-    
-    matchedSuppliers = matchedSuppliers.slice(0, 5);
-    if (matchedSuppliers.length === 0 && premiumSuppliers.rows.length > 0) {
-      matchedSuppliers = premiumSuppliers.rows.slice(0, 5);
+    // 2. Broadcast / Market RFQ: Find all suppliers
+    let activeSuppliers = [];
+    try {
+      const suppliersRes = await db.query(
+        "SELECT id, phone, name FROM users WHERE role = 'supplier' OR role = 'admin'"
+      );
+      activeSuppliers = (suppliersRes.rows || []).filter(s => {
+        const sPhone10 = (s.phone || '').replace(/[^0-9]/g, '').slice(-10);
+        if (cleanPhone10 && sPhone10 === cleanPhone10) return false;
+        if (directSupplierId && s.id === directSupplierId) return false;
+        return true;
+      });
+    } catch(suppErr) {
+      console.warn('Could not query suppliers for broadcast:', suppErr.message);
     }
-    
-    if (matchedSuppliers.length > 0) {
-      for (const premSupp of matchedSuppliers) {
+
+    // Insert lead row for all suppliers (up to 20 suppliers)
+    for (const supp of activeSuppliers.slice(0, 20)) {
+      try {
         await db.query(
           'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
-          [premSupp.id, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
+          [supp.id, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
         );
-        const waMsgPrem = `🌟 *Premium Bonus Lead!*\n\n*Product:* ${effectiveProduct}\n*Buyer Contact:* +91-${effectivePhone}\n*Details:* ${leadDetails}\n\nAs a Premium Flenko Supplier, we are sharing this lead with you!`;
-        await sendWhatsAppMessage(premSupp.phone, waMsgPrem);
+        try {
+          const waMsgBroad = `🌟 *New Buy Lead on Flenko!*\n\n*Requirement:* ${effectiveProduct}\n*Buyer Contact:* ${effectivePhone}\n*Details:* ${leadDetails}\n\nLogin to Flenko Seller Panel to connect with this buyer!`;
+          await sendWhatsAppMessage(supp.phone, waMsgBroad);
+        } catch(e) {}
+      } catch(err) {
+        console.warn('Lead insert error for supplier:', supp.id, err.message);
       }
     }
 
-    res.json({ success: true, message: 'Inquiry sent successfully to supplier', lead_id: Date.now() });
+    // 3. Insert universal broadcast lead with supplier_id = NULL
+    try {
+      await db.query(
+        'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
+        [null, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
+      );
+    } catch(e) {}
+
+    // 4. Also register into rfqs table so RFQ quotes work seamlessly
+    try {
+      await db.query(
+        'INSERT INTO rfqs (buyer_id, product, qty, target_price, details) VALUES ($1, $2, $3, $4, $5)',
+        [buyerId || 1, effectiveProduct, (quantity ? `${quantity} ${unit || ''}`.trim() : 'Bulk'), target_price || 'Best Market Rate', leadDetails]
+      );
+    } catch(e) {}
+
+    res.json({ success: true, message: 'Inquiry and RFQ sent successfully to suppliers', lead_id: Date.now() });
   } catch (error) {
     console.error('Error submitting lead:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 };
 
@@ -1149,9 +1205,9 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const effectiveCategory = classifyCategory(cleanName, category);
   const effectiveCountry = (country || 'India').trim();
   
-  // Use universal relative path so images work on live flenko.com and localhost
+  const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
   const image_url = req.file 
-    ? `/assets/images/products/${req.file.filename}` 
+    ? `${backendHost}/assets/images/products/${req.file.filename}` 
     : (req.body.image_data || req.body.image_url || 'assets/images/logo.png');
   
   // Auto-SEO Generator
@@ -1162,11 +1218,15 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
     try {
       const uCheck = await db.query('SELECT id FROM users WHERE id = $1', [effectiveSupplierId]);
       if (!uCheck.rows || uCheck.rows.length === 0) {
-        effectiveSupplierId = 1;
+        if (req.user && req.user.phone) {
+          const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
+          const pCheck = await db.query('SELECT id FROM users WHERE phone = $1 OR phone = $2', [req.user.phone, cleanP]);
+          if (pCheck.rows && pCheck.rows.length > 0) {
+            effectiveSupplierId = pCheck.rows[0].id;
+          }
+        }
       }
-    } catch(e) {
-      effectiveSupplierId = 1;
-    }
+    } catch(e) {}
 
     const newProd = await db.query(
       'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
@@ -1186,26 +1246,27 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
   const cleanPrice = (price !== undefined && price !== null && price !== '' && !isNaN(Number(price))) ? Number(price) : null;
   const effectiveCategory = classifyCategory(cleanName, category);
   const effectiveCountry = (country || 'India').trim();
+  const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
   
   try {
-    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7 WHERE id = $8 AND (supplier_id = $9 OR $9 = 1) RETURNING *';
-    let params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, parseInt(req.params.id), req.user.id];
+    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7 WHERE id = $8 RETURNING *';
+    let params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, parseInt(req.params.id)];
 
     if (req.file) {
-      const image_url = `/assets/images/products/${req.file.filename}`;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 AND (supplier_id = $10 OR $10 = 1) RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, image_url, parseInt(req.params.id), req.user.id];
+      const image_url = `${backendHost}/assets/images/products/${req.file.filename}`;
+      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 RETURNING *';
+      params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, image_url, parseInt(req.params.id)];
     } else if (req.body.image_data) {
       const image_url = req.body.image_data;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 AND (supplier_id = $10 OR $10 = 1) RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, image_url, parseInt(req.params.id), req.user.id];
+      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 RETURNING *';
+      params = [cleanName, cleanPrice, effectiveCategory, moq, unit || 'Pieces', parseInt(stock_quantity) || 500, effectiveCountry, image_url, parseInt(req.params.id)];
     }
 
     const updated = await db.query(updateQuery, params);
-    if (updated.rows.length === 0) {
+    if (!updated.rows || updated.rows.length === 0) {
       // Fallback update by id
       const directUpdate = await db.query('UPDATE products SET name = $1, price = $2, category = $3 WHERE id = $4 RETURNING *', [cleanName, cleanPrice, effectiveCategory, parseInt(req.params.id)]);
-      if (directUpdate.rows.length > 0) {
+      if (directUpdate.rows && directUpdate.rows.length > 0) {
         return res.json({ success: true, product: directUpdate.rows[0] });
       }
       return res.status(404).json({ error: 'Product not found' });
@@ -1220,7 +1281,7 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
 // Route: Delete Product
 app.delete('/api/products/:id', authMiddleware, async (req, res) => {
   try {
-    const deleted = await db.query('DELETE FROM products WHERE id = $1 AND supplier_id = $2 RETURNING *', [parseInt(req.params.id), req.user.id]);
+    const deleted = await db.query('DELETE FROM products WHERE id = $1 RETURNING *', [parseInt(req.params.id)]);
     if (deleted.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found or unauthorized' });
     }
@@ -1267,12 +1328,24 @@ app.get('/api/public/products', async (req, res) => {
       };
     }
 
-    const safeProducts = (prods.rows || []).map(p => ({
-      ...p,
-      supplier_name: p.supplier_name || ('Supplier #' + p.supplier_id),
-      city: p.city || 'Industrial Hub',
-      country: p.country || 'India'
-    }));
+    const safeProducts = (prods.rows || []).map(p => {
+      let img = p.image_url || 'assets/images/logo.png';
+      if (img.startsWith('/assets/')) {
+        img = `https://flenko-backend.onrender.com${img}`;
+      }
+      let logo = p.supplier_logo;
+      if (logo && logo.startsWith('/assets/')) {
+        logo = `https://flenko-backend.onrender.com${logo}`;
+      }
+      return {
+        ...p,
+        image_url: img,
+        supplier_logo: logo,
+        supplier_name: p.supplier_name || ('Supplier #' + p.supplier_id),
+        city: p.city || 'Industrial Hub',
+        country: p.country || 'India'
+      };
+    });
 
     res.json({ products: safeProducts });
   } catch (error) {

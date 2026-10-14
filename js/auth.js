@@ -74,15 +74,12 @@ const auth = {
     window.location.href = 'login.html';
   },
   async saveBusinessProfile(formData) {
-    let token = this.getToken();
-    if (!token || token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_')) {
-      token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI4MzY4MDc0MDA5Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzkxOTc4NDI2LCJleHAiOjE3OTQ1NzA0MjZ9.lQ5_c1XlbwV8cPYeCauI-FRriw9_prYVcOU29ahxTVQ';
-    }
+    const token = this.getToken();
     let resData = null;
     try {
       const res = await this.fetchWithFallback(`/businesses`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData
       });
       resData = await res.json();
@@ -514,15 +511,12 @@ const auth = {
     return { products };
   },
   async addProduct(formData) {
-    let token = this.getToken();
-    if (!token || token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_')) {
-      token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI4MzY4MDc0MDA5Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzkxOTc4NDI2LCJleHAiOjE3OTQ1NzA0MjZ9.lQ5_c1XlbwV8cPYeCauI-FRriw9_prYVcOU29ahxTVQ';
-    }
+    const token = this.getToken();
     let resData = null;
     try {
       const res = await this.fetchWithFallback(`/products`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData
       });
       resData = await res.json();
@@ -573,15 +567,12 @@ const auth = {
     };
   },
   async editProduct(id, formData) {
-    let token = this.getToken();
-    if (!token || token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_')) {
-      token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI4MzY4MDc0MDA5Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzkxOTc4NDI2LCJleHAiOjE3OTQ1NzA0MjZ9.lQ5_c1XlbwV8cPYeCauI-FRriw9_prYVcOU29ahxTVQ';
-    }
+    const token = this.getToken();
     let resData = null;
     try {
       const res = await this.fetchWithFallback(`/products/${id}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData
       });
       resData = await res.json();
@@ -605,14 +596,11 @@ const auth = {
     return resData || { success: true };
   },
   async deleteProduct(id) {
-    let token = this.getToken();
-    if (!token || token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_')) {
-      token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicGhvbmUiOiI4MzY4MDc0MDA5Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzkxOTc4NDI2LCJleHAiOjE3OTQ1NzA0MjZ9.lQ5_c1XlbwV8cPYeCauI-FRriw9_prYVcOU29ahxTVQ';
-    }
+    const token = this.getToken();
     try {
       await this.fetchWithFallback(`/products/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
     } catch(e) {}
 

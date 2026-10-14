@@ -110,6 +110,7 @@ async function ensureTables() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     ALTER TABLE businesses ADD COLUMN IF NOT EXISTS logo_url TEXT;
+    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS category VARCHAR(100);
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -121,13 +122,15 @@ async function ensureTables() {
       image_url TEXT,
       seo_tags TEXT,
       stock_quantity INTEGER DEFAULT 500,
+      country VARCHAR(100) DEFAULT 'India',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 500;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
     CREATE TABLE IF NOT EXISTS leads (
       id SERIAL PRIMARY KEY,
-      supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      buyer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      supplier_id INTEGER,
+      buyer_id INTEGER,
       product_needed VARCHAR(255),
       buyer_phone VARCHAR(20),
       details TEXT,
@@ -137,6 +140,8 @@ async function ensureTables() {
       replies JSONB DEFAULT '[]'::jsonb,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE leads ALTER COLUMN supplier_id DROP NOT NULL;
+    ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_supplier_id_fkey;
     CREATE TABLE IF NOT EXISTS rfqs (
       id SERIAL PRIMARY KEY,
       buyer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -380,8 +385,13 @@ module.exports = {
       saveMockDB();
       return { rows: [] };
     }
+    if (text.includes('FROM leads WHERE') && (text.includes('supplier_id') || text.includes('supplier_id IS NULL'))) {
+      const targetSuppId = params[0];
+      const rows = (mockDB.leads || []).filter(l => l.supplier_id === targetSuppId || !l.supplier_id || l.supplier_id === 0);
+      return { rows: rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
+    }
     if (text.includes('SELECT * FROM leads WHERE supplier_id')) {
-      const rows = mockDB.leads.filter(l => l.supplier_id === params[0]).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+      const rows = (mockDB.leads || []).filter(l => l.supplier_id === params[0] || !l.supplier_id || l.supplier_id === 0).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
       return { rows };
     }
     if (text.includes('INSERT INTO leads')) {

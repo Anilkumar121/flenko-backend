@@ -40,11 +40,41 @@
       "city": "Dubai, UAE",
       "role": "supplier",
       "subscription": "free"
+    },
+    {
+      "id": 46,
+      "phone": "+919988112233",
+      "password": "Solar Inverter Solutions Ltd",
+      "name": "supplier",
+      "email": null,
+      "city": null,
+      "role": "supplier",
+      "subscription": "free"
     }
   ],
   "otp_requests": [],
-  "businesses": [],
-  "leads": [],
+  "businesses": [
+    {
+      "id": 48,
+      "user_id": 46,
+      "company_name": "Solar Inverter Solutions Ltd",
+      "category": "Renewable Energy & Solar",
+      "logo_url": "https://flenko.com/assets/images/logo.png"
+    }
+  ],
+  "leads": [
+    {
+      "id": 49,
+      "supplier_id": null,
+      "buyer_id": null,
+      "product_needed": "Need 10KW Solar Inverters",
+      "buyer_phone": "+919876543210",
+      "details": "Looking for 50 pieces urgent delivery",
+      "is_direct": false,
+      "status": "New",
+      "created_at": "2026-10-14T15:39:05.915Z"
+    }
+  ],
   "products": [
     {
       "id": 7,
@@ -194,9 +224,33 @@
       "seo_tags": "commercial bakery oven wholesale, rotary rack oven germany, bakery equipment factory",
       "stock_quantity": 15,
       "created_at": "2026-10-13T12:00:00.000Z"
+    },
+    {
+      "id": 47,
+      "supplier_id": 46,
+      "name": "Solar Inverter Test 10KW",
+      "price": 45000,
+      "category": "Renewable Energy & Solar",
+      "moq": 1,
+      "unit": "Pieces",
+      "image_url": "assets/images/logo.png",
+      "seo_tags": "buy Solar Inverter Test 10KW wholesale, best Solar Inverter Test 10KW supplier, Solar Inverter Test 10KW manufacturers in India, top quality Renewable Energy & Solar",
+      "stock_quantity": 500,
+      "country": "India",
+      "created_at": "2026-10-14T15:39:05.886Z"
     }
   ],
-  "rfqs": [],
+  "rfqs": [
+    {
+      "id": 51,
+      "buyer_id": 1,
+      "product": "Need 10KW Solar Inverters",
+      "qty": "Bulk",
+      "target_price": "Best Market Rate",
+      "details": "Looking for 50 pieces urgent delivery",
+      "created_at": "2026-10-14T15:39:05.916Z"
+    }
+  ],
   "quotations": [],
   "password_resets": [
     {
@@ -208,5 +262,5 @@
       "created_at": "2026-10-13T11:52:35.424Z"
     }
   ],
-  "idCounter": 46
+  "idCounter": 51
 }
