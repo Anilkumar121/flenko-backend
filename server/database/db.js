@@ -357,12 +357,12 @@ module.exports = {
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('SELECT id, name, phone, email, city, role FROM users WHERE id')) {
-      const row = mockDB.users.find(u => u.id === params[0]);
+    if (text.includes('FROM users WHERE id')) {
+      const row = mockDB.users.find(u => u.id == params[0]);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('SELECT * FROM businesses WHERE user_id')) {
-      const row = mockDB.businesses.find(b => b.user_id === params[0]);
+    if (text.includes('FROM businesses WHERE user_id')) {
+      const row = mockDB.businesses.find(b => b.user_id == params[0]);
       return { rows: row ? [row] : [] };
     }
     if (text.includes('FROM businesses') && text.includes('SELECT')) {
@@ -379,7 +379,7 @@ module.exports = {
     }
     if (text.includes('UPDATE businesses SET')) {
       const targetUserId = params[params.length - 1];
-      const biz = mockDB.businesses.find(b => b.user_id === targetUserId);
+      const biz = mockDB.businesses.find(b => b.user_id == targetUserId);
       if (biz) { 
         biz.company_name = params[0]; 
         biz.gst_number = params[1]; 
@@ -396,11 +396,11 @@ module.exports = {
     }
     if (text.includes('FROM leads WHERE') && (text.includes('supplier_id') || text.includes('supplier_id IS NULL'))) {
       const targetSuppId = params[0];
-      const rows = (mockDB.leads || []).filter(l => l.supplier_id === targetSuppId || !l.supplier_id || l.supplier_id === 0);
+      const rows = (mockDB.leads || []).filter(l => l.supplier_id == targetSuppId || !l.supplier_id || l.supplier_id == 0);
       return { rows: rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
     }
     if (text.includes('SELECT * FROM leads WHERE supplier_id')) {
-      const rows = (mockDB.leads || []).filter(l => l.supplier_id === params[0] || !l.supplier_id || l.supplier_id === 0).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      const rows = (mockDB.leads || []).filter(l => l.supplier_id == params[0] || !l.supplier_id || l.supplier_id == 0).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
       return { rows };
     }
     if (text.includes('INSERT INTO leads')) {
@@ -459,7 +459,7 @@ module.exports = {
     }
     if (text.includes('SELECT * FROM products WHERE id = $1')) {
       mockDB.products = mockDB.products || [];
-      const row = mockDB.products.find(p => p.id === parseInt(params[0]));
+      const row = mockDB.products.find(p => p.id == params[0]);
       return { rows: row ? [row] : [] };
     }
     if (text.includes('INSERT INTO products')) {
