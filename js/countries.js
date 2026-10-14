@@ -145,10 +145,17 @@ class FlenkoCountryPicker {
     this.inputName = options.inputName || 'country';
     this.onSelect = options.onSelect || null;
     this.styleType = options.style || 'dropdown';
+    this.storageKey = options.storageKey || null;
     
     // Check saved preference in localStorage
-    const saved = localStorage.getItem('flenko_country');
-    this.selected = saved ? JSON.parse(saved) : (
+    let saved = null;
+    if (this.storageKey) {
+      try {
+        const stored = localStorage.getItem(this.storageKey);
+        if (stored) saved = JSON.parse(stored);
+      } catch(e) {}
+    }
+    this.selected = saved || (
       FLENKO_COUNTRIES.find(c => c.name.toLowerCase() === (options.defaultCountry || '').toLowerCase()) || FLENKO_COUNTRIES[0]
     );
 
@@ -256,7 +263,11 @@ class FlenkoCountryPicker {
 
   selectCountry(country) {
     this.selected = country;
-    localStorage.setItem('flenko_country', JSON.stringify(country));
+    if (this.storageKey) {
+      try {
+        localStorage.setItem(this.storageKey, JSON.stringify(country));
+      } catch(e) {}
+    }
     
     // Update trigger UI
     this.trigger.querySelector('.country-flag').textContent = country.flag;
@@ -267,7 +278,7 @@ class FlenkoCountryPicker {
 
     // Trigger callbacks & custom event
     if (this.onSelect) this.onSelect(country);
-    window.dispatchEvent(new CustomEvent('flenko_country_selected', { detail: country }));
+    window.dispatchEvent(new CustomEvent('flenko_country_selected', { detail: { country, storageKey: this.storageKey } }));
   }
 
   toggle() {
@@ -299,3 +310,60 @@ window.getFlenkoCountry = function() {
   const saved = localStorage.getItem('flenko_country');
   return saved ? JSON.parse(saved) : FLENKO_COUNTRIES[0];
 };
+
+/**
+ * Universal Worldwide Country Calling Code Dropdown Initializer
+ * Fills any <select> with all 195+ countries with flags and dial codes
+ */
+window.initCountryCodeSelect = function(elementOrId, defaultDial = '+91') {
+  const el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+  if (!el) return;
+
+  const currentVal = el.value || defaultDial;
+  const dialCountries = (window.FLENKO_COUNTRIES || []).filter(c => c.dial && c.dial.trim());
+
+  // Priority order for global trade hubs
+  const topCodes = ['IN', 'US', 'AE', 'GB', 'CN', 'SA', 'CA', 'DE', 'AU', 'SG', 'BD', 'PK', 'NP', 'LK', 'RU', 'FR', 'IT', 'TR', 'ID', 'MY', 'TH', 'VN', 'BR', 'ZA', 'EG', 'NG', 'KE', 'JP', 'KR', 'QA', 'KW', 'OM', 'BH'];
+  const topList = [];
+  const otherList = [];
+
+  dialCountries.forEach(c => {
+    if (topCodes.includes(c.code)) {
+      topList.push(c);
+    } else {
+      otherList.push(c);
+    }
+  });
+
+  topList.sort((a, b) => topCodes.indexOf(a.code) - topCodes.indexOf(b.code));
+  otherList.sort((a, b) => a.name.localeCompare(b.name));
+
+  const allToRender = [...topList, ...otherList];
+
+  el.innerHTML = '';
+  allToRender.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.dial;
+    opt.textContent = `${c.flag} ${c.dial} (${c.name})`;
+    if (c.dial === currentVal && !el.value) {
+      opt.selected = true;
+    }
+    el.appendChild(opt);
+  });
+
+  if (currentVal) el.value = currentVal;
+};
+
+// Auto-run on DOM ready for any select with .flenko-country-code-select
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.flenko-country-code-select').forEach(sel => {
+      window.initCountryCodeSelect(sel, sel.getAttribute('data-default') || '+91');
+    });
+  });
+} else {
+  document.querySelectorAll('.flenko-country-code-select').forEach(sel => {
+    window.initCountryCodeSelect(sel, sel.getAttribute('data-default') || '+91');
+  });
+}
+

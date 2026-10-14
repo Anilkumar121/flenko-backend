@@ -1,0 +1,712 @@
+/**
+ * Flenko.com - Universal Mobile-First & Responsive Stylesheet
+ * Optimized for iOS Safari, Android Chrome, and modern mobile devices.
+ * Implements modern mobile layout and native bottom app navigation.
+ */
+
+/* ==========================================================================
+   1. GLOBAL MOBILE RESETS & TOUCH ENHANCEMENTS
+   ========================================================================== */
+html, body {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  position: relative !important;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS Safari: Prevent automatic zoom on inputs when focused */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Safe area padding for iPhones with home indicator bar */
+  body {
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ==========================================================================
+   2. MOBILE FIXED BOTTOM APP NAVIGATION BAR (Native App Experience)
+   ========================================================================== */
+.flenko-mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .flenko-mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 60px !important;
+    background: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+    z-index: 99999 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+  }
+
+  .flenko-mobile-nav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+    height: 100% !important;
+    text-decoration: none !important;
+    color: #64748b !important;
+    font-size: 0.68rem !important;
+    font-weight: 600 !important;
+    transition: all 0.15s ease !important;
+    padding: 4px 2px !important;
+  }
+
+  .flenko-mobile-nav-item svg,
+  .flenko-mobile-nav-item .icon {
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    margin-bottom: 3px !important;
+    display: block !important;
+  }
+
+  .flenko-mobile-nav-item.active {
+    color: #FF6B00 !important;
+  }
+
+  .flenko-mobile-nav-item.active svg {
+    stroke: #FF6B00 !important;
+  }
+
+  /* Highlight Post RFQ Center Button */
+  .flenko-mobile-nav-item.rfq-highlight {
+    color: #0F4C9B !important;
+  }
+
+  .flenko-mobile-nav-item.rfq-highlight .rfq-badge {
+    background: linear-gradient(135deg, #FF6B00 0%, #EA580C 100%) !important;
+    color: #ffffff !important;
+    border-radius: 50% !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(255, 107, 0, 0.35) !important;
+    margin-top: -12px !important;
+    margin-bottom: 2px !important;
+    font-size: 1.1rem !important;
+  }
+}
+
+/* ==========================================================================
+   3. MOBILE TOP BAR & HEADER STYLING
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Responsive Top Bar */
+  .flenko-top-bar {
+    display: block !important;
+    background: #0A2342 !important;
+    color: #ffffff !important;
+    padding: 6px 0 !important;
+    font-size: 0.75rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .flenko-top-bar .container {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .flenko-top-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .flenko-top-bar a,
+  .flenko-top-bar span {
+    font-size: 0.72rem !important;
+  }
+
+  /* Compact Header */
+  .flenko-header,
+  .site-header {
+    padding: 0.5rem 0 !important;
+    background: #ffffff !important;
+  }
+
+  .flenko-header-row,
+  .header-top {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    padding: 0.25rem 0.75rem !important;
+    align-items: stretch !important;
+  }
+
+  /* Logo */
+  .brand {
+    justify-content: center !important;
+    margin: 0 auto !important;
+  }
+
+  .brand img {
+    height: 48px !important;
+    max-height: 52px !important;
+  }
+
+  /* Search Box on Mobile */
+  .flenko-search-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    border: 2px solid #FF6B00 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .search-type-select {
+    padding: 0.5rem 0.35rem !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    border-right: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    max-width: 82px !important;
+  }
+
+  .flenko-search-input {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 0.55rem 0.6rem !important;
+    font-size: 0.88rem !important;
+  }
+
+  .flenko-search-btn {
+    padding: 0 0.85rem !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    background: #FF6B00 !important;
+    color: #ffffff !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Hide desktop header action buttons on mobile as they are in the bottom bar */
+  .flenko-header .header-actions,
+  .site-header .header-actions {
+    display: none !important;
+  }
+
+  /* Sub Nav scrollable bar */
+  .flenko-sub-nav {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  .flenko-sub-nav .container {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 1rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .flenko-sub-nav a {
+    font-size: 0.8rem !important;
+    padding: 0.2rem 0 !important;
+  }
+}
+
+/* ==========================================================================
+   4. MOBILE HERO SECTION & PROMOTIONAL BANNERS
+   ========================================================================== */
+@media (max-width: 768px) {
+  .flenko-hero-section {
+    padding: 0.75rem 0 !important;
+  }
+
+  .flenko-hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .category-mega-sidebar {
+    display: none !important;
+  }
+
+  .hero-billboard {
+    padding: 1.5rem 1rem !important;
+    border-radius: 12px !important;
+    min-height: auto !important;
+    text-align: center !important;
+  }
+
+  .hero-billboard h1 {
+    font-size: 1.45rem !important;
+    line-height: 1.25 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .hero-billboard p {
+    font-size: 0.85rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .hero-billboard .hero-action-row,
+  .hero-billboard div[style*="display:flex; gap:0.75rem"] {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  .hero-billboard .btn {
+    width: 100% !important;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .flenko-right-cards {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .buyer-welcome-card,
+  .fast-rfq-card {
+    padding: 1rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* Trade Solutions & Value Pillars */
+  .trade-solutions-grid,
+  .flenko-value-pillars {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .trade-solution-card {
+    padding: 1rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* Global Pavilions: 2 columns on mobile */
+  .pavilion-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.6rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .pavilion-card {
+    padding: 0.85rem 0.5rem !important;
+  }
+
+  .pavilion-flag {
+    font-size: 1.85rem !important;
+  }
+
+  .pavilion-title {
+    font-size: 0.82rem !important;
+  }
+}
+
+/* ==========================================================================
+   5. MOBILE FLENKO PRODUCT GRID (2-Column E-Commerce Layout)
+   ========================================================================== */
+@media (max-width: 640px) {
+  .flenko-product-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+  }
+
+  .flenko-card {
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff !important;
+  }
+
+  .flenko-card-img-wrap {
+    aspect-ratio: 1 !important;
+    position: relative !important;
+  }
+
+  .flenko-card-body {
+    padding: 0.65rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .flenko-card-price {
+    font-size: 0.98rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 0.2rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .flenko-card-moq {
+    font-size: 0.68rem !important;
+    color: #64748b !important;
+    margin-bottom: 0.35rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .flenko-card-title {
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.5rem !important;
+    height: 2.7em !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    display: -webkit-box !important;
+    overflow: hidden !important;
+  }
+
+  .flenko-supplier-meta {
+    font-size: 0.68rem !important;
+    padding-top: 0.4rem !important;
+    border-top: 1px solid #f1f5f9 !important;
+    margin-top: auto !important;
+  }
+
+  .flenko-card-body div:last-child {
+    display: flex !important;
+    gap: 0.3rem !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .flenko-card-body .btn-orange {
+    font-size: 0.75rem !important;
+    padding: 0.45rem 0.35rem !important;
+    font-weight: 700 !important;
+    flex: 1 !important;
+  }
+
+  .flenko-card-body .btn-secondary {
+    padding: 0.45rem 0.55rem !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* ==========================================================================
+   6. RESPONSIVE FORMS & AUTHENTICATION (Login, Sell, RFQ)
+   ========================================================================== */
+@media (max-width: 600px) {
+  /* Main Container Spacing */
+  main {
+    padding: 1rem 0.75rem !important;
+  }
+
+  /* Card padding on small screens */
+  .card, .auth-card {
+    padding: 1.25rem 1rem !important;
+    border-radius: 12px !important;
+    max-width: 100% !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .auth-tabs {
+    margin-bottom: 1rem !important;
+  }
+
+  .auth-tab-btn {
+    padding: 0.65rem 0.4rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Country Code Dropdown inside Mobile Number Group */
+  .flenko-country-code-select {
+    width: 105px !important;
+    font-size: 0.82rem !important;
+    padding-left: 0.35rem !important;
+    padding-right: 0.2rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Multi-column form rows stack on mobile */
+  .form-row,
+  .form-group div[style*="display: flex; gap: 1rem"],
+  div[style*="display: grid; grid-template-columns: 1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Sell Page Hero & Forms */
+  .sell-hero {
+    padding: 1.5rem 0.75rem !important;
+  }
+
+  .sell-hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  .sell-features {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* ==========================================================================
+   7. RESPONSIVE DASHBOARDS (Buyer, Supplier, Admin)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .dashboard-layout,
+  .im-panel-layout {
+    grid-template-columns: 1fr !important;
+    padding: 0.5rem !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Horizontal swipeable tabs for dashboards */
+  .im-menu,
+  .admin-menu,
+  .dashboard-tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 0.5rem !important;
+    padding: 0.5rem 0.25rem !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    scrollbar-width: none !important;
+  }
+
+  .im-menu::-webkit-scrollbar,
+  .admin-menu::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .im-menu a,
+  .admin-menu a,
+  .dashboard-tabs button {
+    padding: 0.5rem 0.85rem !important;
+    border-radius: 20px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    text-decoration: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  .im-menu a.active,
+  .admin-menu a.active,
+  .dashboard-tabs button.active {
+    background: #0F4C9B !important;
+    color: #ffffff !important;
+    border-color: #0F4C9B !important;
+  }
+
+  /* 2x2 Grid for Dashboard Stats */
+  .im-stat-grid,
+  .admin-stats-grid,
+  .stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  .stat-card,
+  .im-stat-box {
+    padding: 0.75rem !important;
+    border-radius: 8px !important;
+  }
+
+  .stat-card h3,
+  .im-stat-box h2 {
+    font-size: 1.35rem !important;
+  }
+
+  /* Responsive Table Container: smooth horizontal swipe */
+  .table-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .table {
+    min-width: 580px !important;
+    width: 100% !important;
+  }
+}
+
+/* ==========================================================================
+   8. MOBILE INQUIRY MODAL (Bottom Sheet Animation)
+   ========================================================================== */
+@media (max-width: 600px) {
+  #flenkoInquiryModal {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  #flenkoInquiryModal > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 90vh !important;
+    border-radius: 18px 18px 0 0 !important;
+    animation: mobileModalSheetUp 0.25s ease-out !important;
+  }
+
+  #inquiryForm {
+    padding: 1rem !important;
+  }
+
+  #inquiryForm div[style*="grid-template-columns"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  #inqCountryCode {
+    width: 95px !important;
+    font-size: 0.8rem !important;
+    padding: 0.5rem 0.2rem !important;
+  }
+}
+
+@keyframes mobileModalSheetUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   9. MOBILE FOOTER ACCORDION / CLEAN LAYOUT
+   ========================================================================== */
+@media (max-width: 768px) {
+  .site-footer {
+    padding: 2rem 0 !important;
+    margin-top: 2rem !important;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+    text-align: center !important;
+  }
+
+  .footer-col ul {
+    align-items: center !important;
+  }
+}
+
+/* ==========================================================================
+   10. MOBILE CRM, SUPPLIER DIRECTORY, PRICING & CHECKOUT
+   ========================================================================== */
+@media (max-width: 768px) {
+  .crm-container {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    min-height: 520px !important;
+  }
+
+  .crm-list {
+    max-height: 280px !important;
+    border-right: none !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+  }
+
+  .crm-chat-area {
+    min-height: 250px !important;
+    max-height: 380px !important;
+    padding: 1rem !important;
+  }
+
+  #supplierDirectoryGrid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    margin-top: 1.5rem !important;
+  }
+
+  .pricing-card {
+    padding: 1.5rem 1rem !important;
+  }
+
+  #quoteModal > div {
+    width: 95% !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding: 1.25rem !important;
+  }
+
+  .checkout-container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .checkout-card,
+  .order-summary {
+    padding: 1.25rem 1rem !important;
+  }
+
+  /* Safe Area / Bottom Nav Clearance for all modals */
+  .modal-backdrop,
+  .modal-overlay {
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Floating Translator Button on Mobile (placed above bottom nav) */
+  .flenko-floating-lang-btn {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 12px !important;
+    padding: 6px 12px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Full Screen / Bottom Sheet Language Modal on Phones */
+  .flenko-lang-modal {
+    max-height: 85vh !important;
+    width: 95% !important;
+    border-radius: 14px !important;
+  }
+
+  .flenko-lang-body {
+    padding: 0.85rem 1rem !important;
+  }
+
+  .flenko-lang-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.4rem !important;
+  }
+}

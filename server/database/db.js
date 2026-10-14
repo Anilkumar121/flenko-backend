@@ -29,6 +29,8 @@ let mockDB = {
     { id: 1, supplier_id: 1, product_needed: '1000 Corrugated Boxes', buyer_phone: '9876543210', details: 'Need heavy duty 5-ply boxes', status: 'New', created_at: new Date() }
   ],
   products: [],
+  rfqs: [],
+  quotations: [],
   password_resets: [],
   idCounter: 2
 };
@@ -37,10 +39,30 @@ let mockDB = {
 if (fs.existsSync(mockDbPath)) {
   try {
     const data = fs.readFileSync(mockDbPath, 'utf8');
-    mockDB = JSON.parse(data);
+    const parsed = JSON.parse(data);
+    mockDB = { ...mockDB, ...parsed };
+    mockDB.rfqs = mockDB.rfqs || [];
+    mockDB.quotations = mockDB.quotations || [];
+    mockDB.products = mockDB.products || [];
+    mockDB.users = mockDB.users || [];
   } catch (err) {
     console.error('Error reading db.json:', err);
   }
+}
+
+// Ensure Master Admin exists
+if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009')) {
+  mockDB.users.push({
+    id: 1,
+    phone: '8368074009',
+    password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f',
+    name: 'Master Admin',
+    email: 'admin@flenko.com',
+    city: 'New Delhi',
+    role: 'admin',
+    subscription: 'vip',
+    created_at: new Date()
+  });
 }
 
 function saveMockDB() {
@@ -193,21 +215,31 @@ module.exports = {
       );
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('SELECT * FROM users WHERE phone = $1')) {
-      const targetPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
-      mockDB.users = mockDB.users || [];
-      const row = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
-      return { rows: row ? [row] : [] };
-    }
     if (text.includes('SELECT id, phone, name FROM users WHERE subscription')) {
       const rows = mockDB.users.filter(u => u.subscription && u.subscription !== 'free' && u.role === 'supplier' && u.id !== params[0]).slice(0, 5);
       return { rows };
     }
     if (text.includes('INSERT INTO users')) {
-      const cleanPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      const cleanPhone = (params[0] || '').toString().trim();
+      const cleanPhoneDigits = cleanPhone.replace(/[^0-9]/g, '').slice(-10);
+      mockDB.users = mockDB.users || [];
+      let existing = mockDB.users.find(u => {
+        const uDigits = (u.phone || '').replace(/[^0-9]/g, '').slice(-10);
+        const uEmail = (u.email || '').toLowerCase();
+        return (cleanPhoneDigits && cleanPhoneDigits.length >= 7 && uDigits === cleanPhoneDigits) || 
+               (params[3] && uEmail === params[3].toString().toLowerCase());
+      });
+      if (existing) {
+        if (params[1]) existing.password = params[1];
+        if (params[2]) existing.name = params[2];
+        if (params[3]) existing.email = params[3];
+        if (params[4]) existing.city = params[4];
+        if (params[5]) existing.role = params[5];
+        saveMockDB();
+        return { rows: [existing] };
+      }
       let newUser;
       if (params.length >= 6) {
-        // (phone, password, name, email, city, role)
         newUser = { 
           id: mockDB.idCounter++, 
           phone: cleanPhone, 
@@ -219,7 +251,6 @@ module.exports = {
           subscription: 'free' 
         };
       } else {
-        // (phone, name, email, city, role)
         newUser = { 
           id: mockDB.idCounter++, 
           phone: cleanPhone, 
@@ -235,20 +266,26 @@ module.exports = {
       saveMockDB();
       return { rows: [newUser] };
     }
-    if (text.includes('SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR phone = $2') || text.includes('SELECT * FROM users WHERE email = $1 OR phone = $2')) {
-      const targetEmail = (params[0] || '').toString().trim().toLowerCase();
-      const targetPhone = (params[1] || '').toString().replace(/[^0-9]/g, '').slice(-10);
+    if (text.includes('SELECT * FROM users WHERE')) {
       mockDB.users = mockDB.users || [];
-      const row = mockDB.users.find(u => 
-        (u.email && u.email.toLowerCase() === targetEmail) || 
-        (targetPhone && (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone)
-      );
-      return { rows: row ? [row] : [] };
-    }
-    if (text.includes('SELECT * FROM users WHERE LOWER(email) = LOWER($1)') || text.includes('SELECT * FROM users WHERE email = $1')) {
-      const targetEmail = (params[0] || '').toString().trim().toLowerCase();
-      mockDB.users = mockDB.users || [];
-      const row = mockDB.users.find(u => u.email && u.email.toLowerCase() === targetEmail);
+      const cleanParams = params.map(p => (p !== null && p !== undefined) ? p.toString().trim() : '');
+      const row = mockDB.users.find(u => {
+        const uPhone = (u.phone || '').toString();
+        const uPhoneDigits = uPhone.replace(/[^0-9]/g, '');
+        const uPhone10 = uPhoneDigits.slice(-10);
+        const uEmail = (u.email || '').toString().trim().toLowerCase();
+        for (const p of cleanParams) {
+          if (!p) continue;
+          const pLower = p.toLowerCase();
+          const pDigits = p.replace(/[^0-9]/g, '');
+          const p10 = pDigits.slice(-10);
+          if (pLower.includes('@') && uEmail === pLower) return true;
+          if (u.phone === p || uPhoneDigits === pDigits) return true;
+          if (p10 && p10.length >= 7 && (uPhone10 === p10 || uPhoneDigits === pDigits)) return true;
+          if (u.id && u.id.toString() === p) return true;
+        }
+        return false;
+      });
       return { rows: row ? [row] : [] };
     }
     if (text.includes('INSERT INTO password_resets')) {
@@ -411,13 +448,14 @@ module.exports = {
         id: mockDB.idCounter++, 
         supplier_id: params[0], 
         name: params[1], 
-        price: params[2], 
+        price: (params[2] !== undefined && params[2] !== null && params[2] !== '' && !isNaN(Number(params[2]))) ? Number(params[2]) : null, 
         category: params[3], 
         moq: params[4], 
         unit: params[5],
         image_url: params[6], 
         seo_tags: params[7],
         stock_quantity: params[8] !== undefined ? parseInt(params[8]) : 500,
+        country: params[9] || 'India',
         created_at: new Date() 
       };
       mockDB.products = mockDB.products || [];
@@ -427,18 +465,25 @@ module.exports = {
     }
     if (text.includes('SELECT * FROM products WHERE supplier_id')) {
       mockDB.products = mockDB.products || [];
-      const rows = mockDB.products.filter(p => p.supplier_id === params[0]);
+      const rows = mockDB.products.filter(p => p.supplier_id == params[0]);
       return { rows };
     }
     if (text.includes('UPDATE products') && text.includes('image_url')) {
-      const prod = mockDB.products.find(p => p.id == params[params.length - 2] && p.supplier_id == params[params.length - 1]);
+      const targetId = params[params.length - 2];
+      const targetSupplier = params[params.length - 1];
+      let prod = mockDB.products.find(p => p.id == targetId && (p.supplier_id == targetSupplier || !p.supplier_id));
+      if (!prod) prod = mockDB.products.find(p => p.id == targetId);
       if (prod) {
         prod.name = params[0];
-        prod.price = params[1];
+        prod.price = (params[1] !== undefined && params[1] !== null && params[1] !== '' && !isNaN(Number(params[1]))) ? Number(params[1]) : null;
         prod.category = params[2];
         prod.moq = params[3];
         prod.unit = params[4];
-        if (params.length >= 8) {
+        if (params.length >= 9) {
+          prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
+          prod.country = params[6] || prod.country || 'India';
+          prod.image_url = params[7];
+        } else if (params.length >= 8) {
           prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
           prod.image_url = params[6];
         } else {
@@ -449,22 +494,29 @@ module.exports = {
       return { rows: prod ? [prod] : [] };
     }
     if (text.includes('UPDATE products') && !text.includes('image_url')) {
-      const prod = mockDB.products.find(p => p.id == params[params.length - 2] && p.supplier_id == params[params.length - 1]);
+      const targetId = params[params.length - 2];
+      const targetSupplier = params[params.length - 1];
+      let prod = mockDB.products.find(p => p.id == targetId && (p.supplier_id == targetSupplier || !p.supplier_id));
+      if (!prod) prod = mockDB.products.find(p => p.id == targetId);
       if (prod) {
         prod.name = params[0];
-        prod.price = params[1];
+        prod.price = (params[1] !== undefined && params[1] !== null && params[1] !== '' && !isNaN(Number(params[1]))) ? Number(params[1]) : null;
         prod.category = params[2];
         prod.moq = params[3];
         prod.unit = params[4];
-        if (params.length >= 7) {
+        if (params.length >= 8) {
+          prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
+          prod.country = params[6] || prod.country || 'India';
+        } else if (params.length >= 7) {
           prod.stock_quantity = parseInt(params[5]) || prod.stock_quantity || 500;
         }
         saveMockDB();
       }
       return { rows: prod ? [prod] : [] };
     }
-    if (text.includes('DELETE FROM products WHERE id = $1 AND supplier_id = $2')) {
-      const idx = mockDB.products.findIndex(p => p.id == params[0] && p.supplier_id == params[1]);
+    if (text.includes('DELETE FROM products WHERE id = $1')) {
+      let idx = mockDB.products.findIndex(p => p.id == params[0] && (params.length < 2 || p.supplier_id == params[1] || !p.supplier_id));
+      if (idx === -1) idx = mockDB.products.findIndex(p => p.id == params[0]);
       if (idx !== -1) {
         const deleted = mockDB.products.splice(idx, 1);
         saveMockDB();
@@ -472,9 +524,28 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.trim() === 'SELECT * FROM products ORDER BY created_at DESC') {
+    if (text.includes('FROM products') && (text.includes('businesses') || text.includes('ORDER BY created_at') || text.includes('SELECT p.*') || text.includes('SELECT * FROM products'))) {
       mockDB.products = mockDB.products || [];
-      return { rows: mockDB.products };
+      mockDB.businesses = mockDB.businesses || [];
+      mockDB.users = mockDB.users || [];
+      const bizMap = {};
+      (mockDB.businesses || []).forEach(b => { bizMap[b.user_id] = b; });
+      const userMap = {};
+      (mockDB.users || []).forEach(u => { userMap[u.id] = u; });
+
+      const sorted = (mockDB.products || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      const enriched = sorted.map(p => {
+        const biz = bizMap[p.supplier_id] || {};
+        const usr = userMap[p.supplier_id] || {};
+        return {
+          ...p,
+          supplier_name: biz.company_name || usr.name || ('Supplier #' + p.supplier_id),
+          supplier_logo: biz.logo_url || null,
+          city: biz.city || usr.city || 'Industrial Hub',
+          country: p.country || biz.country || 'India'
+        };
+      });
+      return { rows: enriched };
     }
     
     if (text.includes('SELECT (SELECT COUNT(*) FROM users)')) {
@@ -526,8 +597,24 @@ module.exports = {
       saveMockDB();
       return { rows: [newRfq] };
     }
+    if (text.includes('DELETE FROM rfqs WHERE id = $1 AND buyer_id = $2')) {
+      mockDB.rfqs = mockDB.rfqs || [];
+      const idx = mockDB.rfqs.findIndex(r => r.id == params[0] && r.buyer_id == params[1]);
+      if (idx !== -1) {
+        const deleted = mockDB.rfqs.splice(idx, 1);
+        saveMockDB();
+        return { rows: deleted };
+      }
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM rfqs WHERE buyer_id = $1')) {
+      mockDB.rfqs = mockDB.rfqs || [];
+      mockDB.rfqs = mockDB.rfqs.filter(r => r.buyer_id != params[0]);
+      saveMockDB();
+      return { rows: [] };
+    }
     if (text.includes('SELECT * FROM rfqs WHERE buyer_id = $1')) {
-      return { rows: (mockDB.rfqs || []).filter(r => r.buyer_id == params[0]).reverse() };
+      return { rows: (mockDB.rfqs || []).filter(r => r.buyer_id == params[0]).slice().reverse() };
     }
     if (text.includes('SELECT * FROM rfqs ORDER BY created_at DESC')) {
       return { rows: (mockDB.rfqs || []).slice().reverse() };

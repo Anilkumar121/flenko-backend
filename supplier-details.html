@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
     .supplier-hero {
       background: var(--color-white);
@@ -115,7 +116,21 @@
             <input type="text" class="form-control" required placeholder="What product/service do you need?">
           </div>
           <div class="form-group">
-            <input type="tel" class="form-control" required placeholder="Your mobile number">
+            <div style="display: flex; gap: 0;">
+              <select class="form-control flenko-country-code-select" data-default="+91" style="width: 120px; border-radius: var(--radius-md) 0 0 var(--radius-md); border-right: none; background: #f8fafc; font-size: 0.85rem; padding: 0.5rem 0.25rem;">
+                <option value="+91">🇮🇳 +91 (India)</option>
+                <option value="+1">🇺🇸 +1 (USA/Canada)</option>
+                <option value="+971">🇦🇪 +971 (UAE)</option>
+                <option value="+44">🇬🇧 +44 (UK)</option>
+                <option value="+86">🇨🇳 +86 (China)</option>
+                <option value="+966">🇸🇦 +966 (Saudi)</option>
+                <option value="+49">🇩🇪 +49 (Germany)</option>
+                <option value="+65">🇸🇬 +65 (Singapore)</option>
+                <option value="+61">🇦🇺 +61 (Australia)</option>
+                <option value="+81">🇯🇵 +81 (Japan)</option>
+              </select>
+              <input type="tel" class="form-control" required placeholder="Your mobile number" style="border-radius: 0 var(--radius-md) var(--radius-md) 0; flex: 1;">
+            </div>
           </div>
           <div class="form-group">
             <textarea class="form-control" rows="3" required placeholder="Describe your requirement..."></textarea>
@@ -196,5 +211,10 @@
       </table>
     </section>
   </main>
+  <script src="js/auth.js"></script>
+  <script src="js/countries.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/translator.js"></script>
+  <script src="js/mobile-nav.js"></script>
 </body>
 </html>

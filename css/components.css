@@ -101,7 +101,7 @@
 .badge-navy { background-color: rgba(16, 42, 67, 0.1); color: var(--color-navy-deep); }
 .badge-gray { background-color: var(--color-border); color: var(--color-text-muted); }
 
-/* Alibaba Style Badges */
+/* Flenko B2B Trust Badges */
 .badge-trade-assurance {
   background-color: var(--color-trade-assurance-bg);
   color: var(--color-trade-assurance);
@@ -123,15 +123,15 @@
 }
 
 .btn-orange {
-  background-color: var(--color-alibaba-orange);
+  background-color: var(--color-flenko-orange);
   color: var(--color-white);
-  border-color: var(--color-alibaba-orange);
+  border-color: var(--color-flenko-orange);
   font-weight: 600;
 }
 
 .btn-orange:hover {
-  background-color: var(--color-alibaba-orange-hover);
-  border-color: var(--color-alibaba-orange-hover);
+  background-color: var(--color-flenko-orange-hover);
+  border-color: var(--color-flenko-orange-hover);
   color: var(--color-white);
 }
 

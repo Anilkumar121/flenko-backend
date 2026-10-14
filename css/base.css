@@ -1,21 +1,25 @@
+@import url("mobile.css");
+
 :root {
-  --color-navy-deep: #102A43;
+  --color-navy-deep: #0A2342;
   --color-navy-midnight: #071827;
-  --color-blue-primary: #1677D2;
-  --color-teal: #16856B;
-  --color-alibaba-orange: #ff6a00;
-  --color-alibaba-orange-hover: #e55e00;
-  --color-trade-assurance: #028867;
-  --color-trade-assurance-bg: #e6f7f3;
-  --color-verified-gold: #b45309;
+  --color-blue-primary: #0F4C9B;
+  --color-blue-hover: #0B3A77;
+  --color-flenko-orange: #FF6B00;
+  --color-flenko-orange-hover: #E55E00;
+  --color-flenko-navy: #0F4C9B;
+  --color-trade-assurance: #0F4C9B;
+  --color-trade-assurance-bg: #eff6ff;
+  --color-verified-gold: #d97706;
   --color-verified-bg: #fef3c7;
-  --color-bg-light: #F4F6F8;
+  --color-bg-light: #F8FAFC;
   --color-white: #FFFFFF;
   --color-border: #E2E8F0;
   --color-text-muted: #64748B;
-  --color-text-main: #1E293B;
+  --color-text-main: #0F172A;
   --color-error: #D92D20;
-  --color-success: #16856B;
+  --color-success: #10B981;
+  --color-teal: #0F4C9B;
   
   --font-sans: 'Inter', 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
     .pricing-grid {
       display: grid;
@@ -160,17 +161,20 @@
   </main>
 
   <script src="js/auth.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/translator.js"></script>
   <script>
     function upgradePlan(plan) {
       if(!auth.getToken()) {
-        alert('Please login first to upgrade.');
-        window.location.href = 'login.html';
+        const targetUrl = 'checkout.html?plan=' + encodeURIComponent(plan);
+        window.location.href = 'login.html?redirect=' + encodeURIComponent(targetUrl);
         return;
       }
       
       // Redirect to the checkout page with the selected plan
-      window.location.href = 'checkout.html?plan=' + plan;
+      window.location.href = 'checkout.html?plan=' + encodeURIComponent(plan);
     }
   </script>
+  <script src="js/mobile-nav.js"></script>
 </body>
 </html>

@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
     .supplier-card {
       background: var(--color-white);
@@ -27,7 +28,7 @@
     }
     .supplier-card:hover {
       box-shadow: var(--shadow-md);
-      border-color: var(--color-alibaba-orange);
+      border-color: var(--color-flenko-orange);
       transform: translateY(-2px);
     }
     .supplier-logo-box {
@@ -64,13 +65,13 @@
       transition: all var(--transition-fast);
     }
     .cat-pill-btn:hover {
-      border-color: var(--color-alibaba-orange);
-      color: var(--color-alibaba-orange);
+      border-color: var(--color-flenko-orange);
+      color: var(--color-flenko-orange);
     }
     .cat-pill-btn.active {
       background: #fff7ed;
-      border-color: var(--color-alibaba-orange);
-      color: var(--color-alibaba-orange);
+      border-color: var(--color-flenko-orange);
+      color: var(--color-flenko-orange);
     }
   </style>
 </head>
@@ -155,7 +156,10 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;" id="supplierDirectoryGrid"></div>
   </main>
 
+  <script src="js/auth.js"></script>
   <script src="js/countries.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/translator.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       const grid = document.getElementById("supplierDirectoryGrid");
@@ -318,5 +322,6 @@
       renderDirectory();
     });
   </script>
+  <script src="js/mobile-nav.js"></script>
 </body>
 </html>

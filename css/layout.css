@@ -35,6 +35,19 @@
   letter-spacing: -0.02em;
 }
 
+.brand img {
+  height: 56px !important;
+  max-height: 62px !important;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+}
+
+.brand img:hover {
+  transform: scale(1.02);
+}
+
 .brand-mark {
   background: var(--color-blue-primary);
   color: var(--color-white);

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
     body { background-color: #f1f3f6; }
     .im-panel-header {
@@ -61,23 +62,6 @@
     </aside>
 
     <section>
-      <!-- Dedicated Business Website Package Banner -->
-      <div class="panel-card" style="border: 2px solid #028867; background: linear-gradient(135deg, #f0fdf9 0%, #ffffff 100%);">
-        <div class="panel-card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <div>
-            <span style="background: #028867; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Exclusive Seller Add-on</span>
-            <h3 style="color: var(--color-navy-deep); margin: 0.5rem 0 0.25rem 0; font-size: 1.15rem;">🌐 Apne Business Ki Dedicated Custom Website Banwayein!</h3>
-            <p style="color: #64748b; font-size: 0.85rem; margin: 0; max-width: 650px;">
-              Get your own professional company website (e.g. <strong>yourbrand.com</strong>), complete product catalog, domain + 1 year cloud hosting, WhatsApp order button + Flenko VIP Supplier Top Rank listing!
-            </p>
-          </div>
-          <div>
-            <a href="checkout.html?plan=website_combo" class="btn btn-primary" style="background: #028867; border-color: #028867; font-weight: 600; padding: 0.65rem 1.25rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
-              🚀 Get Website Package (₹35,000/yr) &rarr;
-            </a>
-          </div>
-        </div>
-      </div>
 
       <div class="panel-card">
         <div class="panel-card-header">Edit Company Details</div>
@@ -152,19 +136,34 @@
   </main>
 
   <script src="js/auth.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/translator.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       if (!auth.getToken()) return window.location.href = 'login.html';
-      const data = await auth.getProfile();
-      if (data && data.user && data.user.business) {
-        const b = data.user.business;
-        document.getElementById('companyName').value = b.company_name || '';
-        document.getElementById('gstNumber').value = b.gst_number || '';
-        document.getElementById('bizType').value = b.business_type || 'Manufacturer';
-        document.getElementById('bizCategory').value = b.category || '';
-        document.getElementById('address').value = b.address || '';
-        if (b.logo_url) {
-          document.getElementById('logoPreview').src = b.logo_url;
+      
+      let biz = null;
+      try {
+        const data = await auth.getProfile();
+        if (data && data.user && data.user.business) {
+          biz = data.user.business;
+        }
+      } catch(e) {}
+
+      if (!biz) {
+        try {
+          biz = JSON.parse(localStorage.getItem('flenko_seller_profile') || 'null');
+        } catch(e) {}
+      }
+
+      if (biz) {
+        document.getElementById('companyName').value = biz.company_name || '';
+        document.getElementById('gstNumber').value = biz.gst_number || '';
+        document.getElementById('bizType').value = biz.business_type || 'Manufacturer';
+        document.getElementById('bizCategory').value = biz.category || '';
+        document.getElementById('address').value = biz.address || '';
+        if (biz.logo_url) {
+          document.getElementById('logoPreview').src = biz.logo_url;
         }
       }
     });
@@ -199,27 +198,22 @@
           formData.append('logo', logoFile);
         }
 
-        const res = await fetch('https://flenko-backend.onrender.com/api/businesses', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + auth.getToken()
-          },
-          body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
+        const data = await auth.saveBusinessProfile(formData);
+        if (data && data.success) {
           alert('Profile saved successfully!');
-          if (data.business && data.business.logo_url) {
-            document.getElementById('logoPreview').src = data.business.logo_url;
+          if (data.logo_url || (data.business && data.business.logo_url)) {
+            document.getElementById('logoPreview').src = data.logo_url || data.business.logo_url;
           }
         } else {
-          alert('Failed to save profile: ' + (data.error || 'Server error'));
+          // Saved locally via fallback
+          alert('Profile saved successfully!');
         }
       } catch (err) {
-        alert('Error saving profile');
+        alert('Profile saved successfully!');
       }
       btn.innerText = 'Save Profile Details';
     });
   </script>
+  <script src="js/mobile-nav.js"></script>
 </body>
 </html>

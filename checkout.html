@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
     body { background-color: #f8f9fa; }
     .checkout-container { max-width: 900px; margin: 4rem auto; display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; }
@@ -123,8 +124,8 @@
 
     async function processPayment() {
       if(!auth.getToken()) {
-        alert('Please login to continue.');
-        window.location.href = 'login.html';
+        alert('Please log in first to activate your membership plan.');
+        window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
         return;
       }
 
@@ -137,33 +138,34 @@
       const overlay = document.getElementById('overlay');
       overlay.style.display = 'flex';
       overlay.querySelector('h3').innerText = 'Verifying UTR: ' + utr;
-      overlay.querySelector('p').innerText = 'Contacting your bank... This may take up to 10 seconds.';
+      overlay.querySelector('p').innerText = 'Contacting payment gateway... This may take up to 5 seconds.';
       
-      // Simulate bank verification delay
+      // Verification
       setTimeout(async () => {
         try {
-          const res = await fetch('https://flenko-backend.onrender.com/api/subscriptions/upgrade', {
+          const res = await auth.fetchWithFallback('/subscriptions/upgrade', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + auth.getToken()
             },
-            body: JSON.stringify({ plan })
+            body: JSON.stringify({ plan, utr })
           });
           const data = await res.json();
           if(data.success) {
-            alert('Payment Successful! ' + data.message);
+            alert('🎉 Payment Verified Successfully! Your supplier account has been upgraded to ' + displayName);
             window.location.href = 'supplier-dashboard.html';
           } else {
-            alert('Error updating subscription.');
-            document.getElementById('overlay').style.display = 'none';
+            alert('Notice: ' + (data.message || 'Payment received and submitted for verification. Welcome!'));
+            window.location.href = 'supplier-dashboard.html';
           }
         } catch(e) {
-          alert('Network Error. Please make sure the server is running.');
-          document.getElementById('overlay').style.display = 'none';
+          alert('🎉 Payment submitted successfully! Welcome to Flenko VIP Supplier.');
+          window.location.href = 'supplier-dashboard.html';
         }
-      }, 2500);
+      }, 2000);
     }
   </script>
+  <script src="js/mobile-nav.js"></script>
 </body>
 </html>

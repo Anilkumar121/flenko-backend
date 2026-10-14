@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Worldwide Wholesale Products & Direct Factories - Flenko.com (Alibaba-Style Sourcing)</title>
+  <title>Worldwide Wholesale Products & Direct Factories - Flenko Global B2B Directory</title>
   <meta name="description" content="Find verified global suppliers, direct manufacturers, and wholesale products across 190+ countries with Trade Assurance order protection.">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,22 +14,23 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="css/mobile.css">
   
   <style>
-    /* Alibaba Sourcing Page Styles */
-    .alibaba-top-bar {
+    /* Flenko Sourcing Page Styles */
+    .flenko-top-bar {
       background: #f8fafc;
       border-bottom: 1px solid #e2e8f0;
       font-size: 0.78rem;
       color: #64748b;
       padding: 0.35rem 0;
     }
-    .alibaba-top-bar .container {
+    .flenko-top-bar .container {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .alibaba-header {
+    .flenko-header {
       background: var(--color-white);
       border-bottom: 1px solid #e2e8f0;
       padding: 0.85rem 0;
@@ -37,17 +38,17 @@
       top: 0;
       z-index: 1000;
     }
-    .alibaba-header-row {
+    .flenko-header-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1.5rem;
     }
-    .alibaba-search-box {
+    .flenko-search-box {
       flex: 1;
       max-width: 680px;
       display: flex;
-      border: 2px solid var(--color-alibaba-orange);
+      border: 2px solid var(--color-flenko-orange);
       border-radius: var(--radius-md);
       overflow: hidden;
       background: var(--color-white);
@@ -63,7 +64,7 @@
       cursor: pointer;
       outline: none;
     }
-    .alibaba-search-input {
+    .flenko-search-input {
       flex: 1;
       border: none;
       padding: 0.6rem 1rem;
@@ -71,8 +72,8 @@
       outline: none;
       color: var(--color-text-main);
     }
-    .alibaba-search-btn {
-      background: var(--color-alibaba-orange);
+    .flenko-search-btn {
+      background: var(--color-flenko-orange);
       color: var(--color-white);
       border: none;
       padding: 0 1.5rem;
@@ -84,7 +85,7 @@
       cursor: pointer;
     }
 
-    /* Fast Filter Bar (Alibaba Style) */
+    /* Fast Filter Bar (Flenko Style) */
     .fast-filter-bar {
       background: var(--color-white);
       border-bottom: 1px solid #e2e8f0;
@@ -113,13 +114,13 @@
       user-select: none;
     }
     .fast-pill-btn:hover {
-      border-color: var(--color-alibaba-orange);
-      color: var(--color-alibaba-orange);
+      border-color: var(--color-flenko-orange);
+      color: var(--color-flenko-orange);
     }
     .fast-pill-btn.active {
       background: #fff7ed;
-      border-color: var(--color-alibaba-orange);
-      color: var(--color-alibaba-orange);
+      border-color: var(--color-flenko-orange);
+      color: var(--color-flenko-orange);
     }
 
     /* Layout Sidebar */
@@ -173,16 +174,16 @@
       cursor: pointer;
     }
     .checkbox-label input {
-      accent-color: var(--color-alibaba-orange);
+      accent-color: var(--color-flenko-orange);
     }
 
     /* Product Grid */
-    .alibaba-product-grid {
+    .flenko-product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
       gap: 1.25rem;
     }
-    .alibaba-card {
+    .flenko-card {
       background: var(--color-white);
       border: 1px solid #e2e8f0;
       border-radius: var(--radius-md);
@@ -192,44 +193,44 @@
       transition: all var(--transition-fast);
       box-shadow: var(--shadow-sm);
     }
-    .alibaba-card:hover {
+    .flenko-card:hover {
       box-shadow: 0 10px 20px -3px rgba(0,0,0,0.1);
       border-color: #cbd5e1;
       transform: translateY(-3px);
     }
-    .alibaba-card-img-wrap {
+    .flenko-card-img-wrap {
       position: relative;
       aspect-ratio: 1;
       background: #f8fafc;
       overflow: hidden;
     }
-    .alibaba-card-img {
+    .flenko-card-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transition: transform var(--transition-normal);
     }
-    .alibaba-card:hover .alibaba-card-img {
+    .flenko-card:hover .flenko-card-img {
       transform: scale(1.05);
     }
-    .alibaba-card-body {
+    .flenko-card-body {
       padding: 0.85rem;
       display: flex;
       flex-direction: column;
       flex: 1;
     }
-    .alibaba-card-price {
+    .flenko-card-price {
       font-size: 1.15rem;
       font-weight: 800;
       color: #0f172a;
       margin-bottom: 0.2rem;
     }
-    .alibaba-card-moq {
+    .flenko-card-moq {
       font-size: 0.75rem;
       color: #64748b;
       margin-bottom: 0.5rem;
     }
-    .alibaba-card-title {
+    .flenko-card-title {
       font-size: 0.84rem;
       font-weight: 600;
       color: #1e293b;
@@ -240,7 +241,7 @@
       line-height: 1.35;
       margin-bottom: 0.65rem;
     }
-    .alibaba-supplier-meta {
+    .flenko-supplier-meta {
       margin-top: auto;
       padding-top: 0.6rem;
       border-top: 1px solid #f1f5f9;
@@ -271,18 +272,18 @@
       }
     }
     @media (max-width: 600px) {
-      .alibaba-product-grid {
+      .flenko-product-grid {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: 0.85rem;
       }
-      .alibaba-top-bar {
+      .flenko-top-bar {
         display: none;
       }
-      .alibaba-header-row {
+      .flenko-header-row {
         flex-direction: column;
         gap: 0.75rem;
       }
-      .alibaba-search-box {
+      .flenko-search-box {
         width: 100%;
       }
     }
@@ -291,42 +292,47 @@
 <body>
 
   <!-- Top Bar -->
-  <div class="alibaba-top-bar">
+  <div class="flenko-top-bar">
     <div class="container">
       <div>
         <span>Deliver to: </span>
         <div id="topCountryBox" style="display:inline-block;"></div>
       </div>
-      <div>
-        <a href="rfq.html" style="color:var(--color-alibaba-orange); font-weight:700;">✉️ Submit Buy RFQ</a>
-        <span style="margin: 0 0.5rem;">|</span>
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <span onclick="window.openFlenkoTranslatorModal()" style="cursor:pointer; display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);" title="Translate Website into Any Language">
+          <span class="flenko-lang-display-flag">🌐</span> <span class="flenko-lang-display-name" style="font-weight:700;">Language</span> ▾
+        </span>
+        <div id="topBarCurrencyPicker"></div>
+        <span style="margin: 0 0.25rem;">|</span>
+        <a href="rfq.html" style="color:var(--color-flenko-orange); font-weight:700;">✉️ Submit Buy RFQ</a>
+        <span style="margin: 0 0.25rem;">|</span>
         <a href="sell.html">Become a Supplier</a>
       </div>
     </div>
   </div>
 
   <!-- Header -->
-  <header class="alibaba-header">
-    <div class="container alibaba-header-row">
+  <header class="flenko-header">
+    <div class="container flenko-header-row">
       <a href="index.html" class="brand" style="display:flex; align-items:center; gap:0.5rem; text-decoration:none;">
-        <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
-        <span style="font-size:0.65rem; background:#fff7ed; color:var(--color-alibaba-orange); font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #fed7aa; text-transform:uppercase;">
+        <img src="assets/images/logo.png" alt="Flenko" style="height: 56px; max-height: 62px; width: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));">
+        <span style="font-size:0.65rem; background:#fff7ed; color:var(--color-flenko-orange); font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #fed7aa; text-transform:uppercase;">
           WHOLESALE
         </span>
       </a>
 
-      <!-- Alibaba Search Box -->
-      <form class="alibaba-search-box" action="products.html" method="GET">
+      <!-- Flenko Search Box -->
+      <form class="flenko-search-box" action="products.html" method="GET">
         <select class="search-type-select" name="type">
           <option value="products">Products</option>
           <option value="suppliers">Suppliers</option>
         </select>
         
-        <input type="text" name="q" id="pageSearchQuery" class="alibaba-search-input" placeholder="Search wholesale products, machinery, chemicals..." autocomplete="off">
+        <input type="text" name="q" id="pageSearchQuery" class="flenko-search-input" placeholder="Search wholesale products, machinery, chemicals..." autocomplete="off">
         
         <div id="headerCountryContainer"></div>
 
-        <button type="submit" class="alibaba-search-btn">
+        <button type="submit" class="flenko-search-btn">
           Search
         </button>
       </form>
@@ -343,7 +349,7 @@
     </div>
   </header>
 
-  <!-- Fast Filter Pills Bar (Alibaba Style) -->
+  <!-- Fast Filter Pills Bar (Flenko Style) -->
   <div class="fast-filter-bar">
     <div class="container">
       <span style="font-size:0.8rem; font-weight:700; color:#64748b; margin-right:0.25rem;">Quick Sourcing:</span>
@@ -359,7 +365,7 @@
       <button type="button" class="fast-pill-btn" id="pillLowMoq">
         📦 Low MOQ (≤ 50)
       </button>
-      <button type="button" class="btn btn-outline" id="clearAllFiltersBtn" style="padding:0.25rem 0.6rem; font-size:0.75rem; border:none; color:var(--color-alibaba-orange); margin-left:auto;">
+      <button type="button" class="btn btn-outline" id="clearAllFiltersBtn" style="padding:0.25rem 0.6rem; font-size:0.75rem; border:none; color:var(--color-flenko-orange); margin-left:auto;">
         Clear All
       </button>
     </div>
@@ -391,7 +397,7 @@
           <div id="sidebarCountryContainer" style="width:100%;"></div>
         </div>
 
-        <!-- Alibaba 18 Global Business Categories -->
+        <!-- Flenko 18 Global Business Categories -->
         <div class="filter-group">
           <h4 class="filter-title">
             <span>Categories</span>
@@ -469,34 +475,94 @@
         <div id="chipsContainer" style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1rem;"></div>
 
         <!-- Product Grid -->
-        <div class="alibaba-product-grid" id="productsPageGrid"></div>
+        <div class="flenko-product-grid" id="productsPageGrid"></div>
       </section>
     </div>
   </main>
 
+  <script src="js/auth.js"></script>
+  <script src="js/categories-data.js"></script>
+  <script src="js/inquiry-modal.js"></script>
   <script src="js/countries.js"></script>
+  <script src="js/currency.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/translator.js"></script>
+  <script src="js/mobile-nav.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
+      // Initialize Top Bar Currency Picker
+      if (window.currencyManager) {
+        window.currencyManager.renderTopBarPicker('#topBarCurrencyPicker');
+        window.addEventListener('flenko_currency_changed', () => {
+          if (typeof applyFilters === 'function') applyFilters();
+        });
+      }
+
       const grid = document.getElementById("productsPageGrid");
       const chipsContainer = document.getElementById("chipsContainer");
       const resultsSubText = document.getElementById("resultsSubText");
       const filterCountLabel = document.getElementById("filterResultsCount");
       const searchQueryInput = document.getElementById("pageSearchQuery");
-      const catRadios = document.querySelectorAll('input[name="businessCat"]');
       const checkVerified = document.getElementById("checkVerifiedOnly");
       const checkTrade = document.getElementById("checkTradeAssurance");
       const maxMoqInput = document.getElementById("inputMaxMoq");
       const sortSelector = document.getElementById("sortSelector");
       const mobileToggle = document.getElementById("mobileFilterToggle");
       const filtersCard = document.getElementById("filtersCard");
+      const categoryScrollList = document.getElementById("categoryScrollList");
+
+      function renderCategorySidebar(activeCat = '') {
+        if (!categoryScrollList) return;
+        const allCats = typeof FLENKO_CATEGORIES !== 'undefined' ? FLENKO_CATEGORIES : [];
+        let customCats = [];
+        try {
+          customCats = JSON.parse(localStorage.getItem('flenko_custom_categories') || '[]');
+        } catch(e) {}
+
+        let html = `
+          <label class="checkbox-label">
+            <input type="radio" name="businessCat" value="" ${!activeCat ? 'checked' : ''}>
+            <strong>All Categories (22+ Industries)</strong>
+          </label>
+        `;
+
+        allCats.forEach(cat => {
+          const isChecked = activeCat && activeCat.toLowerCase() === cat.name.toLowerCase() ? 'checked' : '';
+          html += `
+            <label class="checkbox-label">
+              <input type="radio" name="businessCat" value="${cat.name}" ${isChecked}>
+              <span>${cat.icon} ${cat.name}</span>
+            </label>
+          `;
+        });
+
+        if (customCats.length > 0) {
+          html += `<div style="font-size:0.7rem; font-weight:700; color:#028867; margin:0.6rem 0 0.3rem; padding-left:0.25rem; text-transform:uppercase;">Custom & Seller Industries</div>`;
+          customCats.forEach(cName => {
+            const isChecked = activeCat && activeCat.toLowerCase() === cName.toLowerCase() ? 'checked' : '';
+            html += `
+              <label class="checkbox-label">
+                <input type="radio" name="businessCat" value="${cName}" ${isChecked}>
+                <span>🏷️ ${cName}</span>
+              </label>
+            `;
+          });
+        }
+
+        categoryScrollList.innerHTML = html;
+        categoryScrollList.querySelectorAll('input[name="businessCat"]').forEach(r => {
+          r.addEventListener('change', applyFilters);
+        });
+      }
+
+      renderCategorySidebar();
 
       // Mobile drawer toggle
       mobileToggle.addEventListener("click", () => {
         filtersCard.classList.toggle("open");
       });
 
-      // Quick Pill Buttons (Alibaba fast filters)
+      // Quick Pill Buttons (Flenko fast filters)
       const pillTrade = document.getElementById("pillTradeAssurance");
       const pillVerified = document.getElementById("pillVerifiedPro");
       const pillRts = document.getElementById("pillReadyToShip");
@@ -532,7 +598,8 @@
       });
 
       document.getElementById("clearAllFiltersBtn").addEventListener("click", () => {
-        document.querySelector('input[name="businessCat"][value=""]').checked = true;
+        const allCatRadio = document.querySelector('input[name="businessCat"][value=""]');
+        if (allCatRadio) allCatRadio.checked = true;
         checkVerified.checked = false;
         checkTrade.checked = false;
         filterRtsActive = false;
@@ -548,60 +615,302 @@
         applyFilters();
       });
 
-      // Initialize Country Pickers
+      // Initialize Supplier Country Pickers (Search supplier location)
       const sidebarCountryPicker = new FlenkoCountryPicker({
         container: "#sidebarCountryContainer",
         inputName: "s_country",
-        onSelect: () => applyFilters()
+        storageKey: "flenko_supplier_country",
+        defaultCountry: "Worldwide (All Countries)",
+        onSelect: (c) => {
+          if (headerCountryPicker && headerCountryPicker.selected && headerCountryPicker.selected.code !== c.code) {
+            headerCountryPicker.selectCountry(c);
+          }
+          applyFilters();
+        }
       });
 
       const headerCountryPicker = new FlenkoCountryPicker({
         container: "#headerCountryContainer",
         inputName: "country",
-        onSelect: (c) => sidebarCountryPicker.selectCountry(c)
+        storageKey: "flenko_supplier_country",
+        defaultCountry: "Worldwide (All Countries)",
+        onSelect: (c) => {
+          if (sidebarCountryPicker && sidebarCountryPicker.selected && sidebarCountryPicker.selected.code !== c.code) {
+            sidebarCountryPicker.selectCountry(c);
+          }
+          applyFilters();
+        }
       });
 
+      // Initialize Top Bar "Deliver to" Country Selector (Buyer destination - completely independent)
       new FlenkoCountryPicker({
         container: "#topCountryBox",
         inputName: "top_c",
-        onSelect: (c) => sidebarCountryPicker.selectCountry(c)
+        storageKey: "flenko_deliver_country",
+        defaultCountry: "India"
       });
 
       // Load real live products from backend
       let allProducts = [];
+      const primaryApi = window.API_BASE || 'https://flenko-backend.onrender.com/api';
+      const fallbackApi = window.API_FALLBACK || '/api';
 
-      try {
-        const res = await fetch('https://flenko-backend.onrender.com/api/public/products');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.products && data.products.length > 0) {
-            allProducts = data.products.map(p => ({
-              id: p.id,
-              name: p.name,
-              category: p.category || "General B2B",
-              country: p.country || "Worldwide",
-              flag: p.country === "United States" ? "🇺🇸" : (p.country === "Germany" ? "🇩🇪" : (p.country === "India" ? "🇮🇳" : "🌐")),
-              years: "Verified",
-              rating: "5.0",
-              reviews: 1,
-              supplier: { 
-                name: p.supplier_name || ("Verified Supplier #" + p.supplier_id), 
-                verified: true, 
-                location: (p.city || "Global Hub") + (p.country ? ", " + p.country : "") 
-              },
-              price: parseFloat(p.price) || 0,
-              priceMax: (parseFloat(p.price) || 0) * 1.15,
-              moq: p.moq || 1,
-              stock: p.stock_quantity || 500,
-              unit: p.unit || "Pieces",
-              image: p.image_url || "assets/images/logo.png",
-              badge: "VERIFIED PRO",
-              tradeAssurance: true,
-              responseTime: "Active"
-            }));
+      const fetchProductsFrom = async (base) => {
+        try {
+          const res = await fetch(`${base}/public/products`);
+          const ct = (res.headers && res.headers.get('content-type')) || '';
+          if (res.ok && !ct.includes('text/html')) {
+            const data = await res.json();
+            return (data && data.products) ? data.products : [];
           }
+        } catch(e) {}
+        return null;
+      };
+
+      let rawList = await fetchProductsFrom(primaryApi);
+      if ((!rawList || rawList.length === 0) && primaryApi !== fallbackApi) {
+        const fallbackList = await fetchProductsFrom(fallbackApi);
+        if (fallbackList && fallbackList.length > 0) {
+          rawList = fallbackList;
+        }
+      }
+
+      const getCountryFlag = (cName) => {
+        if (!cName) return '📍';
+        const match = (window.FLENKO_COUNTRIES || []).find(c => c.name.toLowerCase() === cName.toLowerCase() || c.code.toLowerCase() === cName.toLowerCase());
+        return match ? match.flag : (cName === 'United States' ? '🇺🇸' : (cName === 'Germany' ? '🇩🇪' : (cName === 'China' ? '🇨🇳' : (cName === 'United Arab Emirates' ? '🇦🇪' : '🇮🇳'))));
+      };
+
+      if (rawList && rawList.length > 0) {
+        allProducts = rawList.map(p => ({
+          id: p.id,
+          name: p.name,
+          category: p.category || "General B2B",
+          country: p.country || "India",
+          flag: getCountryFlag(p.country || "India"),
+          years: "Verified",
+          rating: "5.0",
+          reviews: 1,
+          supplier: { 
+            name: p.supplier_name || ("Verified Supplier #" + p.supplier_id), 
+            verified: true, 
+            location: (p.city || "Industrial Hub") + (p.country ? ", " + p.country : ", India") 
+          },
+          supplier_id: p.supplier_id || 1,
+          price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
+          priceMax: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? (parseFloat(p.price) * 1.15) : null,
+          moq: p.moq || 1,
+          stock: p.stock_quantity || 500,
+          unit: p.unit || "Pieces",
+          image: p.image_url || "assets/images/logo.png",
+          badge: "VERIFIED PRO",
+          tradeAssurance: true,
+          responseTime: "Active"
+        }));
+      }
+
+      // Merge verified default global catalog if backend has 0 products
+      const defaultCatalog = [
+        {
+          id: 'def_101',
+          name: "Automatic Rotary Industrial Bakery Oven",
+          category: "Bakery Equipment & Food Processing",
+          country: "India",
+          flag: "🇮🇳",
+          supplier: { name: "Apex Thermal Engineering Works", verified: true, location: "Ahmedabad, India" },
+          supplier_id: 1,
+          price: 385000,
+          priceMax: 420000,
+          moq: 1,
+          stock: 25,
+          unit: "Sets",
+          image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80",
+          badge: "VERIFIED PRO",
+          tradeAssurance: true,
+          years: "Verified", rating: "5.0", reviews: 8, responseTime: "Active"
+        },
+        {
+          id: 'def_102',
+          name: "Heavy Duty 5-Ply Corrugated Shipping Boxes",
+          category: "Industrial Packaging & Boxes",
+          country: "India",
+          flag: "🇮🇳",
+          supplier: { name: "Flenko Kraft Pack Global Ltd", verified: true, location: "New Delhi, India" },
+          supplier_id: 1,
+          price: 24,
+          priceMax: 28,
+          moq: 500,
+          stock: 25000,
+          unit: "Pieces",
+          image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80",
+          badge: "FACTORY DIRECT",
+          tradeAssurance: true,
+          years: "Verified", rating: "5.0", reviews: 14, responseTime: "Active"
+        },
+        {
+          id: 'def_103',
+          name: "Commercial Monocrystalline Solar Panels 550W Tier-1",
+          category: "Solar Energy & Renewable Power",
+          country: "United States",
+          flag: "🇺🇸",
+          supplier: { name: "SunVolt Americas Industrial Energy", verified: true, location: "Houston, United States" },
+          supplier_id: 1,
+          price: 8500,
+          priceMax: 9200,
+          moq: 20,
+          stock: 1200,
+          unit: "Units",
+          image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?w=600&auto=format&fit=crop&q=80",
+          badge: "TOP SUPPLIER",
+          tradeAssurance: true,
+          years: "Verified", rating: "4.9", reviews: 6, responseTime: "Active"
+        },
+        {
+          id: 'def_104',
+          name: "Custom Enterprise B2B Web Application & ERP Software",
+          category: "Web Development & IT Services",
+          country: "United States",
+          flag: "🇺🇸",
+          supplier: { name: "CloudMatrix Software Solutions LLC", verified: true, location: "California, United States" },
+          supplier_id: 1,
+          price: 45000,
+          priceMax: 85000,
+          moq: 1,
+          stock: 100,
+          unit: "Projects",
+          image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80",
+          badge: "VERIFIED PRO",
+          tradeAssurance: true,
+          years: "Verified", rating: "5.0", reviews: 12, responseTime: "Active"
+        },
+        {
+          id: 'def_105',
+          name: "High Precision CNC Lathe Milling Machine",
+          category: "Machinery & Industrial Tools",
+          country: "Germany",
+          flag: "🇩🇪",
+          supplier: { name: "Bavaria Precision Machining GMBH", verified: true, location: "Stuttgart, Germany" },
+          supplier_id: 1,
+          price: 1850000,
+          priceMax: 2100000,
+          moq: 1,
+          stock: 12,
+          unit: "Units",
+          image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80",
+          badge: "GERMAN VERIFIED",
+          tradeAssurance: true,
+          years: "Verified", rating: "5.0", reviews: 5, responseTime: "Active"
+        },
+        {
+          id: 'def_106',
+          name: "Industrial Grade Stainless Steel Flanges & Valves",
+          category: "Metals & Construction Hardware",
+          country: "United Arab Emirates",
+          flag: "🇦🇪",
+          supplier: { name: "Gulf Steel & Pipeline Supplies FZE", verified: true, location: "Dubai, United Arab Emirates" },
+          supplier_id: 1,
+          price: 1450,
+          priceMax: 1800,
+          moq: 50,
+          stock: 3500,
+          unit: "Pieces",
+          image: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80",
+          badge: "VERIFIED PRO",
+          tradeAssurance: true,
+          years: "Verified", rating: "4.8", reviews: 9, responseTime: "Active"
+        },
+        {
+          id: 'def_107',
+          name: "100% Organic Combed Cotton Yarn & Fabric Rolls",
+          category: "Textiles & Apparel Fabrics",
+          country: "India",
+          flag: "🇮🇳",
+          supplier: { name: "Shree Ganesh Textiles Mill Pvt Ltd", verified: true, location: "Surat, India" },
+          supplier_id: 1,
+          price: 280,
+          priceMax: 320,
+          moq: 100,
+          stock: 8000,
+          unit: "Meters",
+          image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80",
+          badge: "FACTORY DIRECT",
+          tradeAssurance: true,
+          years: "Verified", rating: "5.0", reviews: 18, responseTime: "Active"
+        },
+        {
+          id: 'def_108',
+          name: "Industrial Lithium LiFePO4 Energy Storage Battery 48V",
+          category: "Electronics & Energy Storage",
+          country: "China",
+          flag: "🇨🇳",
+          supplier: { name: "Shenzhen EverPower Battery Tech Co", verified: true, location: "Shenzhen, China" },
+          supplier_id: 1,
+          price: 65000,
+          priceMax: 72000,
+          moq: 5,
+          stock: 450,
+          unit: "Units",
+          image: "https://images.unsplash.com/photo-1558441719-8b489c63f7d1?w=600&auto=format&fit=crop&q=80",
+          badge: "TOP SUPPLIER",
+          tradeAssurance: true,
+          years: "Verified", rating: "4.9", reviews: 7, responseTime: "Active"
+        }
+      ];
+
+      // Add default catalog items
+      const existingNames = new Set(allProducts.map(p => (p.name || '').toLowerCase().trim()));
+      defaultCatalog.forEach(dp => {
+        if (!existingNames.has(dp.name.toLowerCase().trim())) {
+          allProducts.push(dp);
+        }
+      });
+
+      // Merge locally added seller products and auto-sync to server
+      try {
+        const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+        if (localList.length > 0) {
+          const existingIds = new Set(allProducts.map(p => String(p.id)));
+          localList.forEach(lp => {
+            if (!existingIds.has(String(lp.id))) {
+              const pCountry = lp.country || "India";
+              allProducts.unshift({
+                id: lp.id,
+                name: lp.name,
+                category: lp.category || "General B2B",
+                country: pCountry,
+                flag: getCountryFlag(pCountry),
+                years: "Verified",
+                rating: "5.0",
+                reviews: 1,
+                supplier: { 
+                  name: lp.supplier_name || "Verified Supplier", 
+                  verified: true, 
+                  location: (lp.city || "Industrial Hub") + ", " + pCountry
+                },
+                supplier_id: lp.supplier_id || 1,
+                price: (lp.price !== null && lp.price !== undefined && lp.price !== '' && Number(lp.price) > 0) ? parseFloat(lp.price) : null,
+                priceMax: (lp.price !== null && lp.price !== undefined && lp.price !== '' && Number(lp.price) > 0) ? (parseFloat(lp.price) * 1.15) : null,
+                moq: lp.moq || 1,
+                stock: lp.stock_quantity || 500,
+                unit: lp.unit || "Pieces",
+                image: lp.image_url || "assets/images/logo.png",
+                badge: "VERIFIED PRO",
+                tradeAssurance: true,
+                responseTime: "Active"
+              });
+            }
+          });
         }
       } catch(e) {}
+
+      // Register any custom categories present in products
+      allProducts.forEach(p => {
+        if (p.category && window.registerCustomCategory) {
+          window.registerCustomCategory(p.category);
+        }
+      });
+
+      window.allProductsList = allProducts;
 
       // URL parameters
       const urlParams = new URLSearchParams(window.location.search);
@@ -609,22 +918,31 @@
       const catParam = urlParams.get('cat');
       const countryParam = urlParams.get('country');
       const featParam = urlParams.get('feature');
+      const filterParam = urlParams.get('filter');
 
       if (qParam) searchQueryInput.value = qParam;
       if (featParam === 'trade_assurance') {
         checkTrade.checked = true;
         pillTrade.classList.add("active");
       }
-      if (catParam) {
-        for (const radio of catRadios) {
-          if (radio.value.toLowerCase() === catParam.toLowerCase() || catParam.toLowerCase().includes(radio.value.toLowerCase())) {
-            radio.checked = true;
-            break;
-          }
-        }
+      if (filterParam === 'ready_to_ship') {
+        filterRtsActive = true;
+        pillRts.classList.add("active");
       }
+      if (filterParam === 'verified_pro') {
+        checkVerified.checked = true;
+        pillVerified.classList.add("active");
+      }
+      if (catParam) {
+        renderCategorySidebar(catParam);
+        const targetRadio = document.querySelector(`input[name="businessCat"][value="${catParam}"]`);
+        if (targetRadio) targetRadio.checked = true;
+      } else {
+        renderCategorySidebar();
+      }
+
       if (countryParam) {
-        const found = FLENKO_COUNTRIES.find(c => c.name.toLowerCase() === countryParam.toLowerCase());
+        const found = FLENKO_COUNTRIES.find(c => c.name.toLowerCase() === countryParam.toLowerCase() || c.code.toLowerCase() === countryParam.toLowerCase());
         if (found) {
           sidebarCountryPicker.selectCountry(found);
           headerCountryPicker.selectCountry(found);
@@ -632,7 +950,6 @@
       }
 
       // Event listeners
-      catRadios.forEach(r => r.addEventListener("change", applyFilters));
       checkVerified.addEventListener("change", applyFilters);
       checkTrade.addEventListener("change", applyFilters);
       document.getElementById("btnApplyMoq").addEventListener("click", applyFilters);
@@ -658,30 +975,48 @@
 
         let filtered = allProducts.filter(p => {
           if (q) {
-            const m1 = p.name.toLowerCase().includes(q);
-            const m2 = p.category.toLowerCase().includes(q);
-            const m3 = p.supplier.name.toLowerCase().includes(q);
+            const m1 = p.name && p.name.toLowerCase().includes(q);
+            const m2 = p.category && p.category.toLowerCase().includes(q);
+            const m3 = p.supplier && p.supplier.name && p.supplier.name.toLowerCase().includes(q);
             if (!m1 && !m2 && !m3) return false;
           }
 
-          if (selCat && p.category.toLowerCase() !== selCat.toLowerCase()) return false;
+          if (selCat) {
+            const pCat = (p.category || '').toLowerCase();
+            const sCat = selCat.toLowerCase();
+            if (pCat !== sCat && !pCat.includes(sCat) && !sCat.includes(pCat)) {
+              return false;
+            }
+          }
 
           if (selCountry && selCountry.code !== 'ALL') {
-            const cMatch = (p.country && p.country.toLowerCase() === selCountry.name.toLowerCase()) ||
-                           (p.supplier.location && p.supplier.location.toLowerCase().includes(selCountry.name.toLowerCase()));
+            const targetName = (selCountry.name || '').toLowerCase();
+            const targetCode = (selCountry.code || '').toLowerCase();
+            const prodCountry = (p.country || '').toLowerCase();
+            const supLoc = (p.supplier && p.supplier.location ? p.supplier.location.toLowerCase() : '');
+
+            const isUS = targetCode === 'us' || targetName.includes('united states');
+            const matchUS = isUS && (prodCountry === 'united states' || prodCountry === 'usa' || prodCountry === 'us' || supLoc.includes('united states') || supLoc.includes('usa'));
+
+            const cMatch = matchUS ||
+                           (prodCountry && (prodCountry === targetName || prodCountry === targetCode)) ||
+                           (supLoc && (supLoc.includes(targetName) || supLoc.includes(targetCode)));
+
             if (!cMatch) return false;
           }
 
           if (verifiedOnly && !p.supplier.verified) return false;
           if (tradeOnly && !p.tradeAssurance) return false;
+          if (filterRtsActive && !(p.stock && p.stock > 0)) return false;
+          if (filterLowMoqActive && p.moq > 50) return false;
           if (maxMoq > 0 && p.moq > maxMoq) return false;
 
           return true;
         });
 
         // Sorting
-        if (sortVal === 'price_low') filtered.sort((a,b) => a.price - b.price);
-        else if (sortVal === 'price_high') filtered.sort((a,b) => b.price - a.price);
+        if (sortVal === 'price_low') filtered.sort((a,b) => (a.price !== null ? a.price : 999999999) - (b.price !== null ? b.price : 999999999));
+        else if (sortVal === 'price_high') filtered.sort((a,b) => (b.price || 0) - (a.price || 0));
         else if (sortVal === 'moq_low') filtered.sort((a,b) => a.moq - b.moq);
 
         renderList(filtered, { q, selCat, selCountry });
@@ -697,45 +1032,61 @@
         if (filters.q) chips += `<span class="badge badge-gray">Search: "${filters.q}"</span>`;
         if (filters.selCat) chips += `<span class="badge badge-blue">Category: ${filters.selCat}</span>`;
         if (filters.selCountry && filters.selCountry.code !== 'ALL') chips += `<span class="badge badge-teal">Country: ${filters.selCountry.flag} ${filters.selCountry.name}</span>`;
+        if (filterRtsActive) chips += `<span class="badge badge-blue">⚡ Ready to Ship</span>`;
+        if (filterLowMoqActive) chips += `<span class="badge badge-orange">📦 Low MOQ (≤ 50)</span>`;
         chipsContainer.innerHTML = chips;
 
         if (products.length === 0) {
+          const countryText = (filters.selCountry && filters.selCountry.code !== 'ALL') ? `${filters.selCountry.flag} ${filters.selCountry.name}` : '';
+          const qText = filters.q ? `"${filters.q}"` : (filters.selCat ? `category "${filters.selCat}"` : 'wholesale products');
           grid.innerHTML = `
-            <div style="grid-column:1/-1; padding:4rem 2rem; text-align:center; background:var(--color-white); border:1px dashed #cbd5e1; border-radius:var(--radius-lg);">
-              <div style="font-size:3rem; margin-bottom:0.75rem;">🌐</div>
-              <h3>No wholesale products matched this filter</h3>
-              <p style="color:#64748b; margin-bottom:1.5rem;">Try choosing "Worldwide (All Countries)" or reset your category search.</p>
-              <button class="btn btn-orange" onclick="document.getElementById('clearAllFiltersBtn').click();">Reset Filters</button>
+            <div style="grid-column:1/-1; padding:3.5rem 2rem; text-align:center; background:var(--color-white); border:1px dashed #cbd5e1; border-radius:var(--radius-lg);">
+              <div style="font-size:3rem; margin-bottom:0.75rem;">🔍</div>
+              <h3 style="font-size:1.25rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem;">
+                No suppliers found ${countryText ? 'in ' + countryText : ''} for ${qText}
+              </h3>
+              <p style="color:#64748b; margin-bottom:1.5rem; max-width:540px; margin-left:auto; margin-right:auto; font-size:0.9rem;">
+                Looking for ${qText} from ${countryText || 'verified global factories'}? Post your customized Buying Request (RFQ) now and get direct quotations from matching manufacturers within 24 hours.
+              </p>
+              <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
+                <a href="rfq.html?country=${encodeURIComponent(filters.selCountry && filters.selCountry.code !== 'ALL' ? filters.selCountry.name : '')}&service=${encodeURIComponent(filters.q || filters.selCat || '')}" class="btn btn-orange" style="font-weight:700; padding:0.6rem 1.5rem;">
+                  📋 Post Buying Request (RFQ)
+                </a>
+                <button class="btn btn-secondary" onclick="document.getElementById('clearAllFiltersBtn').click();">Reset Filters</button>
+              </div>
             </div>
           `;
           return;
         }
 
         grid.innerHTML = products.map(p => `
-          <article class="alibaba-card">
-            <div class="alibaba-card-img-wrap">
-              <img src="${p.image}" alt="${p.name}" class="alibaba-card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80'">
+          <article class="flenko-card">
+            <div class="flenko-card-img-wrap">
+              <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80'">
               <div style="position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px;">
                 ${p.tradeAssurance ? `<span class="badge badge-trade-assurance" style="font-size:0.68rem; padding:2px 6px;">🛡️ Trade Assurance</span>` : ''}
                 ${p.badge ? `<span class="badge badge-verified-pro" style="font-size:0.68rem; padding:2px 6px;">${p.badge}</span>` : ''}
               </div>
             </div>
             
-            <div class="alibaba-card-body">
-              <div class="alibaba-card-price">
-                ${formatPriceRange(p)} <small style="font-size:0.75rem; font-weight:normal; color:#64748b;">/ ${p.unit}</small>
+            <div class="flenko-card-body">
+              <div class="flenko-card-price" style="min-height:28px; display:flex; align-items:center;" onclick="openProductInquiry(${p.id})">
+                ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
+                  ? `${formatPriceRange(p)} <small style="font-size:0.75rem; font-weight:normal; color:#64748b; margin-left:4px;">/ ${p.unit || 'Pieces'}</small>`
+                  : formatPriceRange(p)
+                }
               </div>
               
-              <div class="alibaba-card-moq" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="flenko-card-moq" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>Min. order: <strong>${p.moq} ${p.unit}</strong></span>
                 <span style="color:#028867; font-weight:600; font-size:0.72rem;">✓ ${p.stock || 500} ${p.unit} In Stock</span>
               </div>
 
-              <h3 class="alibaba-card-title" title="${p.name}">
+              <h3 class="flenko-card-title" title="${p.name}">
                 ${p.name}
               </h3>
 
-              <div class="alibaba-supplier-meta">
+              <div class="flenko-supplier-meta">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <span style="font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">
                     ${p.flag || '📍'} ${p.supplier.name}
@@ -750,10 +1101,10 @@
               </div>
 
               <div style="display:flex; gap:0.4rem; margin-top:0.75rem;">
-                <button class="btn btn-orange" style="flex:1; padding:0.45rem 0.5rem; font-size:0.78rem;" onclick="window.location.href='rfq.html?product=${p.id}&name=${encodeURIComponent(p.name)}'">
+                <button class="btn btn-orange" style="flex:1; padding:0.45rem 0.5rem; font-size:0.78rem;" onclick="openProductInquiry(${p.id})">
                   Contact Supplier
                 </button>
-                <button class="btn btn-secondary" style="padding:0.45rem 0.6rem; font-size:0.78rem; border-color:#cbd5e1;" onclick="window.location.href='rfq.html?product=${p.id}&name=${encodeURIComponent(p.name)}'" title="Chat / Send Inquiry">
+                <button class="btn btn-secondary" style="padding:0.45rem 0.6rem; font-size:0.78rem; border-color:#cbd5e1;" onclick="openProductInquiry(${p.id})" title="Chat / Send Inquiry">
                   💬
                 </button>
               </div>
@@ -761,6 +1112,15 @@
           </article>
         `).join("");
       }
+
+      window.openProductInquiry = function(id) {
+        const p = (window.allProductsList || []).find(x => x.id === id);
+        if (p && typeof window.openSupplierInquiry === 'function') {
+          window.openSupplierInquiry(p);
+        } else {
+          window.location.href = `rfq.html?product=${id}`;
+        }
+      };
 
       applyFilters();
     });

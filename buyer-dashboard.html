@@ -3,33 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Buyer Procurement Dashboard - Flenko</title>
+  <title>Buyer Procurement Dashboard - Flenko Global Business Hub</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
-    body { background-color: #f1f3f6; }
-    .im-panel-header { background: var(--color-white); border-bottom: 2px solid var(--color-navy-deep); padding: 0.5rem 0; position: sticky; top: 0; z-index: 100; }
-    .im-panel-layout { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; padding: 1.5rem 0; max-width: 1350px; margin: 0 auto; }
-    .im-sidebar { background: var(--color-white); border: 1px solid var(--color-border); height: max-content; position: sticky; top: 80px; }
-    .im-menu a { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; color: var(--color-text-main); font-weight: 500; font-size: 0.875rem; border-left: 3px solid transparent; border-bottom: 1px solid var(--color-bg-light); cursor: pointer; }
-    .im-menu a:hover, .im-menu a.active { background: rgba(22, 119, 210, 0.05); color: var(--color-blue-primary); border-left-color: var(--color-blue-primary); }
-    .panel-card { background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: 1.5rem; padding: 1.5rem; }
-    
-    .rfq-card { border: 1px solid var(--color-border); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; }
-    .rfq-card h4 { color: var(--color-navy-deep); margin-bottom: 0.25rem; }
-    .rfq-card .meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.75rem; }
-    
-    .quote-card { background: var(--color-bg-light); padding: 1rem; border-left: 3px solid var(--color-teal); margin-top: 1rem; }
+    body { background-color: #f8fafc; }
+    .im-panel-header {
+      background: var(--color-white);
+      border-bottom: 3px solid var(--color-blue-primary);
+      padding: 0.6rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .im-panel-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem 0;
+      max-width: 1350px;
+      margin: 0 auto;
+    }
+    @media (max-width: 900px) {
+      .im-panel-layout { grid-template-columns: 1fr; padding: 1rem; }
+    }
+    .im-sidebar {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      height: max-content;
+      position: sticky;
+      top: 85px;
+      overflow: hidden;
+    }
+    .im-menu a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      color: var(--color-text-main);
+      font-weight: 500;
+      font-size: 0.875rem;
+      border-left: 3px solid transparent;
+      border-bottom: 1px solid var(--color-bg-light);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .im-menu a:hover, .im-menu a.active {
+      background: rgba(15, 76, 155, 0.06);
+      color: var(--color-blue-primary);
+      border-left-color: var(--color-flenko-orange);
+      font-weight: 600;
+    }
+    .panel-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 1.5rem;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .rfq-card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      background: var(--color-white);
+      transition: box-shadow 0.2s ease;
+    }
+    .rfq-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border-color: #cbd5e1;
+    }
+    .rfq-card h4 {
+      color: var(--color-navy-deep);
+      margin-bottom: 0.25rem;
+      font-size: 1.05rem;
+    }
+    .rfq-card .meta {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .quote-card {
+      background: #f8fafc;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      border-left: 4px solid var(--color-flenko-orange);
+      margin-top: 0.75rem;
+    }
   </style>
 </head>
 <body>
   <header class="im-panel-header">
     <div class="container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1350px;">
-      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
-      <div style="display: flex; align-items: center; gap: 1.5rem;">
-        <span style="font-weight: 600; color: var(--color-navy-deep);" id="userNameDisplay">Buyer</span>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="auth.logout()">Logout</button>
+      <a href="index.html" class="brand" style="display:flex; align-items:center;">
+        <img src="assets/images/logo.png" alt="Flenko Global Business Hub" style="height: 54px; max-height: 60px; width: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));">
+      </a>
+      <div style="display: flex; align-items: center; gap: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+            👤
+          </div>
+          <span style="font-weight: 600; color: var(--color-navy-deep); font-size: 0.9rem;" id="userNameDisplay">Buyer Account</span>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;" onclick="auth.logout()">Logout</button>
       </div>
     </div>
   </header>
@@ -37,125 +119,297 @@
   <main class="im-panel-layout">
     <aside class="im-sidebar">
       <nav class="im-menu">
-        <a class="active">📝 Post RFQ</a>
-        <a>📦 My Purchase Orders</a>
-        <a>💬 Supplier Quotations</a>
-        <a>📊 Expenditure Reports</a>
+        <a class="active" onclick="switchView('rfq')">📝 Post & Manage Requirements</a>
+        <a onclick="switchView('inquiries')">✉️ My Direct Inquiries</a>
+        <a href="products.html">🔍 Search Wholesale Products</a>
+        <a href="business-directory.html">🏢 Browse Verified Suppliers</a>
       </nav>
     </aside>
 
     <section>
-      <div class="panel-card">
-        <h2 style="margin-bottom: 1.5rem; color: var(--color-navy-deep);">Post Request for Quotation (RFQ)</h2>
+      <!-- Post RFQ / Requirement Card -->
+      <div class="panel-card" id="postSection">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="color: var(--color-navy-deep); margin-bottom: 0.25rem; font-size: 1.35rem;">Post Buy Requirement / RFQ</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.85rem; margin: 0;">Broadcast your procurement need or service request to verified suppliers worldwide.</p>
+          </div>
+          <span class="badge" style="background:#e0f2fe; color:var(--color-blue-primary); font-weight:700; padding: 4px 10px;">Free Global Broadcast</span>
+        </div>
+
         <form id="rfqForm">
           <div class="form-group">
-            <label class="form-label">What are you looking to buy?</label>
-            <input type="text" id="rfqProduct" class="form-control" placeholder="e.g. 5-Ply Corrugated Boxes" required>
+            <label class="form-label">Product / Service / Material Name <span style="color:red;">*</span></label>
+            <input type="text" id="rfqProduct" class="form-control" placeholder="e.g. Website Development, 5-Ply Corrugated Boxes, Aluminum Fabrication" required>
           </div>
-          <div style="display:flex; gap:1rem; margin-bottom: 1rem;">
-            <div class="form-group" style="flex:1; margin-bottom:0;">
-              <label class="form-label">Quantity Required</label>
-              <input type="number" id="rfqQty" class="form-control" required>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Quantity Required <span style="color:red;">*</span></label>
+              <input type="number" id="rfqQty" class="form-control" min="1" placeholder="e.g. 500" required>
             </div>
-            <div class="form-group" style="flex:1; margin-bottom:0;">
-              <label class="form-label">Target Price per unit (Optional)</label>
-              <input type="number" id="rfqPrice" class="form-control" placeholder="₹">
+            
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Unit of Measurement</label>
+              <select id="rfqUnit" class="form-control" required>
+                <optgroup label="General / Quantity">
+                  <option value="Pieces" selected>Pieces</option>
+                  <option value="Units">Units</option>
+                  <option value="Sets">Sets</option>
+                  <option value="Cartons">Cartons</option>
+                  <option value="Dozens">Dozens</option>
+                </optgroup>
+                <optgroup label="Construction & Area">
+                  <option value="Running Ft.">Running Ft.</option>
+                  <option value="Sq. Ft.">Sq. Ft.</option>
+                  <option value="Sq. Mtr.">Sq. Mtr.</option>
+                  <option value="Cubic Mtr.">Cubic Mtr.</option>
+                </optgroup>
+                <optgroup label="Length">
+                  <option value="Running Ft.">Running Ft.</option>
+                  <option value="Meters">Meters</option>
+                  <option value="Centimeters">Centimeters</option>
+                  <option value="Inches">Inches</option>
+                  <option value="Feet">Feet</option>
+                </optgroup>
+                <optgroup label="Weight & Mass">
+                  <option value="Kg">Kg</option>
+                  <option value="Grams">Grams</option>
+                  <option value="Tons">Tons</option>
+                  <option value="Quintals">Quintals</option>
+                </optgroup>
+                <optgroup label="Services & Contracts">
+                  <option value="Projects">Projects</option>
+                  <option value="Man-Days">Man-Days</option>
+                  <option value="Hours">Hours</option>
+                  <option value="Contracts">Contracts</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Target Budget / Rate (₹) <small style="color:#64748b; font-weight:normal;">(Optional)</small></label>
+              <input type="number" id="rfqPrice" class="form-control" placeholder="Leave empty for best rates">
             </div>
           </div>
+
           <div class="form-group">
-            <label class="form-label">Detailed Requirements / Technical Specs</label>
-            <textarea id="rfqDetails" class="form-control" rows="4" placeholder="Describe material, size, usage, location of delivery..."></textarea>
+            <label class="form-label">Detailed Requirements & Specifications</label>
+            <textarea id="rfqDetails" class="form-control" rows="3" placeholder="Describe size, material grades, expected delivery timeline, city/location..."></textarea>
           </div>
-          <button type="submit" class="btn btn-primary">Broadcast RFQ to Suppliers</button>
+
+          <button type="submit" id="rfqSubmitBtn" class="btn btn-orange" style="padding: 0.75rem 1.75rem; font-weight: 600; font-size: 0.95rem;">
+            🚀 Post Requirement (Broadcast to Suppliers)
+          </button>
         </form>
       </div>
 
-      <div class="panel-card">
-        <h2 style="margin-bottom: 1.5rem; color: var(--color-navy-deep);">My Active RFQs & Quotations</h2>
+      <!-- Active RFQs List -->
+      <div class="panel-card" id="listSection">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="color: var(--color-navy-deep); font-size: 1.35rem; margin-bottom: 0.25rem;">My Active Requirements & RFQs</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.85rem; margin: 0;" id="rfqCountLabel">You can post unlimited requirements.</p>
+          </div>
+          <button class="btn btn-outline" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;" onclick="loadRFQs()">🔄 Refresh</button>
+        </div>
         <div id="rfqList">
-          Loading RFQs...
+          <p style="text-align: center; color: #64748b; padding: 2rem;">Loading requirements...</p>
+        </div>
+      </div>
+
+      <!-- Direct Inquiries Section (Hidden by default) -->
+      <div class="panel-card" id="inquiriesSection" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="color: var(--color-navy-deep); font-size: 1.35rem; margin-bottom: 0.25rem;">Direct Supplier Inquiries</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.85rem; margin: 0;">Messages sent directly to product sellers.</p>
+          </div>
+          <button class="btn btn-outline" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;" onclick="loadBuyerLeads()">🔄 Refresh</button>
+        </div>
+        <div id="inquiriesList">
+          <p style="text-align: center; color: #64748b; padding: 2rem;">Loading direct inquiries...</p>
         </div>
       </div>
     </section>
   </main>
 
   <script src="js/auth.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/translator.js"></script>
+  <script src="js/mobile-nav.js"></script>
   <script>
+    let activeTab = 'rfq';
+
+    function switchView(tab) {
+      activeTab = tab;
+      const menuLinks = document.querySelectorAll('.im-menu a');
+      menuLinks[0].classList.toggle('active', tab === 'rfq');
+      menuLinks[1].classList.toggle('active', tab === 'inquiries');
+
+      document.getElementById('postSection').style.display = tab === 'rfq' ? 'block' : 'none';
+      document.getElementById('listSection').style.display = tab === 'rfq' ? 'block' : 'none';
+      document.getElementById('inquiriesSection').style.display = tab === 'inquiries' ? 'block' : 'none';
+
+      if (tab === 'inquiries') {
+        loadBuyerLeads();
+      } else {
+        loadRFQs();
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       const token = auth.getToken();
       if (!token) return window.location.href = 'login.html';
       
-      const profile = await auth.getProfile();
-      if(profile) document.getElementById('userNameDisplay').innerText = profile.user.name;
+      try {
+        const localU = auth.getUser();
+        if (localU) {
+          document.getElementById('userNameDisplay').innerText = localU.name + ' (Buyer)';
+        }
+        const profile = await auth.getProfile();
+        if (profile && profile.user) {
+          document.getElementById('userNameDisplay').innerText = profile.user.name + ' (Buyer)';
+        }
+      } catch(e) {}
 
-      loadRFQs();
+      await loadRFQs();
     });
 
     document.getElementById('rfqForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('rfqSubmitBtn');
+      btn.disabled = true;
+      btn.innerText = 'Broadcasting...';
+
       try {
+        const productVal = document.getElementById('rfqProduct').value.trim();
+        const qtyVal = document.getElementById('rfqQty').value;
+        const unitVal = document.getElementById('rfqUnit').value;
+        const targetPrice = document.getElementById('rfqPrice').value;
+        const detailsVal = document.getElementById('rfqDetails').value.trim();
+
         const payload = {
-          product: document.getElementById('rfqProduct').value,
-          qty: document.getElementById('rfqQty').value,
-          target_price: document.getElementById('rfqPrice').value,
-          details: document.getElementById('rfqDetails').value
+          product: productVal + (unitVal ? ` (${qtyVal} ${unitVal})` : ''),
+          qty: qtyVal + ' ' + unitVal,
+          target_price: targetPrice || null,
+          details: detailsVal || 'No additional specifications provided.'
         };
-        const res = await fetch('https://flenko-backend.onrender.com/api/buyer/rfqs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.getToken()}` },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if(data.success) {
-          alert('RFQ Broadcasted to Premium Suppliers successfully!');
+
+        const data = await auth.postBuyerRfq(payload);
+        if (data.success) {
+          alert('✅ Requirement posted successfully! Suppliers in this category will receive your RFQ.');
           document.getElementById('rfqForm').reset();
-          loadRFQs();
+          await loadRFQs();
         } else {
-          alert('Failed to post RFQ.');
+          alert('Failed to post RFQ: ' + (data.error || 'Server error'));
         }
-      } catch(err) {
-        alert('Network Error');
+      } catch (err) {
+        alert('Network Error while posting requirement.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Post Requirement (Broadcast to Suppliers)';
       }
     });
 
     async function loadRFQs() {
       try {
-        const res = await fetch('https://flenko-backend.onrender.com/api/buyer/rfqs', {
-          headers: { 'Authorization': `Bearer ${auth.getToken()}` }
-        });
-        const data = await res.json();
+        const data = await auth.getBuyerRfqs();
+        const container = document.getElementById('rfqList');
+        const countLabel = document.getElementById('rfqCountLabel');
         
-        if (data.rfqs && data.rfqs.length > 0) {
-          document.getElementById('rfqList').innerHTML = data.rfqs.map(r => `
+        if (data && data.rfqs && data.rfqs.length > 0) {
+          if (countLabel) countLabel.innerText = `Total requirements posted: ${data.rfqs.length} (Unlimited)`;
+          container.innerHTML = data.rfqs.map(r => `
             <div class="rfq-card">
-              <div style="display:flex; justify-content:space-between;">
-                <h4>${r.product}</h4>
-                <span class="badge" style="background:var(--color-navy-deep); color:white;">Qty: ${r.qty}</span>
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
+                <div>
+                  <h4>${r.product}</h4>
+                  <div class="meta">
+                    📅 Posted on: ${new Date(r.created_at).toLocaleDateString()} &bull; 
+                    🏷️ Target Rate: ${r.target_price && Number(r.target_price) > 0 ? `₹${r.target_price}` : '<span style="color:var(--color-blue-primary); font-weight:600;">Best Rates on Request</span>'}
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <span class="badge" style="background:var(--color-blue-primary); color:white; padding:4px 8px;">Qty: ${r.qty}</span>
+                  <button class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#ef4444; border-color:#ef4444;" onclick="deleteRfqItem(${r.id})" title="Delete this requirement">🗑️ Delete</button>
+                </div>
               </div>
-              <div class="meta">Posted on: ${new Date(r.created_at).toLocaleDateString()} | Target Price: ₹${r.target_price || 'N/A'}</div>
-              <p style="font-size: 0.875rem; color: var(--color-text-main);">${r.details}</p>
               
-              <div style="margin-top: 1rem; border-top: 1px dashed var(--color-border); padding-top: 1rem;">
-                <h5 style="margin-bottom: 0.5rem;">Received Quotations (${r.quotes ? r.quotes.length : 0})</h5>
+              <p style="font-size: 0.875rem; color: var(--color-text-main); margin-bottom: 0.5rem; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: 4px; border: 1px solid #e2e8f0;">
+                ${r.details || 'No additional details.'}
+              </p>
+              
+              <div style="margin-top: 0.75rem; border-top: 1px dashed var(--color-border); padding-top: 0.75rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <strong style="font-size: 0.85rem; color: var(--color-navy-deep);">Received Supplier Quotations (${r.quotes ? r.quotes.length : 0})</strong>
+                  ${!(r.quotes && r.quotes.length > 0) ? '<span style="font-size:0.75rem; color:#0284c7;">Awaiting supplier responses...</span>' : ''}
+                </div>
                 ${(r.quotes || []).map(q => `
                   <div class="quote-card">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-                      <strong style="color:var(--color-teal);">Supplier: ${q.supplier_name}</strong>
-                      <strong style="color:var(--color-navy-deep);">Quoted: ₹${q.price_quoted}</strong>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
+                      <strong style="color:var(--color-blue-primary);">🏢 ${q.supplier_name || 'Verified Supplier'}</strong>
+                      <strong style="color:var(--color-flenko-orange); font-size:1rem;">₹${q.price_quoted}</strong>
                     </div>
-                    <p style="font-size:0.875rem; margin-bottom:0.5rem;">${q.message}</p>
-                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="alert('Creating Purchase Order for ₹${q.price_quoted}...')">Generate Purchase Order</button>
+                    <p style="font-size:0.85rem; margin-bottom:0.5rem; color:#334155;">${q.message || 'Supplier offered direct quote for this requirement.'}</p>
+                    <button class="btn btn-orange" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="alert('Proceeding to order confirmation for ₹${q.price_quoted} with ${q.supplier_name}!')">
+                      Accept & Connect Supplier
+                    </button>
                   </div>
                 `).join('')}
-                ${!(r.quotes && r.quotes.length > 0) ? '<p style="font-size:0.75rem; color:var(--color-text-muted);">Waiting for suppliers to respond...</p>' : ''}
               </div>
             </div>
           `).join('');
         } else {
-          document.getElementById('rfqList').innerHTML = '<p>You have not posted any RFQs yet.</p>';
+          if (countLabel) countLabel.innerText = 'No requirements active right now.';
+          container.innerHTML = `
+            <div style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📝</div>
+              <h3 style="font-size: 1.1rem; color: var(--color-navy-deep); margin-bottom: 0.25rem;">You haven't posted any buy requirements yet</h3>
+              <p style="font-size: 0.85rem; margin-bottom: 1rem;">Use the form above to broadcast your product or service specifications to suppliers.</p>
+            </div>
+          `;
         }
-      } catch(err) {
-        document.getElementById('rfqList').innerHTML = '<p style="color:red;">Error loading RFQs.</p>';
+      } catch (err) {
+        document.getElementById('rfqList').innerHTML = '<p style="color:red; text-align:center; padding:2rem;">Could not load requirements. Please refresh.</p>';
+      }
+    }
+
+    async function deleteRfqItem(id) {
+      if (confirm('Are you sure you want to delete this requirement?')) {
+        try {
+          const res = await auth.deleteBuyerRfq(id);
+          if (res.success) {
+            await loadRFQs();
+          } else {
+            alert('Failed to delete requirement: ' + (res.error || ''));
+          }
+        } catch(e) {
+          alert('Network Error.');
+        }
+      }
+    }
+
+    async function loadBuyerLeads() {
+      try {
+        const data = await auth.getBuyerLeads();
+        const container = document.getElementById('inquiriesList');
+        if (data && data.leads && data.leads.length > 0) {
+          container.innerHTML = data.leads.map(l => `
+            <div class="rfq-card">
+              <div style="display:flex; justify-content:space-between;">
+                <h4>${l.product_needed}</h4>
+                <span class="badge" style="background:#e0f2fe; color:var(--color-blue-primary);">${l.status || 'Sent'}</span>
+              </div>
+              <div class="meta">Sent on: ${new Date(l.created_at).toLocaleDateString()}</div>
+              <p style="font-size: 0.85rem; color: var(--color-text-main);">${l.details}</p>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="text-align:center; padding:2rem; color:#64748b;">No direct inquiries sent yet.</p>';
+        }
+      } catch (e) {
+        document.getElementById('inquiriesList').innerHTML = '<p style="color:red; text-align:center;">Failed to load inquiries.</p>';
       }
     }
   </script>

@@ -14,36 +14,37 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="css/mobile.css">
   
   <style>
-    /* Alibaba-Style Super Top Bar */
-    .alibaba-top-bar {
+    /* Flenko-Style Super Top Bar */
+    .flenko-top-bar {
       background: #f8fafc;
       border-bottom: 1px solid #e2e8f0;
       font-size: 0.78rem;
       color: #64748b;
       padding: 0.35rem 0;
     }
-    .alibaba-top-bar .container {
+    .flenko-top-bar .container {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .alibaba-top-left, .alibaba-top-right {
+    .flenko-top-left, .flenko-top-right {
       display: flex;
       align-items: center;
       gap: 1.25rem;
     }
-    .alibaba-top-bar a {
+    .flenko-top-bar a {
       color: #64748b;
       text-decoration: none;
     }
-    .alibaba-top-bar a:hover {
-      color: var(--color-alibaba-orange);
+    .flenko-top-bar a:hover {
+      color: var(--color-flenko-orange);
     }
 
-    /* Alibaba Main Header */
-    .alibaba-header {
+    /* Flenko Main Header */
+    .flenko-header {
       background: var(--color-white);
       border-bottom: 1px solid #e2e8f0;
       padding: 0.85rem 0;
@@ -51,19 +52,19 @@
       top: 0;
       z-index: 1000;
     }
-    .alibaba-header-row {
+    .flenko-header-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1.5rem;
     }
     
-    /* Alibaba Iconic Search Box */
-    .alibaba-search-box {
+    /* Flenko Iconic Search Box */
+    .flenko-search-box {
       flex: 1;
       max-width: 720px;
       display: flex;
-      border: 2px solid var(--color-alibaba-orange);
+      border: 2px solid var(--color-flenko-orange);
       border-radius: var(--radius-md);
       overflow: hidden;
       background: var(--color-white);
@@ -79,7 +80,7 @@
       cursor: pointer;
       outline: none;
     }
-    .alibaba-search-input {
+    .flenko-search-input {
       flex: 1;
       border: none;
       padding: 0.6rem 1rem;
@@ -87,8 +88,8 @@
       outline: none;
       color: var(--color-text-main);
     }
-    .alibaba-search-btn {
-      background: var(--color-alibaba-orange);
+    .flenko-search-btn {
+      background: var(--color-flenko-orange);
       color: var(--color-white);
       border: none;
       padding: 0 1.75rem;
@@ -100,18 +101,18 @@
       cursor: pointer;
       transition: background var(--transition-fast);
     }
-    .alibaba-search-btn:hover {
-      background: var(--color-alibaba-orange-hover);
+    .flenko-search-btn:hover {
+      background: var(--color-flenko-orange-hover);
     }
 
-    /* Alibaba Sub Navigation Bar */
-    .alibaba-sub-nav {
+    /* Flenko Sub Navigation Bar */
+    .flenko-sub-nav {
       background: var(--color-white);
       border-bottom: 1px solid #e2e8f0;
       font-size: 0.85rem;
       font-weight: 600;
     }
-    .alibaba-sub-nav .container {
+    .flenko-sub-nav .container {
       display: flex;
       align-items: center;
       gap: 2rem;
@@ -126,7 +127,7 @@
       cursor: pointer;
       padding: 0.25rem 0;
     }
-    .alibaba-sub-nav a {
+    .flenko-sub-nav a {
       color: #334155;
       text-decoration: none;
       transition: color var(--transition-fast);
@@ -134,16 +135,16 @@
       align-items: center;
       gap: 0.35rem;
     }
-    .alibaba-sub-nav a:hover {
-      color: var(--color-alibaba-orange);
+    .flenko-sub-nav a:hover {
+      color: var(--color-flenko-orange);
     }
 
-    /* Alibaba 3-Column Hero Section */
-    .alibaba-hero-section {
+    /* Flenko 3-Column Hero Section */
+    .flenko-hero-section {
       background: #f1f5f9;
       padding: 1.5rem 0 2rem;
     }
-    .alibaba-hero-grid {
+    .flenko-hero-grid {
       display: grid;
       grid-template-columns: 240px 1fr 280px;
       gap: 1.25rem;
@@ -159,32 +160,54 @@
       padding: 0.5rem 0;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     .category-mega-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.55rem 1rem;
-      font-size: 0.825rem;
+      padding: 0.52rem 0.95rem;
+      font-size: 0.8125rem;
       font-weight: 500;
       color: #334155;
       text-decoration: none;
       transition: all var(--transition-fast);
+      cursor: pointer;
     }
-    .category-mega-item:hover {
-      background: #fff7ed;
-      color: var(--color-alibaba-orange);
+    .category-mega-item:hover, .category-mega-item.active {
+      background: #eff6ff;
+      color: var(--color-blue-primary);
       font-weight: 600;
-      padding-left: 1.25rem;
+      padding-left: 1.15rem;
     }
     .category-mega-item .cat-icon {
       margin-right: 0.5rem;
       font-size: 1rem;
     }
 
+    /* Flenko Mega Flyout Drawer */
+    .mega-flyout-drawer {
+      display: none;
+      position: absolute;
+      left: 100%;
+      top: 0;
+      width: 580px;
+      min-height: 100%;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      z-index: 999;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+    @media (max-width: 1024px) {
+      .mega-flyout-drawer { display: none !important; }
+    }
+
     /* Center: Hero Billboard Carousel */
     .hero-billboard {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #0A2342 0%, #0F4C9B 100%);
       border-radius: var(--radius-md);
       padding: 2.5rem 2rem;
       color: var(--color-white);
@@ -202,7 +225,7 @@
       bottom: -50px;
       width: 300px;
       height: 300px;
-      background: radial-gradient(circle, rgba(255, 106, 0, 0.25) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(255, 107, 0, 0.35) 0%, transparent 70%);
       pointer-events: none;
     }
     .hero-tagline {
@@ -233,7 +256,7 @@
     }
 
     /* Value Pillars Bar inside Center Banner */
-    .alibaba-value-pillars {
+    .flenko-value-pillars {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 0.75rem;
@@ -258,8 +281,8 @@
       font-size: 0.7rem;
     }
 
-    /* Right: Alibaba Quick RFQ & Buyer Card */
-    .alibaba-right-cards {
+    /* Right: Flenko Quick RFQ & Buyer Card */
+    .flenko-right-cards {
       display: flex;
       flex-direction: column;
       gap: 1rem;
@@ -296,7 +319,7 @@
       margin-bottom: 0.85rem;
     }
 
-    /* Alibaba Core Row: Trade Solutions */
+    /* Flenko Core Row: Trade Solutions */
     .trade-solutions-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -316,7 +339,7 @@
     }
     .trade-solution-card:hover {
       box-shadow: var(--shadow-md);
-      border-color: var(--color-alibaba-orange);
+      border-color: var(--color-flenko-orange);
       transform: translateY(-2px);
     }
     .trade-solution-icon {
@@ -330,13 +353,13 @@
       flex-shrink: 0;
     }
 
-    /* Alibaba Product Card Format */
-    .alibaba-product-grid {
+    /* Flenko Product Card Format */
+    .flenko-product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
       gap: 1.25rem;
     }
-    .alibaba-card {
+    .flenko-card {
       background: var(--color-white);
       border: 1px solid #e2e8f0;
       border-radius: var(--radius-md);
@@ -346,44 +369,44 @@
       transition: all var(--transition-fast);
       box-shadow: var(--shadow-sm);
     }
-    .alibaba-card:hover {
+    .flenko-card:hover {
       box-shadow: 0 10px 20px -3px rgba(0,0,0,0.1);
       border-color: #cbd5e1;
       transform: translateY(-3px);
     }
-    .alibaba-card-img-wrap {
+    .flenko-card-img-wrap {
       position: relative;
       aspect-ratio: 1;
       background: #f8fafc;
       overflow: hidden;
     }
-    .alibaba-card-img {
+    .flenko-card-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transition: transform var(--transition-normal);
     }
-    .alibaba-card:hover .alibaba-card-img {
+    .flenko-card:hover .flenko-card-img {
       transform: scale(1.05);
     }
-    .alibaba-card-body {
+    .flenko-card-body {
       padding: 0.85rem;
       display: flex;
       flex-direction: column;
       flex: 1;
     }
-    .alibaba-card-price {
+    .flenko-card-price {
       font-size: 1.15rem;
       font-weight: 800;
       color: #0f172a;
       margin-bottom: 0.2rem;
     }
-    .alibaba-card-moq {
+    .flenko-card-moq {
       font-size: 0.75rem;
       color: #64748b;
       margin-bottom: 0.5rem;
     }
-    .alibaba-card-title {
+    .flenko-card-title {
       font-size: 0.84rem;
       font-weight: 600;
       color: #1e293b;
@@ -394,7 +417,7 @@
       line-height: 1.35;
       margin-bottom: 0.65rem;
     }
-    .alibaba-supplier-meta {
+    .flenko-supplier-meta {
       margin-top: auto;
       padding-top: 0.6rem;
       border-top: 1px solid #f1f5f9;
@@ -423,7 +446,7 @@
       color: inherit;
     }
     .pavilion-card:hover {
-      border-color: var(--color-alibaba-orange);
+      border-color: var(--color-flenko-orange);
       box-shadow: var(--shadow-md);
       transform: translateY(-2px);
     }
@@ -444,41 +467,41 @@
 
     /* Mobile Responsive Breakpoints */
     @media (max-width: 992px) {
-      .alibaba-hero-grid {
+      .flenko-hero-grid {
         grid-template-columns: 1fr;
       }
       .category-mega-sidebar {
         display: none;
       }
-      .alibaba-right-cards {
+      .flenko-right-cards {
         display: grid;
         grid-template-columns: 1fr 1fr;
       }
-      .alibaba-search-box {
+      .flenko-search-box {
         max-width: 100%;
       }
     }
     @media (max-width: 768px) {
-      .alibaba-top-bar {
+      .flenko-top-bar {
         display: none;
       }
-      .alibaba-header-row {
+      .flenko-header-row {
         flex-direction: column;
         gap: 0.75rem;
       }
-      .alibaba-search-box {
+      .flenko-search-box {
         width: 100%;
       }
-      .alibaba-sub-nav .container {
+      .flenko-sub-nav .container {
         overflow-x: auto;
         white-space: nowrap;
         gap: 1.25rem;
         padding: 0.5rem 1rem;
       }
-      .alibaba-right-cards {
+      .flenko-right-cards {
         grid-template-columns: 1fr;
       }
-      .alibaba-value-pillars {
+      .flenko-value-pillars {
         grid-template-columns: 1fr;
       }
       .hero-billboard h1 {
@@ -489,51 +512,53 @@
 </head>
 <body>
 
-  <!-- 1. Alibaba Global Super Top Bar -->
-  <div class="alibaba-top-bar">
+  <!-- 1. Flenko Global Super Top Bar -->
+  <div class="flenko-top-bar">
     <div class="container">
-      <div class="alibaba-top-left">
+      <div class="flenko-top-left">
         <span style="display:flex; align-items:center; gap:0.4rem;">
           Deliver to:
           <div id="topBarCountryPicker"></div>
         </span>
-        <span>🌐 Global Trade / English</span>
-        <span>Currency: <strong>USD ($)</strong></span>
+        <span onclick="window.openFlenkoTranslatorModal()" style="cursor:pointer; display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);" title="Translate Website into Any Language">
+          <span class="flenko-lang-display-flag">🌐</span> <span class="flenko-lang-display-name" style="font-weight:700;">Global Trade / English</span> ▾
+        </span>
+        <div id="topBarCurrencyPicker"></div>
       </div>
-      <div class="alibaba-top-right">
+      <div class="flenko-top-right">
         <a href="products.html?feature=trade_assurance">🛡️ Flenko Trade Assurance</a>
         <a href="business-directory.html">Verified Factory Audits</a>
         <a href="rfq.html">Buyer Central</a>
-        <a href="sell.html" style="color:var(--color-alibaba-orange); font-weight:700;">Become a Global Supplier</a>
+        <a href="sell.html" style="color:var(--color-flenko-orange); font-weight:700;">Become a Global Supplier</a>
       </div>
     </div>
   </div>
 
-  <!-- 2. Alibaba Main Header -->
-  <header class="alibaba-header">
-    <div class="container alibaba-header-row">
+  <!-- 2. Flenko Main Header -->
+  <header class="flenko-header">
+    <div class="container flenko-header-row">
       <!-- Brand Logo -->
       <a href="index.html" class="brand" style="display:flex; align-items:center; gap:0.5rem; text-decoration:none;">
-        <img src="assets/images/logo.png" alt="Flenko" style="height: 44px; width: auto; object-fit: contain;">
-        <span style="font-size:0.65rem; background:#fff7ed; color:var(--color-alibaba-orange); font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #fed7aa; text-transform:uppercase;">
+        <img src="assets/images/logo.png" alt="Flenko" style="height: 58px; max-height: 64px; width: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));">
+        <span style="font-size:0.65rem; background:#fff7ed; color:var(--color-flenko-orange); font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #fed7aa; text-transform:uppercase;">
           GLOBAL B2B
         </span>
       </a>
 
-      <!-- Alibaba Signature Search Bar -->
-      <form class="alibaba-search-box" action="products.html" method="GET">
+      <!-- Flenko Signature Search Bar -->
+      <form class="flenko-search-box" action="products.html" method="GET">
         <select class="search-type-select" name="type">
           <option value="products">Products</option>
           <option value="suppliers">Suppliers</option>
           <option value="rfq">RFQs</option>
         </select>
         
-        <input type="text" name="q" class="alibaba-search-input" placeholder="What are you looking for? (e.g. CNC Machines, Solar Panels, Packaging Boxes...)" autocomplete="off">
+        <input type="text" name="q" class="flenko-search-input" placeholder="What are you looking for? (e.g. CNC Machines, Solar Panels, Packaging Boxes...)" autocomplete="off">
         
         <!-- Searchable Country Selector in Search Box -->
         <div id="headerSearchCountryContainer"></div>
 
-        <button type="submit" class="alibaba-search-btn">
+        <button type="submit" class="flenko-search-btn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           Search
         </button>
@@ -556,10 +581,10 @@
     </div>
   </header>
 
-  <!-- 3. Alibaba Sub Navigation Bar -->
-  <nav class="alibaba-sub-nav">
+  <!-- 3. Flenko Sub Navigation Bar -->
+  <nav class="flenko-sub-nav">
     <div class="container">
-      <a href="products.html" class="all-categories-trigger">
+      <a href="categories.html" class="all-categories-trigger">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         All Categories
       </a>
@@ -575,77 +600,84 @@
       <a href="business-directory.html">
         <span>🏭</span> Global Factory Directory
       </a>
-      <a href="rfq.html" style="margin-left:auto; color:var(--color-alibaba-orange); font-weight:700;">
+      <a href="rfq.html" style="margin-left:auto; color:var(--color-flenko-orange); font-weight:700;">
         <span>✉️</span> One Request, Multiple Quotes (RFQ)
       </a>
     </div>
   </nav>
 
-  <!-- 4. Alibaba 3-Column Hero Section -->
-  <section class="alibaba-hero-section">
-    <div class="container alibaba-hero-grid">
+  <!-- 4. Flenko 3-Column Hero Section -->
+  <section class="flenko-hero-section">
+    <div class="container flenko-hero-grid">
       
-      <!-- Left Column: Categories Mega Menu -->
-      <aside class="category-mega-sidebar">
-        <a href="products.html?cat=Industrial+Machinery" class="category-mega-item">
+      <!-- Left Column: Categories Mega Menu with Flyout Drawer -->
+      <aside class="category-mega-sidebar" id="categoryMegaSidebar">
+        <a href="products.html?cat=Consumer+Electronics" class="category-mega-item" data-cat-id="consumer-electronics">
+          <span><span class="cat-icon">⚡</span> Consumer Electronics</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Industrial+Machinery" class="category-mega-item" data-cat-id="industrial-machinery">
           <span><span class="cat-icon">⚙️</span> Industrial Machinery</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Electrical+%26+Electronics" class="category-mega-item">
-          <span><span class="cat-icon">⚡</span> Consumer & Commercial Electronics</span>
+        <a href="products.html?cat=Apparel+%26+Accessories" class="category-mega-item" data-cat-id="apparel-fashion">
+          <span><span class="cat-icon">👗</span> Apparel & Fashion</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Packaging+%26+Printing" class="category-mega-item">
+        <a href="products.html?cat=Home+%26+Garden" class="category-mega-item" data-cat-id="home-garden">
+          <span><span class="cat-icon">🏡</span> Home & Garden</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Beauty+%26+Personal+Care" class="category-mega-item" data-cat-id="beauty-personal-care">
+          <span><span class="cat-icon">💄</span> Beauty & Personal Care</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Packaging+%26+Printing" class="category-mega-item" data-cat-id="packaging-printing">
           <span><span class="cat-icon">📦</span> Packaging & Printing</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Chemicals+%26+Dyes" class="category-mega-item">
-          <span><span class="cat-icon">🧪</span> Chemicals & Raw Materials</span>
+        <a href="products.html?cat=Vehicles+%26+Transportation" class="category-mega-item" data-cat-id="vehicles-auto-parts">
+          <span><span class="cat-icon">🚗</span> Vehicles & Auto Parts</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Building+%26+Construction" class="category-mega-item">
-          <span><span class="cat-icon">🏗️</span> Construction & Real Estate</span>
+        <a href="products.html?cat=Construction+%26+Real+Estate" class="category-mega-item" data-cat-id="construction-real-estate">
+          <span><span class="cat-icon">🏗️</span> Construction & Building</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Medical+%26+Pharma" class="category-mega-item">
-          <span><span class="cat-icon">💊</span> Medical Devices & Healthcare</span>
+        <a href="products.html?cat=Electrical+Equipment+%26+Supplies" class="category-mega-item" data-cat-id="electrical-equipment">
+          <span><span class="cat-icon">🔌</span> Electrical & Power</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Textiles+%26+Apparel" class="category-mega-item">
-          <span><span class="cat-icon">🧵</span> Apparel, Fabrics & Garments</span>
+        <a href="products.html?cat=Tools+%26+Hardware" class="category-mega-item" data-cat-id="tools-hardware">
+          <span><span class="cat-icon">🔧</span> Tools & Hardware</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Agriculture+%26+Food" class="category-mega-item">
+        <a href="products.html?cat=Medical+Devices+%26+Healthcare" class="category-mega-item" data-cat-id="medical-healthcare">
+          <span><span class="cat-icon">🏥</span> Medical & Healthcare</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Chemicals+%26+Raw+Materials" class="category-mega-item" data-cat-id="chemicals-raw-materials">
+          <span><span class="cat-icon">🧪</span> Chemicals & Polymers</span>
+          <span>›</span>
+        </a>
+        <a href="products.html?cat=Agriculture+%26+Bulk+Food" class="category-mega-item" data-cat-id="agriculture-bulk-food">
           <span><span class="cat-icon">🌾</span> Agriculture & Bulk Food</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Renewable+Energy" class="category-mega-item">
-          <span><span class="cat-icon">☀️</span> Solar Energy & Clean Tech</span>
+        <a href="products.html?cat=Renewable+Energy+%26+Solar" class="category-mega-item" data-cat-id="renewable-energy">
+          <span><span class="cat-icon">☀️</span> Solar & Renewable Energy</span>
           <span>›</span>
         </a>
-        <a href="products.html?cat=Automotive+%26+Parts" class="category-mega-item">
-          <span><span class="cat-icon">🚗</span> Vehicle Parts & Accessories</span>
-          <span>›</span>
-        </a>
-        <a href="products.html?cat=Metals+%26+Minerals" class="category-mega-item">
-          <span><span class="cat-icon">⚙️</span> Metals, Alloys & Metallurgy</span>
-          <span>›</span>
-        </a>
-        <a href="products.html?cat=Furniture+%26+Decor" class="category-mega-item">
-          <span><span class="cat-icon">🛋️</span> Commercial Furniture & Decor</span>
-          <span>›</span>
-        </a>
-        <a href="products.html?cat=Hardware+%26+Tools" class="category-mega-item">
-          <span><span class="cat-icon">🔧</span> Hardware, Tools & Fasteners</span>
-          <span>›</span>
-        </a>
-        <a href="products.html" class="category-mega-item" style="color:var(--color-alibaba-orange); font-weight:700; border-top:1px solid #f1f5f9;">
-          <span><span>🔍</span> View All 18 Sectors</span>
+        <a href="categories.html" class="category-mega-item" style="color:var(--color-flenko-orange); font-weight:700; border-top:1px solid #f1f5f9;">
+          <span><span>🔍</span> View All 22+ Industries</span>
           <span>→</span>
         </a>
+
+        <!-- Interactive Flyout Drawer -->
+        <div id="megaFlyoutDrawer" class="mega-flyout-drawer"></div>
       </aside>
 
-      <!-- Center Column: Alibaba Feature Billboard -->
+      <!-- Center Column: Flenko Feature Billboard -->
       <div class="hero-billboard">
         <div>
           <span class="hero-tagline">Worldwide Factory Sourcing Hub</span>
@@ -663,7 +695,7 @@
         </div>
 
         <!-- 3 Value Pillars Bar -->
-        <div class="alibaba-value-pillars">
+        <div class="flenko-value-pillars">
           <div class="value-pillar-item">
             <span style="font-size:1.5rem;">🛡️</span>
             <div>
@@ -689,7 +721,7 @@
       </div>
 
       <!-- Right Column: Buyer RFQ & Welcome Card -->
-      <div class="alibaba-right-cards">
+      <div class="flenko-right-cards">
         <!-- Card 1: User Welcome -->
         <div class="buyer-welcome-card">
           <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
@@ -719,11 +751,15 @@
             <input type="text" name="name" class="form-control" placeholder="Product name or keyword..." required style="font-size:0.8125rem; padding:0.45rem 0.65rem;">
             <div style="display:flex; gap:0.5rem;">
               <input type="number" name="qty" class="form-control" placeholder="Qty (e.g. 1000)" required style="flex:1; font-size:0.8125rem; padding:0.45rem 0.65rem;">
-              <select name="unit" class="form-control" style="width:90px; font-size:0.8125rem; padding:0.45rem 0.4rem;">
-                <option>Pieces</option>
-                <option>Sets</option>
-                <option>Tons</option>
-                <option>Kg</option>
+              <select name="unit" class="form-control" style="width:115px; font-size:0.8125rem; padding:0.45rem 0.4rem;">
+                <option value="Pieces">Pieces</option>
+                <option value="Running Ft.">Running Ft.</option>
+                <option value="Units">Units</option>
+                <option value="Sets">Sets</option>
+                <option value="Sq. Ft.">Sq. Ft.</option>
+                <option value="Meters">Meters</option>
+                <option value="Kg">Kg</option>
+                <option value="Tons">Tons</option>
               </select>
             </div>
             <button type="submit" class="btn btn-orange" style="width:100%; margin-top:auto; padding:0.5rem; font-size:0.84rem;">
@@ -736,7 +772,7 @@
     </div>
   </section>
 
-  <!-- 5. Alibaba Core Trade Solutions (Trade Assurance, RTS, OEM/ODM) -->
+  <!-- 5. Flenko Core Trade Solutions (Trade Assurance, RTS, OEM/ODM) -->
   <section class="container" style="margin-top: 2rem;">
     <div class="trade-solutions-grid">
       <div class="trade-solution-card">
@@ -773,11 +809,11 @@
     </div>
   </section>
 
-  <!-- 6. Alibaba Style Product Section: Top Ranking & Factory Direct Picks -->
+  <!-- 6. Flenko Style Product Section: Top Ranking & Factory Direct Picks -->
   <main class="container" style="margin-top: 3.5rem;">
     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1.5rem; border-bottom:2px solid #e2e8f0; padding-bottom:0.75rem;">
       <div>
-        <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--color-alibaba-orange); letter-spacing:1px;">FACTORY DIRECT DEALS</div>
+        <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--color-flenko-orange); letter-spacing:1px;">FACTORY DIRECT DEALS</div>
         <h2 style="font-size:1.6rem; color:var(--color-navy-midnight); font-weight:800; margin-top:0.15rem;">Top-Ranking Wholesale Products</h2>
       </div>
       <div style="display:flex; gap:0.5rem; align-items:center;">
@@ -787,16 +823,16 @@
       </div>
     </div>
 
-    <!-- Product Grid Populated with Alibaba Cards -->
-    <div class="alibaba-product-grid" id="homepageProductGrid">
+    <!-- Product Grid Populated with Flenko Cards -->
+    <div class="flenko-product-grid" id="homepageProductGrid">
       <!-- Populated via JS -->
     </div>
   </main>
 
-  <!-- 7. Source by Global Regions (Alibaba Global Pavilion) -->
+  <!-- 7. Source by Global Regions (Flenko Global Pavilion) -->
   <section class="container" style="margin-top: 4rem;">
     <div style="text-align:center; max-width:650px; margin:0 auto 1.5rem;">
-      <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--color-alibaba-orange); letter-spacing:1px;">GLOBAL TRADE CORRIDORS</div>
+      <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--color-flenko-orange); letter-spacing:1px;">GLOBAL TRADE CORRIDORS</div>
       <h2 style="font-size:1.6rem; color:var(--color-navy-midnight); font-weight:800; margin-top:0.2rem;">Source from World's Leading Manufacturing Pavilions</h2>
       <p style="font-size:0.875rem; color:#64748b; margin-top:0.25rem;">Discover verified suppliers specialized in key regional exports and trade standards.</p>
     </div>
@@ -835,7 +871,7 @@
     </div>
   </section>
 
-  <!-- 8. Alibaba-Style Global RFQ Banner -->
+  <!-- 8. Flenko-Style Global RFQ Banner -->
   <section class="container" style="margin-top: 4rem;">
     <div style="background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius:var(--radius-lg); padding:3rem 2.5rem; color:var(--color-white); display:flex; align-items:center; justify-content:space-between; gap:2rem; flex-wrap:wrap; box-shadow:var(--shadow-lg);">
       <div style="max-width:550px;">
@@ -861,16 +897,16 @@
   </section>
 
   <!-- 9. Floating RFQ Button -->
-  <a href="rfq.html" class="get-quotes-floating" style="background:var(--color-alibaba-orange);">
+  <a href="rfq.html" class="get-quotes-floating" style="background:var(--color-flenko-orange);">
     ✉️ Post Buy RFQ (Free)
   </a>
 
-  <!-- 10. Alibaba Full Global Footer -->
+  <!-- 10. Flenko Full Global Footer -->
   <footer class="site-footer" style="margin-top: 5rem; background:#0b1320; color:#94a3b8; padding:3.5rem 0 2rem;">
     <div class="container footer-grid">
       <div class="footer-col">
         <a href="index.html" class="brand" style="display:flex; align-items:center; margin-bottom:1rem;">
-          <img src="assets/images/logo.png" alt="Flenko" style="height: 42px; width: auto; object-fit: contain;">
+          <img src="assets/images/logo.png" alt="Flenko" style="height: 50px; width: auto; object-fit: contain;">
         </a>
         <p style="font-size:0.84rem; line-height:1.6; color:#94a3b8;">
           Flenko.com is the world's leading B2B wholesale marketplace connecting global buyers and verified manufacturers across 190+ countries with Trade Assurance order protection.
@@ -904,7 +940,7 @@
       <div class="footer-col">
         <h4 style="color:var(--color-white); margin-bottom:1rem;">Sell on Flenko</h4>
         <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:0.6rem; font-size:0.84rem;">
-          <li><a href="sell.html" style="color:var(--color-alibaba-orange); font-weight:700;">Supplier Membership</a></li>
+          <li><a href="sell.html" style="color:var(--color-flenko-orange); font-weight:700;">Supplier Membership</a></li>
           <li><a href="supplier-dashboard.html" style="color:#94a3b8;">Supplier Operations Dashboard</a></li>
           <li><a href="business-software.html" style="color:#94a3b8;">Flenko Global CRM & ERP</a></li>
           <li><a href="pricing.html" style="color:#94a3b8;">Verified Pro Subscription Plans</a></li>
@@ -919,22 +955,93 @@
 
   <script src="js/auth.js"></script>
   <script src="js/countries.js"></script>
+  <script src="js/categories-data.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/inquiry-modal.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/translator.js"></script>
+  <script src="js/mobile-nav.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // Initialize Top Bar Country Selector
+      // Initialize Top Bar Currency Picker
+      if (window.currencyManager) {
+        window.currencyManager.renderTopBarPicker('#topBarCurrencyPicker');
+      }
+
+      // Initialize Top Bar Country Selector (Deliver to - independent from supplier search)
       new FlenkoCountryPicker({
         container: '#topBarCountryPicker',
         style: 'dropdown',
+        storageKey: 'flenko_deliver_country',
+        defaultCountry: 'India',
         inputName: 'top_country'
       });
 
-      // Initialize Header Search Country Selector
+      // Initialize Header Search Country Selector (Supplier Country)
       new FlenkoCountryPicker({
         container: '#headerSearchCountryContainer',
         style: 'dropdown',
+        storageKey: 'flenko_supplier_country',
+        defaultCountry: 'Worldwide (All Countries)',
         inputName: 'country'
       });
+
+      // Flenko Flyout Mega Menu Interaction
+      const sidebar = document.getElementById('categoryMegaSidebar');
+      const drawer = document.getElementById('megaFlyoutDrawer');
+      if (sidebar && drawer && typeof FLENKO_CATEGORIES !== 'undefined') {
+        const items = sidebar.querySelectorAll('.category-mega-item[data-cat-id]');
+        
+        items.forEach(item => {
+          item.addEventListener('mouseenter', () => {
+            const catId = item.getAttribute('data-cat-id');
+            const cat = FLENKO_CATEGORIES.find(c => c.id === catId);
+            if (!cat) return;
+
+            items.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            drawer.innerHTML = `
+              <div style="border-bottom:1px solid #e2e8f0; padding-bottom:1rem; margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                  <span style="font-size:1.75rem;">${cat.icon}</span>
+                  <div>
+                    <h3 style="font-size:1.15rem; font-weight:800; color:#0A2342; margin:0;">${cat.name}</h3>
+                    <p style="font-size:0.78rem; color:#64748b; margin:0.15rem 0 0;">${cat.description}</p>
+                  </div>
+                </div>
+                <a href="products.html?cat=${encodeURIComponent(cat.name)}" class="btn btn-orange" style="font-size:0.75rem; padding:0.35rem 0.75rem; white-space:nowrap;">
+                  Browse All →
+                </a>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1.5rem;">
+                ${cat.subcategories.map(sub => `
+                  <a href="products.html?cat=${encodeURIComponent(cat.name)}&q=${encodeURIComponent(sub.query)}" style="display:flex; align-items:center; justify-content:space-between; padding:0.55rem 0.75rem; background:#f8fafc; border-radius:6px; font-size:0.825rem; color:#1e293b; text-decoration:none; transition:all 0.15s ease; border:1px solid #f1f5f9;">
+                    <span>${sub.name}</span>
+                    ${sub.popular ? '<span style="font-size:0.65rem; background:#ffedd5; color:#ea580c; padding:1px 5px; border-radius:3px; font-weight:700;">HOT</span>' : '<span style="color:#94a3b8; font-size:0.75rem;">›</span>'}
+                  </a>
+                `).join('')}
+              </div>
+
+              <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.85rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:0.8rem; color:#1e40af;">
+                  Need custom manufacturing or OEM/ODM quotes?
+                </div>
+                <a href="rfq.html?cat=${encodeURIComponent(cat.name)}" class="btn btn-primary" style="font-size:0.75rem; padding:0.35rem 0.85rem;">
+                  Post ${cat.name} RFQ
+                </a>
+              </div>
+            `;
+            drawer.style.display = 'block';
+          });
+        });
+
+        sidebar.addEventListener('mouseleave', (e) => {
+          drawer.style.display = 'none';
+          items.forEach(i => i.classList.remove('active'));
+        });
+      }
 
       // Auth state update
       const token = auth.getToken();
@@ -956,6 +1063,227 @@
             `;
           }
         } catch(e){}
+      }
+
+      // Populate Homepage Product Grid
+      const homeGrid = document.getElementById('homepageProductGrid');
+      if (homeGrid) {
+        let homeProducts = [];
+        const primaryApi = window.API_BASE || 'https://flenko-backend.onrender.com/api';
+        const fallbackApi = window.API_FALLBACK || '/api';
+
+        const fetchProducts = async (base) => {
+          try {
+            const res = await fetch(`${base}/public/products`);
+            const ct = (res.headers && res.headers.get('content-type')) || '';
+            if (res.ok && !ct.includes('text/html')) {
+              const data = await res.json();
+              return (data && data.products) ? data.products : [];
+            }
+          } catch(e) {}
+          return null;
+        };
+
+        let rawList = await fetchProducts(primaryApi);
+        if ((!rawList || rawList.length === 0) && primaryApi !== fallbackApi) {
+          rawList = await fetchProducts(fallbackApi);
+        }
+
+        const getFlag = (cName) => {
+          if (!cName) return '📍';
+          const match = (window.FLENKO_COUNTRIES || []).find(c => c.name.toLowerCase() === cName.toLowerCase() || c.code.toLowerCase() === cName.toLowerCase());
+          return match ? match.flag : (cName === 'United States' ? '🇺🇸' : (cName === 'Germany' ? '🇩🇪' : (cName === 'China' ? '🇨🇳' : (cName === 'United Arab Emirates' ? '🇦🇪' : '🇮🇳'))));
+        };
+
+        if (rawList && rawList.length > 0) {
+          homeProducts = rawList.map(p => ({
+            id: p.id,
+            name: p.name,
+            category: p.category || 'General B2B',
+            country: p.country || 'India',
+            flag: getFlag(p.country || 'India'),
+            supplier: { name: p.supplier_name || ('Verified Supplier #' + p.supplier_id), location: (p.city || 'Industrial Hub') + ', ' + (p.country || 'India') },
+            price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
+            moq: p.moq || 1,
+            unit: p.unit || 'Pieces',
+            image: p.image_url || 'assets/images/logo.png',
+            badge: 'VERIFIED PRO'
+          }));
+        }
+
+        // Merge locally added seller products
+        try {
+          const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+          if (localList.length > 0) {
+            const existingIds = new Set(homeProducts.map(p => String(p.id)));
+            localList.forEach(lp => {
+              if (!existingIds.has(String(lp.id))) {
+                homeProducts.unshift({
+                  id: lp.id,
+                  name: lp.name,
+                  category: lp.category || 'General B2B',
+                  country: lp.country || 'India',
+                  flag: getFlag(lp.country || 'India'),
+                  supplier: { name: lp.supplier_name || 'Verified Supplier', location: (lp.city || 'Industrial Hub') + ', ' + (lp.country || 'India') },
+                  price: (lp.price !== null && lp.price !== undefined && lp.price !== '' && Number(lp.price) > 0) ? parseFloat(lp.price) : null,
+                  moq: lp.moq || 1,
+                  unit: lp.unit || 'Pieces',
+                  image: lp.image_url || 'assets/images/logo.png',
+                  badge: 'VERIFIED PRO'
+                });
+              }
+            });
+          }
+        } catch(e) {}
+
+        // Default catalog items if empty
+        const defaultHomeCatalog = [
+          {
+            id: 'def_101',
+            name: "Automatic Rotary Industrial Bakery Oven",
+            category: "Bakery Equipment & Food Processing",
+            country: "India",
+            flag: "🇮🇳",
+            supplier: { name: "Apex Thermal Engineering Works", location: "Ahmedabad, India" },
+            price: 385000,
+            moq: 1,
+            unit: "Sets",
+            image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80",
+            badge: "VERIFIED PRO"
+          },
+          {
+            id: 'def_102',
+            name: "Heavy Duty 5-Ply Corrugated Shipping Boxes",
+            category: "Industrial Packaging & Boxes",
+            country: "India",
+            flag: "🇮🇳",
+            supplier: { name: "Flenko Kraft Pack Global Ltd", location: "New Delhi, India" },
+            price: 24,
+            moq: 500,
+            unit: "Pieces",
+            image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80",
+            badge: "FACTORY DIRECT"
+          },
+          {
+            id: 'def_103',
+            name: "Commercial Monocrystalline Solar Panels 550W Tier-1",
+            category: "Solar Energy & Renewable Power",
+            country: "United States",
+            flag: "🇺🇸",
+            supplier: { name: "SunVolt Americas Industrial Energy", location: "Houston, United States" },
+            price: 8500,
+            moq: 20,
+            unit: "Units",
+            image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?w=600&auto=format&fit=crop&q=80",
+            badge: "TOP SUPPLIER"
+          },
+          {
+            id: 'def_104',
+            name: "Custom Enterprise B2B Web Application & ERP Software",
+            category: "Web Development & IT Services",
+            country: "United States",
+            flag: "🇺🇸",
+            supplier: { name: "CloudMatrix Software Solutions LLC", location: "California, United States" },
+            price: 45000,
+            moq: 1,
+            unit: "Projects",
+            image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80",
+            badge: "VERIFIED PRO"
+          },
+          {
+            id: 'def_105',
+            name: "High Precision CNC Lathe Milling Machine",
+            category: "Machinery & Industrial Tools",
+            country: "Germany",
+            flag: "🇩🇪",
+            supplier: { name: "Bavaria Precision Machining GMBH", location: "Stuttgart, Germany" },
+            price: 1850000,
+            moq: 1,
+            unit: "Units",
+            image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80",
+            badge: "GERMAN VERIFIED"
+          },
+          {
+            id: 'def_106',
+            name: "Industrial Grade Stainless Steel Flanges & Valves",
+            category: "Metals & Construction Hardware",
+            country: "United Arab Emirates",
+            flag: "🇦🇪",
+            supplier: { name: "Gulf Steel & Pipeline Supplies FZE", location: "Dubai, United Arab Emirates" },
+            price: 1450,
+            moq: 50,
+            unit: "Pieces",
+            image: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80",
+            badge: "VERIFIED PRO"
+          },
+          {
+            id: 'def_107',
+            name: "100% Organic Combed Cotton Yarn & Fabric Rolls",
+            category: "Textiles & Apparel Fabrics",
+            country: "India",
+            flag: "🇮🇳",
+            supplier: { name: "Shree Ganesh Textiles Mill Pvt Ltd", location: "Surat, India" },
+            price: 280,
+            moq: 100,
+            unit: "Meters",
+            image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80",
+            badge: "FACTORY DIRECT"
+          },
+          {
+            id: 'def_108',
+            name: "Industrial Lithium LiFePO4 Energy Storage Battery 48V",
+            category: "Electronics & Energy Storage",
+            country: "China",
+            flag: "🇨🇳",
+            supplier: { name: "Shenzhen EverPower Battery Tech Co", location: "Shenzhen, China" },
+            price: 65000,
+            moq: 5,
+            unit: "Units",
+            image: "https://images.unsplash.com/photo-1558441719-8b489c63f7d1?w=600&auto=format&fit=crop&q=80",
+            badge: "TOP SUPPLIER"
+          }
+        ];
+
+        const existingNames = new Set(homeProducts.map(p => (p.name || '').toLowerCase().trim()));
+        defaultHomeCatalog.forEach(dp => {
+          if (!existingNames.has(dp.name.toLowerCase().trim())) {
+            homeProducts.push(dp);
+          }
+        });
+
+        homeGrid.innerHTML = homeProducts.slice(0, 8).map(p => `
+          <article class="flenko-card">
+            <div class="flenko-card-img-wrap">
+              <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='assets/images/logo.png'">
+              <span class="flenko-badge flenko-badge-blue">${p.badge}</span>
+              <span class="flenko-country-flag" title="${p.country}">${p.flag}</span>
+            </div>
+            <div class="flenko-card-body">
+              <h3 class="flenko-card-title" title="${p.name}">
+                <a href="products.html?q=${encodeURIComponent(p.name)}">${p.name}</a>
+              </h3>
+              <div class="flenko-price-main">
+                ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
+                  ? `<span class="flenko-price-val">₹${Number(p.price).toLocaleString('en-IN')}</span> <span class="flenko-price-unit">/ ${p.unit}</span>`
+                  : `<span style="color:#0284c7; font-weight:700; font-size:0.85rem;">Contact supplier to get best rates</span>`
+                }
+              </div>
+              <div class="flenko-moq-row">
+                <span>MOQ: <strong>${p.moq} ${p.unit}</strong></span>
+                <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
+              </div>
+              <div class="flenko-supplier-box">
+                <div class="flenko-supp-name">${p.supplier.name}</div>
+                <div class="flenko-supp-loc">📍 ${p.supplier.location}</div>
+              </div>
+              <div class="flenko-card-actions">
+                <button type="button" class="btn btn-outline" style="width:100%; font-size:0.8rem; padding:0.45rem;" onclick="window.location.href='products.html?q=${encodeURIComponent(p.name)}'">
+                  Contact Supplier
+                </button>
+              </div>
+            </div>
+          </article>
+        `).join('');
       }
     });
   </script>

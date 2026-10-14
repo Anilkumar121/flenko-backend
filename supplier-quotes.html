@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
     body { background-color: #f1f3f6; }
     .im-panel-header { background: var(--color-white); border-bottom: 2px solid var(--color-navy-deep); padding: 0.5rem 0; position: sticky; top: 0; z-index: 100; }
@@ -76,6 +77,8 @@
   </div>
 
   <script src="js/auth.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/translator.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       if (!auth.getToken()) return window.location.href = 'login.html';
@@ -147,5 +150,6 @@
       }
     });
   </script>
+  <script src="js/mobile-nav.js"></script>
 </body>
 </html>
