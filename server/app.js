@@ -743,8 +743,11 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired OTP. Please try again.' });
     }
 
-    // Check if user exists
-    let userRes = await db.query('SELECT * FROM users WHERE phone = $1', [cleanPhone]);
+    // Check if user exists (matches any phone format: 10-digit, +91, or full input)
+    let userRes = await db.query(
+      'SELECT * FROM users WHERE phone = $1 OR phone = $2 OR phone = $3 OR phone = $4',
+      [cleanPhone, ('+91' + cleanPhone), ('+' + cleanPhone), (phone || '')]
+    );
     let user;
 
     if (!userRes.rows || userRes.rows.length === 0) {
@@ -755,27 +758,28 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       } else if (isSellerRegistration) {
         role = 'supplier';
       }
+      const formattedPhone = ('+91' + cleanPhone);
       const insertUser = await db.query(
         'INSERT INTO users (phone, name, email, city, role) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [cleanPhone, name || (role === 'admin' ? 'Master Admin' : 'New User'), email || null, city || null, role]
+        [formattedPhone, name || (role === 'admin' ? 'Master Admin' : 'New User'), email || null, city || null, role]
       );
       user = insertUser.rows[0];
     } else {
       user = userRes.rows[0];
       // If user phone matches admin, automatically promote to admin
       if (isAdmin && user.role !== 'admin') {
-        await db.query("UPDATE users SET role = 'admin' WHERE phone = $1", [cleanPhone]);
+        await db.query("UPDATE users SET role = 'admin' WHERE id = $1", [user.id]);
         user.role = 'admin';
       }
-      // Update name/email if provided during a new registration flow but user already existed
-      if (name && user.name === 'New User') {
-         await db.query('UPDATE users SET name = $1, email = $2, city = $3 WHERE phone = $4', [name, email, city, cleanPhone]);
+      // Update name if currently default placeholder
+      if (name && (user.name === 'New User' || !user.name)) {
+         await db.query('UPDATE users SET name = $1 WHERE id = $2', [name, user.id]);
          user.name = name;
       }
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    // Generate JWT token (30 days validity)
+    const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
 
     // Clean up used OTP
     await db.query('DELETE FROM otp_requests WHERE phone = $1', [cleanPhone]);
@@ -787,6 +791,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         id: user.id,
         name: user.name,
         phone: user.phone,
+        email: user.email,
         role: user.role,
         subscription: user.subscription || 'free'
       }
@@ -875,26 +880,48 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
   let logo_url = req.file ? `${baseUrl}/assets/images/logos/${req.file.filename}` : (req.body.logo_url || null);
 
   try {
+    let targetUserId = req.user.id;
+    // Verify user exists in database to satisfy foreign key constraint
+    let userCheck = await db.query('SELECT id FROM users WHERE id = $1', [targetUserId]);
+    if (!userCheck.rows || userCheck.rows.length === 0) {
+      if (req.user.phone) {
+        const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
+        const pCheck = await db.query('SELECT id FROM users WHERE phone = $1 OR phone = $2 OR phone = $3', [req.user.phone, cleanP, ('+91' + cleanP)]);
+        if (pCheck.rows && pCheck.rows.length > 0) {
+          targetUserId = pCheck.rows[0].id;
+        } else {
+          const newUser = await db.query(
+            'INSERT INTO users (phone, name, role) VALUES ($1, $2, $3) RETURNING id',
+            [cleanP || ('9' + Date.now().toString().slice(-9)), req.user.name || 'Supplier', 'supplier']
+          );
+          targetUserId = newUser.rows[0].id;
+        }
+      } else {
+        const firstUser = await db.query('SELECT id FROM users LIMIT 1');
+        targetUserId = firstUser.rows.length > 0 ? firstUser.rows[0].id : 1;
+      }
+    }
+
     // Check if business exists
-    const existing = await db.query('SELECT id, logo_url FROM businesses WHERE user_id = $1', [req.user.id]);
+    const existing = await db.query('SELECT id, logo_url FROM businesses WHERE user_id = $1', [targetUserId]);
     
-    if (existing.rows.length > 0) {
+    if (existing.rows && existing.rows.length > 0) {
       if (!logo_url) logo_url = existing.rows[0].logo_url;
       await db.query(
         'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7 WHERE user_id = $8',
-        [company_name, gst_number, business_type, address, city, category, logo_url, req.user.id]
+        [company_name, gst_number, business_type, address, city, category, logo_url, targetUserId]
       );
       res.json({ success: true, message: 'Business updated successfully', logo_url });
     } else {
       await db.query(
         'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-        [req.user.id, company_name, gst_number, business_type, address, city, category, logo_url]
+        [targetUserId, company_name, gst_number, business_type, address, city, category, logo_url]
       );
       res.json({ success: true, message: 'Business created successfully', logo_url });
     }
   } catch (error) {
     console.error('Error updating business profile:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
 

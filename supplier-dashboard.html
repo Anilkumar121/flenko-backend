@@ -227,6 +227,12 @@
         if (localSeller && localSeller.company_name) {
           document.getElementById('welcomeName').innerText = localSeller.company_name;
         }
+        if (localSeller && localSeller.logo_url) {
+          const logoImg = document.getElementById('userLogoImg');
+          logoImg.src = localSeller.logo_url;
+          logoImg.style.display = 'block';
+          document.getElementById('userAvatarText').style.display = 'none';
+        }
       } catch(e) {}
 
       const profileData = await auth.getProfile();

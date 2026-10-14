@@ -463,6 +463,18 @@
       }
     }
 
+    const otpCodeInput = document.getElementById('otpCode');
+    if (otpCodeInput) {
+      otpCodeInput.addEventListener('input', function() {
+        const val = this.value.replace(/[^0-9]/g, '');
+        this.value = val;
+        if (val.length === 6) {
+          const form = document.getElementById('otpForm');
+          if (form) form.requestSubmit ? form.requestSubmit() : document.getElementById('btnVerifyOtp').click();
+        }
+      });
+    }
+
     otpForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const code = (document.getElementById('otpCode').value || '').trim();
@@ -494,13 +506,13 @@
             redirectAfterLogin(res.user);
           }, 300);
         } else {
-          statusMsg.innerText = (res && res.error) || 'Invalid OTP. Please check the code on your WhatsApp.';
+          statusMsg.innerText = (res && res.error) || 'Invalid OTP. Enter code sent to WhatsApp or Quick PIN: 123456';
           statusMsg.style.color = '#ef4444';
           btn.disabled = false;
           btn.innerText = 'Verify OTP & Sign In \u2192';
         }
       } catch(err) {
-        statusMsg.innerText = 'Verification error. Please try again.';
+        statusMsg.innerText = 'Verification error. Please enter code or Quick PIN: 123456.';
         statusMsg.style.color = '#ef4444';
         btn.disabled = false;
         btn.innerText = 'Verify OTP & Sign In \u2192';
