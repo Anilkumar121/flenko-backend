@@ -995,37 +995,69 @@ app.get('/api/public/businesses', async (req, res) => {
 // Route: Get Supplier Leads
 app.get('/api/leads', authMiddleware, async (req, res) => {
   try {
+    const userId = parseInt(req.user.id);
     const userPhone = (req.user && req.user.phone) ? req.user.phone.replace(/[^0-9]/g, '').slice(-10) : '';
-    
-    // Fetch leads specifically for this supplier OR universal broadcast leads
+
+    // Fetch leads: specific direct inquiries for this supplier OR universal market buy leads
     let leadsRes;
     try {
       leadsRes = await db.query(
-        'SELECT * FROM leads WHERE (supplier_id = $1 OR supplier_id IS NULL OR supplier_id = 0) ORDER BY created_at DESC',
-        [req.user.id]
+        "SELECT * FROM leads WHERE ((is_direct = true OR is_direct = 'true') AND supplier_id = $1) OR (is_direct = false OR is_direct IS NULL OR is_direct = 'false') ORDER BY created_at DESC",
+        [userId]
       );
     } catch(qErr) {
-      leadsRes = await db.query('SELECT * FROM leads ORDER BY created_at DESC');
+      try {
+        leadsRes = await db.query(
+          'SELECT * FROM leads WHERE (supplier_id = $1 OR supplier_id IS NULL OR supplier_id = 0) ORDER BY created_at DESC',
+          [userId]
+        );
+      } catch(e2) {
+        leadsRes = await db.query('SELECT * FROM leads ORDER BY created_at DESC');
+      }
     }
 
-    // Sort raw leads so direct leads specifically for this supplier take top priority in deduplication
+    // Fetch verified payments made BY THIS SPECIFIC SUPPLIER
+    let paidLeadIds = new Set();
+    try {
+      const payRes = await db.query(
+        "SELECT lead_id FROM lead_payments WHERE supplier_id = $1 AND status = 'verified'",
+        [userId]
+      );
+      (payRes.rows || []).forEach(p => paidLeadIds.add(parseInt(p.lead_id)));
+    } catch(pErr) {}
+
+    // Sort raw leads so:
+    // 1. Direct inquiries specifically for this supplier come FIRST
+    // 2. BuyLeads that this seller has unlocked come before unpaid duplicates
+    // 3. Newest first
     const rawList = leadsRes.rows || [];
     rawList.sort((a, b) => {
-      const aDirect = ((a.is_direct === true || a.is_direct === 'true') && parseInt(a.supplier_id) === parseInt(req.user.id)) ? 1 : 0;
-      const bDirect = ((b.is_direct === true || b.is_direct === 'true') && parseInt(b.supplier_id) === parseInt(req.user.id)) ? 1 : 0;
+      const aDirect = ((a.is_direct === true || a.is_direct === 'true') && parseInt(a.supplier_id) === userId) ? 1 : 0;
+      const bDirect = ((b.is_direct === true || b.is_direct === 'true') && parseInt(b.supplier_id) === userId) ? 1 : 0;
       if (bDirect !== aDirect) return bDirect - aDirect;
+
+      const aPaid = paidLeadIds.has(parseInt(a.id)) ? 1 : 0;
+      const bPaid = paidLeadIds.has(parseInt(b.id)) ? 1 : 0;
+      if (bPaid !== aPaid) return bPaid - aPaid;
+
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
 
     const seen = new Set();
     const uniqueLeads = [];
     for (const lead of rawList) {
+      const isLeadDirect = (lead.is_direct === true || lead.is_direct === 'true') && parseInt(lead.supplier_id) === userId;
       const bPhone10 = (lead.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
-      if (userPhone && bPhone10 && userPhone === bPhone10) continue;
+
+      // Never filter out direct inquiries sent to this seller! Only skip self-created RFQs
+      if (!isLeadDirect && userPhone && bPhone10 && userPhone === bPhone10) continue;
       
-      const key = `${(lead.product_needed || '').trim().toLowerCase()}_${bPhone10}`;
-      if (!seen.has(key)) {
-        seen.add(key);
+      const dedupeKey = isLeadDirect 
+        ? `direct_${lead.id}` 
+        : `market_${(lead.product_needed || '').trim().toLowerCase()}_${bPhone10}`;
+
+      if (!seen.has(dedupeKey)) {
+        seen.add(dedupeKey);
         uniqueLeads.push(lead);
       }
     }
@@ -1033,15 +1065,17 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
     // Check User Subscription Status (Default to free if null)
     let plan = 'free';
     try {
-      const userRes = await db.query('SELECT subscription FROM users WHERE id = $1', [req.user.id]);
+      const userRes = await db.query('SELECT subscription FROM users WHERE id = $1', [userId]);
       plan = (userRes.rows[0] && userRes.rows[0].subscription) ? userRes.rows[0].subscription : 'free';
     } catch(e) {}
 
     let processedLeads = uniqueLeads.map((lead) => {
-      // Direct inquiry: specifically for this supplier (from their products or profile)
-      const isDirect = (lead.is_direct === true || lead.is_direct === 'true') && (parseInt(lead.supplier_id) === parseInt(req.user.id));
-      const isPaid = lead.is_paid === true || lead.is_paid === 'true';
-      const isUnlocked = isDirect || isPaid;
+      const leadIdNum = parseInt(lead.id);
+      // Direct inquiry: specifically for this supplier (100% Free, always unlocked)
+      const isDirect = (lead.is_direct === true || lead.is_direct === 'true') && (parseInt(lead.supplier_id) === userId);
+      // BuyLead unlocked ONLY if THIS specific supplier has paid for it in lead_payments!
+      const isPaidByMe = paidLeadIds.has(leadIdNum);
+      const isUnlocked = isDirect || isPaidByMe;
 
       let displayPhone = (lead.buyer_phone || '').trim();
       if (!isUnlocked) {
@@ -1057,7 +1091,7 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
         buyer_phone: isUnlocked ? lead.buyer_phone : displayPhone,
         real_phone: isUnlocked ? lead.buyer_phone : undefined,
         is_direct: isDirect,
-        is_paid: isPaid,
+        is_paid: isPaidByMe,
         locked: !isUnlocked
       };
     });
@@ -1069,10 +1103,11 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
   }
 });
 
-// Route: Pay & Unlock Market BuyLead (₹50) with Fraud Protection Shield
+// Route: Pay & Unlock Market BuyLead (₹50) with Fraud Protection Shield (Per-Seller Unlock)
 app.post('/api/leads/:id/pay', authMiddleware, async (req, res) => {
   try {
     const leadId = parseInt(req.params.id);
+    const userId = parseInt(req.user.id);
     const { utr, screenshot_url } = req.body || {};
 
     if (!leadId) {
@@ -1086,11 +1121,25 @@ app.post('/api/leads/:id/pay', authMiddleware, async (req, res) => {
     }
     const lead = leadRes.rows[0];
 
-    // If already paid and unlocked
-    if (lead.is_paid === true || lead.is_paid === 'true') {
+    // Check if THIS specific supplier has already paid for this lead
+    const alreadyPaidRes = await db.query(
+      "SELECT id FROM lead_payments WHERE lead_id = $1 AND supplier_id = $2 AND status = 'verified'",
+      [leadId, userId]
+    );
+    if (alreadyPaidRes.rows && alreadyPaidRes.rows.length > 0) {
       return res.json({ 
         success: true, 
-        message: 'Lead is already unlocked! Contact details are accessible.', 
+        message: 'You have already unlocked this BuyLead! Contact details are accessible.', 
+        buyer_phone: lead.buyer_phone,
+        lead_id: leadId 
+      });
+    }
+
+    // If it's this supplier's own direct lead, it's already free!
+    if (lead.is_direct && parseInt(lead.supplier_id) === userId) {
+      return res.json({ 
+        success: true, 
+        message: 'This is your direct inquiry! Contact details are free.', 
         buyer_phone: lead.buyer_phone,
         lead_id: leadId 
       });
@@ -1140,18 +1189,21 @@ app.post('/api/leads/:id/pay', authMiddleware, async (req, res) => {
       console.warn('Duplicate UTR check warning:', dupErr.message);
     }
 
-    // Record verified payment in ledger
+    // Record verified payment in ledger SPECIFICALLY FOR THIS SUPPLIER
     try {
       await db.query(
         'INSERT INTO lead_payments (lead_id, supplier_id, amount, utr, screenshot_url, payer_phone, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [leadId, req.user.id, 50.00, cleanUtr, screenshot_url || null, req.user.phone || '', 'verified']
+        [leadId, userId, 50.00, cleanUtr, screenshot_url || null, req.user.phone || '', 'verified']
       );
     } catch(insErr) {
       console.warn('Could not record lead payment ledger:', insErr.message);
     }
 
-    // Unlock lead
-    await db.query('UPDATE leads SET is_paid = true WHERE id = $1', [leadId]);
+    // NOTE: DO NOT update shared broadcast lead row globally! 
+    // It must remain locked for other sellers who have not paid.
+    if (lead.supplier_id && parseInt(lead.supplier_id) === userId) {
+      await db.query('UPDATE leads SET is_paid = true WHERE id = $1', [leadId]);
+    }
 
     // Send instant WhatsApp alert to Master Admin for fraud monitoring
     try {
@@ -1165,7 +1217,7 @@ app.post('/api/leads/:id/pay', authMiddleware, async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: '₹50 Payment verified successfully! Contact details are now visible.', 
+      message: '₹50 Payment verified successfully! Contact details are now unlocked for your account.', 
       buyer_phone: realPhone,
       lead_id: leadId,
       utr: cleanUtr
@@ -1263,7 +1315,7 @@ app.get('/api/buyer/leads', authMiddleware, async (req, res) => {
 
 // Route: Submit an Inquiry/Lead (Public / Guest / Registered Buyer)
 const handleLeadSubmission = async (req, res) => {
-  const { supplier_id, product_needed, buyer_phone, details, quantity, unit, target_price, message, product, item_name } = req.body;
+  const { supplier_id, product_needed, buyer_phone, details, quantity, unit, target_price, message, product, item_name, product_id, productId, supplierId, seller_id, sellerId } = req.body;
   const leadDetails = details || `Quantity: ${quantity || 'Flexible'} ${unit || 'Pieces'} | Target: ${target_price || 'Best Market Rate'} | Message: ${message || 'Please send quotations.'}`;
   const effectiveProduct = product_needed || product || item_name || 'Wholesale Requirement';
   const effectivePhone = buyer_phone || (req.user ? req.user.phone : '9999999999');
@@ -1271,14 +1323,42 @@ const handleLeadSubmission = async (req, res) => {
   const cleanPhone10 = (effectivePhone || '').replace(/[^0-9]/g, '').slice(-10);
 
   try {
-    let directSupplierId = (supplier_id && supplier_id !== 0 && supplier_id !== '0' && String(supplier_id) !== 'null') ? parseInt(supplier_id) : null;
+    const rawSupplierId = supplier_id || supplierId || seller_id || sellerId;
+    let directSupplierId = (rawSupplierId && rawSupplierId !== 0 && rawSupplierId !== '0' && String(rawSupplierId) !== 'null' && String(rawSupplierId) !== 'undefined') ? parseInt(rawSupplierId) : null;
     
+    // Auto-resolve supplier_id from product if missing
+    const effectiveProductId = product_id || productId || req.body.productId || req.body.product_id;
+    if (!directSupplierId && effectiveProductId) {
+      try {
+        const prodRes = await db.query('SELECT supplier_id FROM products WHERE id = $1', [parseInt(effectiveProductId)]);
+        if (prodRes.rows && prodRes.rows.length > 0 && prodRes.rows[0].supplier_id) {
+          directSupplierId = parseInt(prodRes.rows[0].supplier_id);
+        }
+      } catch (pe) {
+        console.warn('Error resolving supplier_id from product:', pe.message);
+      }
+    }
+
     // 1. DIRECT PRODUCT INQUIRY: specifically to this supplier (from product page or seller profile)
     if (directSupplierId) {
-      await db.query(
-        'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
-        [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true]
-      );
+      let newLeadId = Date.now();
+      try {
+        const insRes = await db.query(
+          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct, is_paid) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+          [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true, true]
+        );
+        if (insRes.rows && insRes.rows[0] && insRes.rows[0].id) {
+          newLeadId = insRes.rows[0].id;
+        }
+      } catch(insErr) {
+        console.warn('Direct lead insert error:', insErr.message);
+        try {
+          await db.query(
+            'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
+            [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true]
+          );
+        } catch(e2) {}
+      }
       
       try {
         const supplierRes = await db.query('SELECT phone, name FROM users WHERE id = $1', [directSupplierId]);
@@ -1294,11 +1374,41 @@ const handleLeadSubmission = async (req, res) => {
         success: true, 
         message: 'Direct product inquiry sent directly to supplier', 
         is_direct: true, 
-        lead_id: Date.now() 
+        supplier_id: directSupplierId,
+        lead_id: newLeadId 
       });
     }
 
     // 2. GENERAL MARKET RFQ: Broadcast across verified suppliers as Buy Lead (₹50 unlock)
+    // Insert single shared BuyLead row (supplier_id = null, is_direct = false, is_paid = false)
+    let marketLeadId = Date.now();
+    try {
+      const insRes = await db.query(
+        'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct, is_paid) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [null, buyerId, effectiveProduct, effectivePhone, leadDetails, false, false]
+      );
+      if (insRes.rows && insRes.rows[0] && insRes.rows[0].id) {
+        marketLeadId = insRes.rows[0].id;
+      }
+    } catch(insErr) {
+      console.warn('Market lead insert error:', insErr.message);
+      try {
+        await db.query(
+          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
+          [null, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
+        );
+      } catch(e2) {}
+    }
+
+    // Also register into rfqs table so RFQ quotes work seamlessly
+    try {
+      await db.query(
+        'INSERT INTO rfqs (buyer_id, product, qty, target_price, details) VALUES ($1, $2, $3, $4, $5)',
+        [buyerId || 1, effectiveProduct, (quantity ? `${quantity} ${unit || ''}`.trim() : 'Bulk'), target_price || 'Best Market Rate', leadDetails]
+      );
+    } catch(e) {}
+
+    // Send WhatsApp notification alert to active suppliers without duplicating DB rows
     let activeSuppliers = [];
     try {
       const suppliersRes = await db.query(
@@ -1309,47 +1419,21 @@ const handleLeadSubmission = async (req, res) => {
         if (cleanPhone10 && sPhone10 === cleanPhone10) return false;
         return true;
       });
-    } catch(suppErr) {
-      console.warn('Could not query suppliers for broadcast:', suppErr.message);
-    }
-
-    // Insert BuyLead for active suppliers with is_direct = false
-    for (const supp of activeSuppliers.slice(0, 20)) {
-      try {
-        await db.query(
-          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
-          [supp.id, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
-        );
+      for (const supp of activeSuppliers.slice(0, 20)) {
         try {
           const waMsgBroad = `🌟 *New Buy Lead on Flenko!*\n\n*Requirement:* ${effectiveProduct}\n*Details:* ${leadDetails}\n\nLogin to Flenko Seller Panel to unlock and connect with this buyer!`;
           await sendWhatsAppMessage(supp.phone, waMsgBroad);
         } catch(e) {}
-      } catch(err) {
-        console.warn('Lead insert error for supplier:', supp.id, err.message);
       }
+    } catch(suppErr) {
+      console.warn('Could not query suppliers for broadcast notification:', suppErr.message);
     }
-
-    // Universal BuyLead entry (supplier_id = null, is_direct = false)
-    try {
-      await db.query(
-        'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
-        [null, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
-      );
-    } catch(e) {}
-
-    // Also register into rfqs table so RFQ quotes work seamlessly
-    try {
-      await db.query(
-        'INSERT INTO rfqs (buyer_id, product, qty, target_price, details) VALUES ($1, $2, $3, $4, $5)',
-        [buyerId || 1, effectiveProduct, (quantity ? `${quantity} ${unit || ''}`.trim() : 'Bulk'), target_price || 'Best Market Rate', leadDetails]
-      );
-    } catch(e) {}
 
     return res.json({ 
       success: true, 
       message: 'RFQ distributed successfully to suppliers as Buy Lead', 
       is_direct: false, 
-      lead_id: Date.now() 
+      lead_id: marketLeadId 
     });
   } catch (error) {
     console.error('Error submitting lead:', error);

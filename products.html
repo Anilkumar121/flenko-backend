@@ -917,7 +917,7 @@
             </div>
             
             <div class="flenko-card-body">
-              <div class="flenko-card-price" style="min-height:28px; display:flex; align-items:center;" onclick="openProductInquiry(${p.id})">
+              <div class="flenko-card-price" style="min-height:28px; display:flex; align-items:center;" onclick="openProductInquiry('${p.id}')">
                 ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
                   ? `${formatPriceRange(p)} <small style="font-size:0.75rem; font-weight:normal; color:#64748b; margin-left:4px;">/ ${p.unit || 'Pieces'}</small>`
                   : formatPriceRange(p)
@@ -948,10 +948,10 @@
               </div>
 
               <div style="display:flex; gap:0.4rem; margin-top:0.75rem;">
-                <button class="btn btn-orange" style="flex:1; padding:0.45rem 0.5rem; font-size:0.78rem;" onclick="openProductInquiry(${p.id})">
+                <button class="btn btn-orange" style="flex:1; padding:0.45rem 0.5rem; font-size:0.78rem;" onclick="openProductInquiry('${p.id}')">
                   Contact Supplier
                 </button>
-                <button class="btn btn-secondary" style="padding:0.45rem 0.6rem; font-size:0.78rem; border-color:#cbd5e1;" onclick="openProductInquiry(${p.id})" title="Chat / Send Inquiry">
+                <button class="btn btn-secondary" style="padding:0.45rem 0.6rem; font-size:0.78rem; border-color:#cbd5e1;" onclick="openProductInquiry('${p.id}')" title="Chat / Send Inquiry">
                   💬
                 </button>
               </div>
@@ -961,11 +961,11 @@
       }
 
       window.openProductInquiry = function(id) {
-        const p = (window.allProductsList || []).find(x => x.id === id);
+        const p = (window.allProductsList || []).find(x => String(x.id) === String(id));
         if (p && typeof window.openSupplierInquiry === 'function') {
           window.openSupplierInquiry(p);
         } else {
-          window.location.href = `rfq.html?product=${id}`;
+          window.location.href = `rfq.html?product=${encodeURIComponent(id)}`;
         }
       };
 

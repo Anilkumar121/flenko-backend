@@ -429,9 +429,15 @@ module.exports = {
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('FROM leads WHERE') && (text.includes('supplier_id') || text.includes('supplier_id IS NULL'))) {
+    if (text.includes('FROM leads WHERE') && (text.includes('supplier_id') || text.includes('supplier_id IS NULL') || text.includes('is_direct'))) {
       const targetSuppId = params[0];
-      const rows = (mockDB.leads || []).filter(l => l.supplier_id == targetSuppId || !l.supplier_id || l.supplier_id == 0);
+      const rows = (mockDB.leads || []).filter(l => {
+        const isDirect = l.is_direct === true || l.is_direct === 'true';
+        if (isDirect) {
+          return l.supplier_id == targetSuppId;
+        }
+        return true; // Buy leads are visible to all suppliers
+      });
       return { rows: rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
     }
     if (text.includes('SELECT * FROM leads WHERE supplier_id')) {
@@ -447,6 +453,7 @@ module.exports = {
         buyer_phone: params[3], 
         details: params[4], 
         is_direct: params[5],
+        is_paid: params[6] !== undefined ? params[6] : (params[5] === true),
         status: 'New', 
         created_at: new Date() 
       };
@@ -504,6 +511,16 @@ module.exports = {
       mockDB.subscription_payments.push(rec);
       saveMockDB();
       return { rows: [rec] };
+    }
+    if (text.includes('FROM lead_payments WHERE lead_id = $1 AND supplier_id = $2')) {
+      mockDB.lead_payments = mockDB.lead_payments || [];
+      const rows = mockDB.lead_payments.filter(p => p.lead_id == params[0] && p.supplier_id == params[1] && p.status === 'verified');
+      return { rows };
+    }
+    if (text.includes('FROM lead_payments WHERE supplier_id = $1')) {
+      mockDB.lead_payments = mockDB.lead_payments || [];
+      const rows = mockDB.lead_payments.filter(p => p.supplier_id == params[0] && (!text.includes('status =') || p.status === 'verified'));
+      return { rows };
     }
     if (text.includes('SELECT * FROM lead_payments') || text.includes('FROM lead_payments')) {
       mockDB.lead_payments = mockDB.lead_payments || [];

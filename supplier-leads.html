@@ -495,20 +495,24 @@
 
         // Merge local broadcast backup leads if available
         try {
+          const currentUserId = user ? (user.id || user.userId) : null;
           const localBroadcast = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
           if (localBroadcast.length > 0) {
             const seenIds = new Set(leads.map(l => String(l.id)));
             localBroadcast.forEach(lbl => {
-              if (!seenIds.has(String(lbl.id))) {
-                leads.unshift(lbl);
+              if (seenIds.has(String(lbl.id))) return;
+              // Never show another supplier's direct inquiry to this seller!
+              if (lbl.is_direct && lbl.supplier_id && currentUserId && String(lbl.supplier_id) !== String(currentUserId)) {
+                return;
               }
+              leads.unshift(lbl);
             });
           }
         } catch(err) {}
 
-        // Direct inquiries are free; Market BuyLeads remain locked until bought
+        // Direct inquiries for this supplier are 100% free; Market BuyLeads remain locked until bought
         allLeads = leads.map(l => {
-          const isDirect = l.is_direct === true || l.is_direct === 'true';
+          const isDirect = (l.is_direct === true || l.is_direct === 'true') && (!l.supplier_id || !user || String(l.supplier_id) === String(user.id));
           const isPaid = l.is_paid === true || l.is_paid === 'true';
           const isLocked = l.locked !== undefined ? l.locked : (!isDirect && !isPaid);
           return {
@@ -905,7 +909,7 @@
         updateMetrics();
         renderLeadList();
 
-        await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/status`, {
+        await auth.fetchWithFallback(`/leads/${leadId}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -949,7 +953,7 @@
 
       try {
         // Send quotation to backend
-        await fetch(`https://flenko-backend.onrender.com/api/supplier/rfqs/${leadId}/quote`, {
+        await auth.fetchWithFallback(`/supplier/rfqs/${leadId}/quote`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

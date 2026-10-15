@@ -207,57 +207,82 @@
 
     try {
       const supplierId = document.getElementById('inqSupplierId').value;
-    const productName = document.getElementById('inqProductName').innerText;
-    const quantity = document.getElementById('inqQuantity').value;
-    const unit = document.getElementById('inqUnit').value;
-    const targetPrice = document.getElementById('inqTargetPrice').value;
-    const message = document.getElementById('inqMessage').value;
-    const buyerName = document.getElementById('inqBuyerName').value;
-    const countryCode = document.getElementById('inqCountryCode') ? document.getElementById('inqCountryCode').value : '+91';
-    const rawBuyerPhone = document.getElementById('inqBuyerPhone').value.trim();
-    const buyerPhone = rawBuyerPhone.startsWith('+') ? rawBuyerPhone : (countryCode + rawBuyerPhone);
-    const supplierName = document.getElementById('inqSupplierName').innerText;
+      const productId = document.getElementById('inqProductId').value;
+      const productName = document.getElementById('inqProductName').innerText;
+      const quantity = document.getElementById('inqQuantity').value;
+      const unit = document.getElementById('inqUnit').value;
+      const targetPrice = document.getElementById('inqTargetPrice').value;
+      const message = document.getElementById('inqMessage').value;
+      const buyerName = document.getElementById('inqBuyerName').value;
+      const countryCode = document.getElementById('inqCountryCode') ? document.getElementById('inqCountryCode').value : '+91';
+      const rawBuyerPhone = document.getElementById('inqBuyerPhone').value.trim();
+      const buyerPhone = rawBuyerPhone.startsWith('+') ? rawBuyerPhone : (countryCode + rawBuyerPhone);
+      const supplierName = document.getElementById('inqSupplierName').innerText;
 
-    const payload = {
-      supplier_id: supplierId,
-      product_needed: productName,
-      buyer_phone: buyerPhone,
-      quantity: quantity,
-      unit: unit,
-      target_price: targetPrice,
-      message: message,
-      details: `Buyer: ${buyerName} | Qty: ${quantity} ${unit} | Target Price: ${targetPrice || 'Negotiable'} | Notes: ${message}`
-    };
+      const payload = {
+        supplier_id: supplierId,
+        product_id: productId,
+        productId: productId,
+        product_needed: productName,
+        buyer_phone: buyerPhone,
+        quantity: quantity,
+        unit: unit,
+        target_price: targetPrice,
+        message: message,
+        details: `Buyer: ${buyerName} | Qty: ${quantity} ${unit} | Target Price: ${targetPrice || 'Negotiable'} | Notes: ${message}`
+      };
 
-    let resOk = false;
-    try {
-      if (typeof auth !== 'undefined' && typeof auth.fetchWithFallback === 'function') {
-        const res = await auth.fetchWithFallback(`/leads`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(localStorage.getItem('flenko_token') ? { 'Authorization': `Bearer ${localStorage.getItem('flenko_token')}` } : {})
-          },
-          body: JSON.stringify(payload)
-        });
-        resOk = res.ok;
-      } else {
-        const apiBase = window.API_BASE || '/api';
-        const res = await fetch(`${apiBase}/leads`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(localStorage.getItem('flenko_token') ? { 'Authorization': `Bearer ${localStorage.getItem('flenko_token')}` } : {})
-          },
-          body: JSON.stringify(payload)
-        });
-        resOk = res.ok;
+      let resOk = false;
+      let resData = null;
+      try {
+        if (typeof auth !== 'undefined' && typeof auth.fetchWithFallback === 'function') {
+          const res = await auth.fetchWithFallback(`/leads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(localStorage.getItem('flenko_token') ? { 'Authorization': `Bearer ${localStorage.getItem('flenko_token')}` } : {})
+            },
+            body: JSON.stringify(payload)
+          });
+          resOk = res.ok;
+          try { resData = await res.json(); } catch(e) {}
+        } else {
+          const apiBase = window.API_BASE || '/api';
+          const res = await fetch(`${apiBase}/leads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(localStorage.getItem('flenko_token') ? { 'Authorization': `Bearer ${localStorage.getItem('flenko_token')}` } : {})
+            },
+            body: JSON.stringify(payload)
+          });
+          resOk = res.ok;
+          try { resData = await res.json(); } catch(e) {}
+        }
+      } catch(err) {
+        console.warn('Inquiry dispatch warning:', err);
       }
-    } catch(err) {
-      console.warn('Inquiry dispatch warning:', err);
-    }
       
       const refId = '#INQ-' + Math.floor(100000 + Math.random() * 900000);
+
+      // Save locally to broadcast leads for instant seller CRM reflection
+      try {
+        const leadItem = {
+          id: (resData && resData.lead_id) || Date.now(),
+          supplier_id: parseInt(supplierId) || (resData && resData.supplier_id) || 1,
+          product_needed: productName,
+          buyer_phone: buyerPhone,
+          details: `Buyer: ${buyerName} | Qty: ${quantity} ${unit} | Target Price: ${targetPrice || 'Negotiable'} | Notes: ${message}`,
+          is_direct: true,
+          is_paid: true,
+          locked: false,
+          status: 'New',
+          created_at: new Date().toISOString()
+        };
+        const bList = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+        bList.unshift(leadItem);
+        localStorage.setItem('flenko_broadcast_leads', JSON.stringify(bList.slice(0, 50)));
+      } catch(e) {}
       
       // Save locally to buyer inquiries cache
       try {

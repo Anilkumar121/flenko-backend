@@ -178,11 +178,24 @@
 
       if (productId) {
         try {
-          const res = await fetch('https://flenko-backend.onrender.com/api/public/products/' + productId);
-          if (res.ok) {
-            const data = await res.json();
-            const p = data.product;
-            targetSupplierId = p.supplier_id;
+          let p = null;
+          try {
+            const res = await auth.fetchWithFallback('/public/products/' + productId);
+            if (res && res.ok) {
+              const data = await res.json();
+              p = data.product;
+            }
+          } catch(err) {}
+
+          if (!p) {
+            try {
+              const localProds = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+              p = localProds.find(x => String(x.id) === String(productId));
+            } catch(e) {}
+          }
+
+          if (p) {
+            targetSupplierId = p.supplier_id || (p.supplier && p.supplier.id) || null;
             
             document.getElementById('rfqProduct').value = p.name;
             document.getElementById('rfqProduct').readOnly = true; // Lock the product name
@@ -200,12 +213,12 @@
             }
             
             document.getElementById('rfqTitle').innerText = 'Request Quotation for ' + p.name;
-            if (p.supplier) {
-              document.getElementById('rfqSubtitle').innerHTML = `Direct inquiry to <strong>${p.supplier.company_name}</strong> (${p.supplier.city})`;
+            if (p.supplier || p.supplier_name) {
+              document.getElementById('rfqSubtitle').innerHTML = `Direct inquiry to <strong>${(p.supplier && (p.supplier.company_name || p.supplier.name)) || p.supplier_name || 'Verified Supplier'}</strong>`;
             }
           }
         } catch (e) {
-          console.warn('Could not fetch product details');
+          console.warn('Could not fetch product details:', e);
         }
       }
 
@@ -239,7 +252,6 @@
       document.getElementById('rfqForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const apiBase = (window.API_BASE) || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000/api' : 'https://flenko-backend.onrender.com/api');
         const s_id = targetSupplierId || 0; 
         const prodName = document.getElementById('rfqProduct').value;
         const qtyVal = document.getElementById('rfqQty').value;
@@ -253,6 +265,8 @@
 
         const payload = {
           supplier_id: s_id,
+          product_id: productId || null,
+          productId: productId || null,
           product_needed: `${prodName} (Qty: ${qtyVal} ${unitVal})`,
           buyer_phone: fullPhone,
           quantity: qtyVal,
@@ -266,7 +280,7 @@
         btn.innerText = 'Distributing to Suppliers...';
 
         try {
-          const response = await fetch(`${apiBase}/leads`, {
+          const response = await auth.fetchWithFallback('/leads', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -275,21 +289,26 @@
             body: JSON.stringify(payload)
           });
           
-          const result = await response.json();
+          let result = null;
+          try { result = await response.json(); } catch(e) {}
           // Client backup lead sync
           try {
+            const isDirectLead = !!(s_id && s_id !== 0 && s_id !== '0');
             const leadItem = {
               id: (result && result.lead_id) || Date.now(),
+              supplier_id: s_id,
               product_needed: `${prodName} (Qty: ${qtyVal} ${unitVal})`,
               buyer_phone: fullPhone,
               details: `Destination: ${cityVal} (${countryVal}).\n\nRequirements: ${detailsVal}`,
-              is_direct: (s_id && s_id !== 0),
+              is_direct: isDirectLead,
+              is_paid: isDirectLead,
+              locked: !isDirectLead,
               status: 'New',
               created_at: new Date().toISOString()
             };
             const list = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
             list.unshift(leadItem);
-            localStorage.setItem('flenko_broadcast_leads', JSON.stringify(list));
+            localStorage.setItem('flenko_broadcast_leads', JSON.stringify(list.slice(0, 50)));
           } catch(e) {}
 
           if (result && result.success) {
