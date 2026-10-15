@@ -424,7 +424,7 @@
           <div style="font-size: 0.85rem; font-weight: 700; color: #0F4C9B; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
             <span>📱</span> Scan PhonePe QR Code to Pay ₹50
           </div>
-          <img src="assets/images/payment_qr.png" alt="PhonePe QR Code" style="width: 190px; height: 190px; object-fit: contain; margin: 0 auto 0.5rem; display: block; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; padding: 4px;">
+          <img src="assets/images/payment_qr.png" alt="PhonePe QR Code" onerror="this.src='assets/images/flenko-qr.png'; this.onerror=function(){this.src='qr.png'};" style="width: 190px; height: 190px; object-fit: contain; margin: 0 auto 0.5rem; display: block; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; padding: 4px;">
           <div style="font-size: 0.72rem; color: #64748b;">
             Supported: <strong>PhonePe, Google Pay, Paytm, BHIM UPI</strong>
           </div>
@@ -488,6 +488,8 @@
     async function loadAllLeads() {
       try {
         let leads = [];
+        const user = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
+        const currentUserId = user ? (user.id || user.userId) : null;
         const leadsData = await auth.getLeads();
         if (leadsData && leadsData.leads && leadsData.leads.length > 0) {
           leads = leadsData.leads;
@@ -495,7 +497,6 @@
 
         // Merge local broadcast backup leads if available
         try {
-          const currentUserId = user ? (user.id || user.userId) : null;
           const localBroadcast = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
           if (localBroadcast.length > 0) {
             const seenIds = new Set(leads.map(l => String(l.id)));
@@ -512,7 +513,7 @@
 
         // Direct inquiries for this supplier are 100% free; Market BuyLeads remain locked until bought
         allLeads = leads.map(l => {
-          const isDirect = (l.is_direct === true || l.is_direct === 'true') && (!l.supplier_id || !user || String(l.supplier_id) === String(user.id));
+          const isDirect = (l.is_direct === true || l.is_direct === 'true') && (!l.supplier_id || !currentUserId || String(l.supplier_id) === String(currentUserId));
           const isPaid = l.is_paid === true || l.is_paid === 'true';
           const isLocked = l.locked !== undefined ? l.locked : (!isDirect && !isPaid);
           return {

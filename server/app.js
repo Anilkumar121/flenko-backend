@@ -1319,19 +1319,19 @@ const handleLeadSubmission = async (req, res) => {
   const leadDetails = details || `Quantity: ${quantity || 'Flexible'} ${unit || 'Pieces'} | Target: ${target_price || 'Best Market Rate'} | Message: ${message || 'Please send quotations.'}`;
   const effectiveProduct = product_needed || product || item_name || 'Wholesale Requirement';
   const effectivePhone = buyer_phone || (req.user ? req.user.phone : '9999999999');
-  const buyerId = req.user ? req.user.id : null;
+  const buyerId = (req.user && req.user.id && !isNaN(parseInt(req.user.id))) ? parseInt(req.user.id) : null;
   const cleanPhone10 = (effectivePhone || '').replace(/[^0-9]/g, '').slice(-10);
 
   try {
     const rawSupplierId = supplier_id || supplierId || seller_id || sellerId;
-    let directSupplierId = (rawSupplierId && rawSupplierId !== 0 && rawSupplierId !== '0' && String(rawSupplierId) !== 'null' && String(rawSupplierId) !== 'undefined') ? parseInt(rawSupplierId) : null;
+    let directSupplierId = (rawSupplierId && rawSupplierId !== 0 && rawSupplierId !== '0' && String(rawSupplierId) !== 'null' && String(rawSupplierId) !== 'undefined' && !isNaN(parseInt(rawSupplierId))) ? parseInt(rawSupplierId) : null;
     
     // Auto-resolve supplier_id from product if missing
     const effectiveProductId = product_id || productId || req.body.productId || req.body.product_id;
-    if (!directSupplierId && effectiveProductId) {
+    if (!directSupplierId && effectiveProductId && !isNaN(parseInt(effectiveProductId))) {
       try {
         const prodRes = await db.query('SELECT supplier_id FROM products WHERE id = $1', [parseInt(effectiveProductId)]);
-        if (prodRes.rows && prodRes.rows.length > 0 && prodRes.rows[0].supplier_id) {
+        if (prodRes.rows && prodRes.rows.length > 0 && prodRes.rows[0].supplier_id && !isNaN(parseInt(prodRes.rows[0].supplier_id))) {
           directSupplierId = parseInt(prodRes.rows[0].supplier_id);
         }
       } catch (pe) {
@@ -1351,13 +1351,27 @@ const handleLeadSubmission = async (req, res) => {
           newLeadId = insRes.rows[0].id;
         }
       } catch(insErr) {
-        console.warn('Direct lead insert error:', insErr.message);
+        console.warn('Direct lead insert error with is_paid, trying fallback:', insErr.message);
         try {
-          await db.query(
-            'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
+          const insRes2 = await db.query(
+            'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true]
           );
-        } catch(e2) {}
+          if (insRes2.rows && insRes2.rows[0] && insRes2.rows[0].id) {
+            newLeadId = insRes2.rows[0].id;
+          }
+        } catch(e2) {
+          console.warn('Direct lead secondary fallback:', e2.message);
+          try {
+            const insRes3 = await db.query(
+              'INSERT INTO leads (supplier_id, product_needed, buyer_phone, details) VALUES ($1, $2, $3, $4) RETURNING id',
+              [directSupplierId, effectiveProduct, effectivePhone, leadDetails]
+            );
+            if (insRes3.rows && insRes3.rows[0] && insRes3.rows[0].id) {
+              newLeadId = insRes3.rows[0].id;
+            }
+          } catch(e3) {}
+        }
       }
       
       try {
@@ -1391,13 +1405,26 @@ const handleLeadSubmission = async (req, res) => {
         marketLeadId = insRes.rows[0].id;
       }
     } catch(insErr) {
-      console.warn('Market lead insert error:', insErr.message);
+      console.warn('Market lead insert error with is_paid, trying fallback:', insErr.message);
       try {
-        await db.query(
-          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
+        const insRes2 = await db.query(
+          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
           [null, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
         );
-      } catch(e2) {}
+        if (insRes2.rows && insRes2.rows[0] && insRes2.rows[0].id) {
+          marketLeadId = insRes2.rows[0].id;
+        }
+      } catch(e2) {
+        try {
+          const insRes3 = await db.query(
+            'INSERT INTO leads (product_needed, buyer_phone, details) VALUES ($1, $2, $3) RETURNING id',
+            [effectiveProduct, effectivePhone, leadDetails]
+          );
+          if (insRes3.rows && insRes3.rows[0] && insRes3.rows[0].id) {
+            marketLeadId = insRes3.rows[0].id;
+          }
+        } catch(e3) {}
+      }
     }
 
     // Also register into rfqs table so RFQ quotes work seamlessly

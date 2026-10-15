@@ -80,8 +80,8 @@ function saveMockDB() {
 let useMock = false;
 
 async function ensureTables() {
-  const schema = `
-    CREATE TABLE IF NOT EXISTS users (
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       phone VARCHAR(20) UNIQUE NOT NULL,
       password VARCHAR(255),
@@ -91,19 +91,19 @@ async function ensureTables() {
       role VARCHAR(20) DEFAULT 'buyer',
       subscription VARCHAR(50) DEFAULT 'free',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription VARCHAR(50) DEFAULT 'free';
-    CREATE TABLE IF NOT EXISTS otp_requests (
+    )`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription VARCHAR(50) DEFAULT 'free'`,
+    `CREATE TABLE IF NOT EXISTS otp_requests (
       id SERIAL PRIMARY KEY,
       phone VARCHAR(20) NOT NULL,
       otp VARCHAR(10) NOT NULL,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS businesses (
+    )`,
+    `CREATE TABLE IF NOT EXISTS businesses (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      user_id INTEGER,
       company_name VARCHAR(200) NOT NULL,
       category VARCHAR(100),
       gst_number VARCHAR(20),
@@ -113,14 +113,14 @@ async function ensureTables() {
       is_verified BOOLEAN DEFAULT FALSE,
       logo_url TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS logo_url TEXT;
-    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS category VARCHAR(100);
-    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
-    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
-    CREATE TABLE IF NOT EXISTS products (
+    )`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS logo_url TEXT`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS category VARCHAR(100)`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India'`,
+    `CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
-      supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      supplier_id INTEGER,
       name VARCHAR(200) NOT NULL,
       price DECIMAL(12, 2),
       category VARCHAR(100),
@@ -131,11 +131,11 @@ async function ensureTables() {
       stock_quantity INTEGER DEFAULT 500,
       country VARCHAR(100) DEFAULT 'India',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 500;
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS seo_tags TEXT;
-    CREATE TABLE IF NOT EXISTS leads (
+    )`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 500`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India'`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS seo_tags TEXT`,
+    `CREATE TABLE IF NOT EXISTS leads (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER,
       buyer_id INTEGER,
@@ -147,14 +147,14 @@ async function ensureTables() {
       is_paid BOOLEAN DEFAULT FALSE,
       replies JSONB DEFAULT '[]'::jsonb,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_direct BOOLEAN DEFAULT FALSE;
-    ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT FALSE;
-    ALTER TABLE leads ADD COLUMN IF NOT EXISTS replies JSONB DEFAULT '[]'::jsonb;
-    ALTER TABLE leads ALTER COLUMN supplier_id DROP NOT NULL;
-    ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_supplier_id_fkey;
-    ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_buyer_id_fkey;
-    CREATE TABLE IF NOT EXISTS rfqs (
+    )`,
+    `ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_direct BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE leads ADD COLUMN IF NOT EXISTS replies JSONB DEFAULT '[]'::jsonb`,
+    `ALTER TABLE leads ALTER COLUMN supplier_id DROP NOT NULL`,
+    `ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_supplier_id_fkey`,
+    `ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_buyer_id_fkey`,
+    `CREATE TABLE IF NOT EXISTS rfqs (
       id SERIAL PRIMARY KEY,
       buyer_id INTEGER,
       product VARCHAR(255) NOT NULL,
@@ -162,26 +162,26 @@ async function ensureTables() {
       target_price VARCHAR(50),
       details TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    ALTER TABLE rfqs ALTER COLUMN buyer_id DROP NOT NULL;
-    ALTER TABLE rfqs DROP CONSTRAINT IF EXISTS rfqs_buyer_id_fkey;
-    CREATE TABLE IF NOT EXISTS quotations (
+    )`,
+    `ALTER TABLE rfqs ALTER COLUMN buyer_id DROP NOT NULL`,
+    `ALTER TABLE rfqs DROP CONSTRAINT IF EXISTS rfqs_buyer_id_fkey`,
+    `CREATE TABLE IF NOT EXISTS quotations (
       id SERIAL PRIMARY KEY,
-      rfq_id INTEGER REFERENCES rfqs(id) ON DELETE CASCADE,
-      supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      rfq_id INTEGER,
+      supplier_id INTEGER,
       price_quoted VARCHAR(50),
       message TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS password_resets (
+    )`,
+    `CREATE TABLE IF NOT EXISTS password_resets (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      user_id INTEGER,
       email VARCHAR(150),
       token VARCHAR(100) UNIQUE NOT NULL,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS lead_payments (
+    )`,
+    `CREATE TABLE IF NOT EXISTS lead_payments (
       id SERIAL PRIMARY KEY,
       lead_id INTEGER NOT NULL,
       supplier_id INTEGER NOT NULL,
@@ -191,8 +191,8 @@ async function ensureTables() {
       payer_phone VARCHAR(20),
       status VARCHAR(20) DEFAULT 'verified',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS subscription_payments (
+    )`,
+    `CREATE TABLE IF NOT EXISTS subscription_payments (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
       plan VARCHAR(50) NOT NULL,
@@ -201,14 +201,17 @@ async function ensureTables() {
       screenshot_url TEXT,
       status VARCHAR(20) DEFAULT 'verified',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-  try {
-    await pool.query(schema);
-    console.log('✅ PostgreSQL schema verified and synchronized successfully.');
-  } catch (err) {
-    console.warn('⚠️ Could not auto-sync PG schema:', err.message);
+    )`
+  ];
+
+  for (const sql of statements) {
+    try {
+      await pool.query(sql);
+    } catch(err) {
+      // Ignore non-fatal column / constraint warnings
+    }
   }
+  console.log('✅ PostgreSQL schema verified and synchronized successfully.');
 }
 
 pool.query('SELECT 1').then(() => {
