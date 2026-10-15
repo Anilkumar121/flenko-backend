@@ -69,6 +69,110 @@ const uploadLogo = multer({
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
 app.use('/css', express.static(path.join(__dirname, '../css')));
 app.use('/js', express.static(path.join(__dirname, '../js')));
+
+// Dynamic Robots.txt Endpoint
+app.get('/robots.txt', (req, res) => {
+  const robotsPath = path.join(__dirname, '../robots.txt');
+  if (fs.existsSync(robotsPath)) {
+    res.header('Content-Type', 'text/plain');
+    return res.sendFile(robotsPath);
+  }
+  res.header('Content-Type', 'text/plain');
+  res.send("User-agent: *\nAllow: /\nDisallow: /admin-dashboard.html\nDisallow: /supplier-leads.html\nDisallow: /api/\nSitemap: https://flenko.com/sitemap.xml\n");
+});
+
+// Dynamic Sitemap.xml Endpoint (Live PostgreSQL Products + Silos)
+app.get('/sitemap.xml', async (req, res) => {
+  res.header('Content-Type', 'application/xml');
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Core pages
+    const coreUrls = [
+      { loc: 'https://flenko.com/', priority: '1.0', changefreq: 'daily' },
+      { loc: 'https://flenko.com/products.html', priority: '0.95', changefreq: 'hourly' },
+      { loc: 'https://flenko.com/categories.html', priority: '0.90', changefreq: 'daily' },
+      { loc: 'https://flenko.com/business-directory.html', priority: '0.90', changefreq: 'daily' },
+      { loc: 'https://flenko.com/rfq.html', priority: '0.85', changefreq: 'daily' },
+      { loc: 'https://flenko.com/sell.html', priority: '0.85', changefreq: 'weekly' },
+      { loc: 'https://flenko.com/pricing.html', priority: '0.80', changefreq: 'monthly' }
+    ];
+
+    // High Priority Industrial Categories
+    const categories = [
+      'Packaging & Paper',
+      'Industrial Machinery & Plants',
+      'Electronics & Electrical Goods',
+      'Chemicals, Dyes & Solvents',
+      'Textiles, Fabrics & Garments',
+      'Building & Construction Materials',
+      'Metals, Alloys & Minerals',
+      'Medical, Pharma & Healthcare',
+      'Agriculture & Farming Supplies',
+      'Automotive Spares & Equipment',
+      'Office Supplies & Stationery',
+      'Security Systems & CCTV',
+      'Renewable Energy & Solar',
+      'Sports & Fitness Goods',
+      'Jewelry & Fashion Accessories',
+      'Luggage, Bags & Cases'
+    ];
+
+    // Major Indian Manufacturing Cities
+    const cities = [
+      'Delhi', 'Mumbai', 'Ahmedabad', 'Surat', 'Pune', 'Rajkot',
+      'Ludhiana', 'Bengaluru', 'Chennai', 'Coimbatore', 'Jaipur',
+      'Kanpur', 'Indore', 'Hyderabad', 'Vadodara', 'Kolkata'
+    ];
+
+    // Fetch active products from DB
+    let dbProducts = [];
+    try {
+      const prodRes = await db.query('SELECT id, name, category, created_at FROM products ORDER BY id DESC LIMIT 1000');
+      dbProducts = (prodRes && prodRes.rows) ? prodRes.rows : [];
+    } catch(err) {
+      console.warn('Sitemap DB query warning:', err.message);
+    }
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
+
+    // 1. Core Pages
+    for (const p of coreUrls) {
+      xml += `  <url>\n    <loc>${p.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
+    }
+
+    // 2. Categories
+    for (const cat of categories) {
+      xml += `  <url>\n    <loc>https://flenko.com/products.html?cat=${encodeURIComponent(cat)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
+    }
+
+    // 3. Indian Manufacturing City Hubs
+    for (const city of cities) {
+      xml += `  <url>\n    <loc>https://flenko.com/products.html?country=India&amp;city=${encodeURIComponent(city)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.80</priority>\n  </url>\n`;
+    }
+
+    // 4. Live DB Products
+    for (const item of dbProducts) {
+      const cleanName = encodeURIComponent((item.name || '').trim());
+      if (cleanName) {
+        const itemDate = item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : today;
+        xml += `  <url>\n    <loc>https://flenko.com/products.html?q=${cleanName}</loc>\n    <lastmod>${itemDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.80</priority>\n  </url>\n`;
+      }
+    }
+
+    xml += '</urlset>';
+    res.send(xml);
+  } catch(e) {
+    console.error('Error generating dynamic sitemap:', e);
+    const staticSitemap = path.join(__dirname, '../sitemap.xml');
+    if (fs.existsSync(staticSitemap)) {
+      return res.sendFile(staticSitemap);
+    }
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
 app.use(express.static(path.join(__dirname, '..')));
 
 // Helper: Category resolution for typed services/products

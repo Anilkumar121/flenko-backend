@@ -1,0 +1,44 @@
+# Flenko Global B2B Marketplace Robots Directive
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /products.html
+Allow: /categories.html
+Allow: /business-directory.html
+Allow: /supplier-details.html
+Allow: /rfq.html
+Allow: /pricing.html
+Allow: /sell.html
+
+# Disallow Private Dashboards, CRM, and APIs
+Disallow: /admin-dashboard.html
+Disallow: /supplier-dashboard.html
+Disallow: /supplier-leads.html
+Disallow: /supplier-products.html
+Disallow: /supplier-profile.html
+Disallow: /supplier-quotes.html
+Disallow: /buyer-dashboard.html
+Disallow: /cart.html
+Disallow: /checkout.html
+Disallow: /reset-password.html
+Disallow: /api/
+
+# Crawl-Delay for bot courtesy
+Crawl-delay: 1
+
+# Major Search Engines Directives
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# Sitemap
+Sitemap: https://flenko.com/sitemap.xml
+Sitemap: https://flenko-backend.onrender.com/sitemap.xml

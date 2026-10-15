@@ -3,8 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Worldwide Wholesale Products & Direct Factories - Flenko Global B2B Directory</title>
-  <meta name="description" content="Find verified global suppliers, direct manufacturers, and wholesale products across 190+ countries with Trade Assurance order protection.">
+  <title>Worldwide Wholesale Products, Direct Factories & Bulk Suppliers - Flenko B2B</title>
+  <meta name="description" id="metaDescription" content="Browse verified wholesale products, direct factory manufacturers, and bulk exporters across 190+ countries with Trade Assurance order protection on Flenko.">
+  <meta name="keywords" content="wholesale products, b2b suppliers, direct factory manufacturers, bulk buy quotes, trade assurance, industrial machinery, packaging wholesale, indian manufacturers directory">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" id="canonicalLink" href="https://flenko.com/products.html">
+  
+  <!-- Geo-targeting & Verification Meta -->
+  <meta name="geo.region" content="IN">
+  <meta name="geo.placename" content="India">
+  <meta name="distribution" content="global">
+  <meta name="rating" content="general">
+  <meta name="author" content="Flenko.com">
+
+  <!-- OpenGraph Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" id="ogTitle" content="Worldwide Wholesale Products & Direct Factories - Flenko Global B2B Directory">
+  <meta property="og:description" id="ogDescription" content="Find verified global suppliers, direct manufacturers, and wholesale products across 190+ countries with Trade Assurance order protection.">
+  <meta property="og:url" content="https://flenko.com/products.html">
+  <meta property="og:site_name" content="Flenko">
+  <meta property="og:image" content="https://flenko.com/assets/images/logo.png">
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" id="twitterTitle" content="Worldwide Wholesale Products & Direct Factories - Flenko B2B">
+  <meta name="twitter:description" id="twitterDescription" content="Source factory-direct from certified manufacturers across India and global pavilions with Trade Assurance.">
+  <meta name="twitter:image" content="https://flenko.com/assets/images/logo.png">
+
+  <!-- BreadcrumbList Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://flenko.com/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Wholesale Products & Manufacturers",
+        "item": "https://flenko.com/products.html"
+      }
+    ]
+  }
+  </script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -811,6 +857,73 @@
         });
       });
 
+      // Dynamic SEO Title & Meta Description based on Query, Category, or Country
+      function updateDynamicSEO(q, cat, country) {
+        let seoTitle = 'Worldwide Wholesale Products, Direct Factories & Bulk Suppliers - Flenko B2B';
+        let seoDesc = 'Browse verified wholesale products, direct factory manufacturers, and bulk exporters across 190+ countries with Trade Assurance order protection on Flenko.';
+        
+        if (q && cat) {
+          seoTitle = `${q} - Wholesale ${cat} Manufacturers & Factory Price | Flenko B2B`;
+          seoDesc = `Source wholesale ${q} in ${cat} directly from certified factories and bulk suppliers on Flenko. Compare prices, MOQs, and request quotes.`;
+        } else if (q) {
+          seoTitle = `${q} Wholesale Manufacturers, Bulk Suppliers & Price | Flenko B2B`;
+          seoDesc = `Find verified manufacturers, suppliers, and exporters for ${q} on Flenko. Direct factory pricing, fast RFQ responses, and Trade Assurance protection.`;
+        } else if (cat) {
+          seoTitle = `Wholesale ${cat} Manufacturers, Suppliers & Exporters | Flenko B2B`;
+          seoDesc = `Explore verified manufacturers and wholesale suppliers for ${cat}. Factory-direct wholesale rates, verified pro sellers, and buyer order protection.`;
+        } else if (country && country !== 'Worldwide (All Countries)') {
+          seoTitle = `${country} Wholesale Manufacturers, Exporters & Factory Directory | Flenko B2B`;
+          seoDesc = `Connect directly with verified manufacturing units and trade exporters in ${country}. Sourcing solutions with zero buyer commission.`;
+        }
+
+        document.title = seoTitle;
+        const metaDescEl = document.getElementById('metaDescription');
+        if (metaDescEl) metaDescEl.setAttribute('content', seoDesc);
+        const ogTitleEl = document.getElementById('ogTitle');
+        if (ogTitleEl) ogTitleEl.setAttribute('content', seoTitle);
+        const ogDescEl = document.getElementById('ogDescription');
+        if (ogDescEl) ogDescEl.setAttribute('content', seoDesc);
+        const twitterTitleEl = document.getElementById('twitterTitle');
+        if (twitterTitleEl) twitterTitleEl.setAttribute('content', seoTitle);
+        const twitterDescEl = document.getElementById('twitterDescription');
+        if (twitterDescEl) twitterDescEl.setAttribute('content', seoDesc);
+      }
+
+      function updateItemListSchema(products) {
+        let script = document.getElementById('dynamicItemListSchema');
+        if (!script) {
+          script = document.createElement('script');
+          script.id = 'dynamicItemListSchema';
+          script.type = 'application/ld+json';
+          document.head.appendChild(script);
+        }
+        const schema = {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "itemListElement": products.slice(0, 24).map((p, idx) => ({
+            "@type": "ListItem",
+            "position": idx + 1,
+            "item": {
+              "@type": "Product",
+              "name": p.name,
+              "image": p.image,
+              "description": `${p.name} from verified supplier ${p.supplier ? p.supplier.name : ''}. MOQ: ${p.moq} ${p.unit}.`,
+              "offers": {
+                "@type": "Offer",
+                "priceCurrency": "INR",
+                "price": p.price ? p.price : "1",
+                "availability": "https://schema.org/InStock",
+                "seller": {
+                  "@type": "Organization",
+                  "name": p.supplier ? p.supplier.name : "Flenko Verified Supplier"
+                }
+              }
+            }
+          }))
+        };
+        script.textContent = JSON.stringify(schema);
+      }
+
       function applyFilters() {
         const q = searchQueryInput.value.toLowerCase().trim();
         const selCat = document.querySelector('input[name="businessCat"]:checked')?.value || '';
@@ -873,6 +986,10 @@
         resultsSubText.textContent = `Showing ${products.length} verified products with direct factory pricing`;
         filterCountLabel.textContent = `${products.length} items`;
         document.getElementById("mobileBadge").textContent = filters.selCat || (filters.selCountry.code !== 'ALL' ? filters.selCountry.name : 'All Products');
+
+        // Dynamic SEO & ItemList Schema updates
+        updateDynamicSEO(filters.q, filters.selCat, (filters.selCountry && filters.selCountry.code !== 'ALL') ? filters.selCountry.name : '');
+        updateItemListSchema(products);
 
         // Chips
         let chips = '';
