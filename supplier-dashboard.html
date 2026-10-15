@@ -394,7 +394,7 @@
                 <span class="badge badge-teal" style="display: inline-block; align-self: flex-end;">Status: ${lead.status || 'New'}</span>
                 
                 ${isPhoneLocked ? 
-                  `<button class="btn btn-primary" style="width: 100%; font-size: 0.8rem; padding: 0.45rem; background: #FF6B00; border: none; font-weight: 700;" onclick="unlockLead(${lead.id})">💳 Buy Lead to Unlock</button>` : 
+                  `<button class="btn btn-primary" style="width: 100%; font-size: 0.8rem; padding: 0.45rem; background: #FF6B00; border: none; font-weight: 700;" onclick="unlockLead(${lead.id})">💳 Buy Lead (₹50) to Unlock</button>` : 
                   `
                   <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hello! I received your inquiry for ${lead.product_needed || 'products'} on Flenko.com. Let's discuss pricing and delivery.`)}" target="_blank" class="btn btn-primary" style="background: #25D366; border-color: #25D366; width: 100%; font-size: 0.8rem; padding: 0.45rem; text-decoration: none; text-align: center; font-weight: 700;">
                     💬 Chat WhatsApp
@@ -422,23 +422,28 @@
     });
 
     window.unlockLead = async (leadId) => {
-      const ok = confirm('Unlock verified contact details for this BuyLead?\n\nReal phone number and direct WhatsApp will be revealed immediately.');
-      if (ok) {
-        try {
-          const res = await auth.fetchWithFallback('/leads/' + leadId + '/pay', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + auth.getToken() }
-          });
-          const data = await res.json();
-          if(data && data.success) {
-            alert(data.message || 'Lead unlocked successfully!');
-            window.location.reload();
-          } else {
-            alert((data && data.error) || 'Failed to unlock lead.');
-          }
-        } catch(e) {
-          alert('Network Error. Please try again.');
+      const utr = prompt('Unlock Buy Lead for ₹50:\nPlease scan the Flenko PhonePe QR Code, pay ₹50, and enter your genuine 12-digit UPI Reference Number / UTR below:');
+      if (!utr) return;
+      const cleanUtr = utr.trim().replace(/[^0-9]/g, '');
+      if (cleanUtr.length !== 12) {
+        alert('Invalid UTR. Please enter a genuine 12-digit numeric transaction number.');
+        return;
+      }
+      try {
+        const res = await auth.fetchWithFallback('/leads/' + leadId + '/pay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.getToken() },
+          body: JSON.stringify({ utr: cleanUtr })
+        });
+        const data = await res.json();
+        if(data && data.success) {
+          alert('🎉 ' + (data.message || 'Lead unlocked successfully!'));
+          window.location.reload();
+        } else {
+          alert('❌ Payment Verification Failed:\n' + ((data && data.error) || 'Invalid or duplicate UTR.'));
         }
+      } catch(e) {
+        alert('Network Error. Please try again.');
       }
     };
   </script>

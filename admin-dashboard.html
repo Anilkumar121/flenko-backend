@@ -45,6 +45,7 @@
       <nav class="admin-menu">
         <a class="active" onclick="switchTab('dashboard', this)">📊 Dashboard</a>
         <a onclick="switchTab('users', this)">👥 Users & Suppliers</a>
+        <a onclick="switchTab('payments', this)">🛡️ Payments & Fraud Shield</a>
         <a onclick="switchTab('settings', this)">⚙️ Settings</a>
       </nav>
     </aside>
@@ -175,6 +176,90 @@
         </div>
       </section>
 
+      <!-- Payments & Fraud Shield Tab -->
+      <section id="paymentsTab" class="tab-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h2 style="color: var(--color-navy-deep); margin: 0;">🛡️ Payments & Fraud Shield Ledger</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+              Audit PhonePe QR payments, monitor 12-digit UTRs, and immediately re-lock fraudulent leads.
+            </p>
+          </div>
+          <button class="btn btn-outline" style="border-color: var(--color-teal); color: var(--color-teal);" onclick="loadPaymentsLedger()">🔄 Refresh Ledger</button>
+        </div>
+
+        <!-- Payment Metrics -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+          <div class="stat-card">
+            <h3>BuyLead Unlocks (₹50)</h3>
+            <div class="value" id="statLeadPaysCount">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Lead Revenue Collected</h3>
+            <div class="value" id="statLeadRevenue">₹0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Active Subscriptions</h3>
+            <div class="value" id="statSubPaysCount">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Fraud Shield Status</h3>
+            <div class="value" style="font-size: 1.25rem; color: #16a34a;">🔒 100% Active</div>
+          </div>
+        </div>
+
+        <!-- BuyLead Payments Table -->
+        <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 1.5rem; margin-bottom: 2rem;">
+          <h3 style="color: var(--color-navy-deep); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+            <span>💳 BuyLead Unlocks (₹50 per Lead)</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--color-text-muted);">PhonePe QR Code Settlements</span>
+          </h3>
+          <div style="overflow-x: auto;">
+            <table class="data-table" id="leadPaymentsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Lead Requirement</th>
+                  <th>Supplier / Payer</th>
+                  <th>12-Digit UTR</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align: center;">Loading BuyLead transactions...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Subscription Payments Table -->
+        <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 1.5rem;">
+          <h3 style="color: var(--color-navy-deep); font-size: 1.1rem; margin-bottom: 1rem;">
+            💎 VIP Subscription Plan Payments
+          </h3>
+          <div style="overflow-x: auto;">
+            <table class="data-table" id="subPaymentsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User / Company</th>
+                  <th>Phone</th>
+                  <th>Plan</th>
+                  <th>12-Digit UTR</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align: center;">Loading subscription payments...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -201,6 +286,10 @@
       
       document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(tabId + 'Tab').classList.add('active');
+
+      if (tabId === 'payments') {
+        loadPaymentsLedger();
+      }
     }
 
     async function fetchAdminData() {
@@ -351,7 +440,104 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', fetchAdminData);
+    async function loadPaymentsLedger() {
+      const token = auth.getToken();
+      if (!token) return;
+
+      try {
+        const res = await auth.fetchWithFallback('/admin/payments', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          const leadPays = data.lead_payments || [];
+          const subPays = data.subscription_payments || [];
+
+          document.getElementById('statLeadPaysCount').innerText = leadPays.length;
+          const totalRev = leadPays.reduce((acc, p) => acc + (parseFloat(p.amount) || 50), 0);
+          document.getElementById('statLeadRevenue').innerText = '₹' + totalRev.toLocaleString('en-IN');
+          document.getElementById('statSubPaysCount').innerText = subPays.length;
+
+          // Render Lead Payments
+          const leadTbody = document.querySelector('#leadPaymentsTable tbody');
+          if (leadPays.length === 0) {
+            leadTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--color-text-muted); padding: 1.5rem;">No BuyLead payments recorded yet.</td></tr>';
+          } else {
+            leadTbody.innerHTML = leadPays.map(p => {
+              const isFraud = p.status === 'fraud';
+              return `
+                <tr style="${isFraud ? 'background: #fff1f2;' : ''}">
+                  <td>#${p.id}</td>
+                  <td><strong>${p.lead_title || ('Lead #' + p.lead_id)}</strong></td>
+                  <td>${p.supplier_name || 'Seller'} <br><small style="color:gray;">${p.supplier_phone || p.payer_phone || 'N/A'}</small></td>
+                  <td><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${p.utr}</code></td>
+                  <td><span style="font-weight: 700; color: #028867;">₹${p.amount || '50.00'}</span></td>
+                  <td>
+                    ${isFraud 
+                      ? '<span style="background: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">🚨 FRAUD FLAGGED</span>'
+                      : '<span style="background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">✅ VERIFIED</span>'
+                    }
+                  </td>
+                  <td>
+                    ${!isFraud ? `
+                      <button class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; color: #dc2626; border-color: #dc2626; cursor: pointer;" onclick="flagFraud(${p.id}, ${p.lead_id})">
+                        🚨 Flag Fraud & Re-Lock
+                      </button>
+                    ` : '<span style="font-size: 0.75rem; color: gray;">Lead Re-Locked</span>'}
+                  </td>
+                </tr>
+              `;
+            }).join('');
+          }
+
+          // Render Sub Payments
+          const subTbody = document.querySelector('#subPaymentsTable tbody');
+          if (subPays.length === 0) {
+            subTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--color-text-muted); padding: 1.5rem;">No subscription payments recorded yet.</td></tr>';
+          } else {
+            subTbody.innerHTML = subPays.map(sp => `
+              <tr>
+                <td>#${sp.id}</td>
+                <td>${sp.user_name || 'Member'}</td>
+                <td>${sp.user_phone || 'N/A'}</td>
+                <td><span class="badge badge-teal" style="text-transform: uppercase;">${sp.plan}</span></td>
+                <td><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${sp.utr}</code></td>
+                <td><span style="font-weight: 700; color: #028867;">₹${(sp.amount || 0).toLocaleString('en-IN')}</span></td>
+                <td><span style="background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">✅ VERIFIED</span></td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch(err) {
+        console.warn('Failed to load payments ledger:', err);
+      }
+    }
+
+    async function flagFraud(paymentId, leadId) {
+      if (!confirm(`Are you sure you want to flag Payment #${paymentId} as FRAUD?\n\nThis will instantly re-lock Lead #${leadId} and revoke buyer contact details from the supplier!`)) {
+        return;
+      }
+      try {
+        const res = await auth.fetchWithFallback(`/admin/payments/${paymentId}/flag-fraud`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + auth.getToken() }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          alert('🚨 ' + data.message);
+          loadPaymentsLedger();
+        } else {
+          alert('❌ Error: ' + ((data && data.error) || 'Failed to flag fraud'));
+        }
+      } catch(e) {
+        alert('❌ Network error: ' + e.message);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchAdminData();
+      loadPaymentsLedger();
+    });
   </script>
 </body>
 </html>

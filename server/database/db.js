@@ -32,6 +32,8 @@ let mockDB = {
   rfqs: [],
   quotations: [],
   password_resets: [],
+  lead_payments: [],
+  subscription_payments: [],
   idCounter: 2
 };
 
@@ -45,6 +47,8 @@ if (fs.existsSync(mockDbPath)) {
     mockDB.quotations = mockDB.quotations || [];
     mockDB.products = mockDB.products || [];
     mockDB.users = mockDB.users || [];
+    mockDB.lead_payments = mockDB.lead_payments || [];
+    mockDB.subscription_payments = mockDB.subscription_payments || [];
   } catch (err) {
     console.error('Error reading db.json:', err);
   }
@@ -165,6 +169,27 @@ async function ensureTables() {
       email VARCHAR(150),
       token VARCHAR(100) UNIQUE NOT NULL,
       expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS lead_payments (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER NOT NULL,
+      supplier_id INTEGER NOT NULL,
+      amount DECIMAL(10, 2) DEFAULT 50.00,
+      utr VARCHAR(64) NOT NULL UNIQUE,
+      screenshot_url TEXT,
+      payer_phone VARCHAR(20),
+      status VARCHAR(20) DEFAULT 'verified',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS subscription_payments (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      plan VARCHAR(50) NOT NULL,
+      amount DECIMAL(10, 2) NOT NULL,
+      utr VARCHAR(64) NOT NULL UNIQUE,
+      screenshot_url TEXT,
+      status VARCHAR(20) DEFAULT 'verified',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -424,6 +449,38 @@ module.exports = {
       if (lead) lead.is_paid = true;
       saveMockDB();
       return { rows: [] };
+    }
+    if (text.includes('INSERT INTO lead_payments')) {
+      mockDB.lead_payments = mockDB.lead_payments || [];
+      const rec = { id: mockDB.idCounter++, lead_id: params[0], supplier_id: params[1], amount: params[2], utr: params[3], screenshot_url: params[4], payer_phone: params[5], status: params[6] || 'verified', created_at: new Date() };
+      mockDB.lead_payments.push(rec);
+      saveMockDB();
+      return { rows: [rec] };
+    }
+    if (text.includes('FROM lead_payments WHERE utr')) {
+      mockDB.lead_payments = mockDB.lead_payments || [];
+      const found = mockDB.lead_payments.filter(p => p.utr === params[0]);
+      return { rows: found };
+    }
+    if (text.includes('FROM subscription_payments WHERE utr')) {
+      mockDB.subscription_payments = mockDB.subscription_payments || [];
+      const found = mockDB.subscription_payments.filter(p => p.utr === params[0]);
+      return { rows: found };
+    }
+    if (text.includes('INSERT INTO subscription_payments')) {
+      mockDB.subscription_payments = mockDB.subscription_payments || [];
+      const rec = { id: mockDB.idCounter++, user_id: params[0], plan: params[1], amount: params[2], utr: params[3], screenshot_url: params[4], status: params[5] || 'verified', created_at: new Date() };
+      mockDB.subscription_payments.push(rec);
+      saveMockDB();
+      return { rows: [rec] };
+    }
+    if (text.includes('SELECT * FROM lead_payments')) {
+      mockDB.lead_payments = mockDB.lead_payments || [];
+      return { rows: mockDB.lead_payments.slice().reverse() };
+    }
+    if (text.includes('SELECT * FROM subscription_payments')) {
+      mockDB.subscription_payments = mockDB.subscription_payments || [];
+      return { rows: mockDB.subscription_payments.slice().reverse() };
     }
     if (text.includes('SELECT subscription FROM users')) {
       const user = mockDB.users.find(u => u.id === params[0]);

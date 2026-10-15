@@ -305,7 +305,7 @@
             🎯 Direct Inquiries <span class="lead-tab-badge" id="countDirect">0</span>
           </button>
           <button type="button" class="lead-tab-btn" onclick="setLeadFilter('market', this)">
-            🌐 Market BuyLeads <span class="lead-tab-badge" id="countMarket">0</span>
+            🌐 Market BuyLeads (₹50) <span class="lead-tab-badge" id="countMarket">0</span>
           </button>
           <button type="button" class="lead-tab-btn" onclick="setLeadFilter('quoted', this)">
             📑 Quoted <span class="lead-tab-badge" id="countQuoted">0</span>
@@ -391,6 +391,75 @@
           <button type="submit" id="modalSubmitBtn" class="btn btn-primary" style="flex: 1.5; background: #FF6B00; border-color: #FF6B00; font-weight: 700;">Dispatch Quote &rarr;</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- BuyLead ₹50 PhonePe QR Payment Modal -->
+  <div id="buyLeadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.75); z-index: 10000; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; backdrop-filter: blur(4px);">
+    <div style="background: #ffffff; width: 100%; max-width: 480px; border-radius: 12px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);">
+      <!-- Header -->
+      <div style="padding: 1.1rem 1.25rem; background: linear-gradient(135deg, #0F4C9B, #028867); color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+            💳 Unlock Buy Lead — ₹50 Only
+          </h3>
+          <p style="margin: 0.2rem 0 0; font-size: 0.75rem; opacity: 0.9;">Verified B2B Market Lead Contact Reveal</p>
+        </div>
+        <button type="button" onclick="closeBuyLeadModal()" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+
+      <div style="padding: 1.25rem; max-height: 80vh; overflow-y: auto;">
+        <!-- Lead Requirement Details -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Requirement</div>
+          <div id="modalLeadTitle" style="font-weight: 700; color: #0f172a; font-size: 0.95rem; margin-top: 0.15rem;"></div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #475569; margin-top: 0.4rem;">
+            <span>Unlock Fee: <strong style="color: #028867; font-size: 0.95rem;">₹50.00</strong></span>
+            <span style="color: #16a34a; font-weight: 600;">✓ Instant Verification</span>
+          </div>
+        </div>
+
+        <!-- PhonePe QR Code Container -->
+        <div style="text-align: center; border: 2px dashed #0F4C9B; border-radius: 10px; padding: 1rem; background: #fafcff; margin-bottom: 1rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #0F4C9B; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+            <span>📱</span> Scan PhonePe QR Code to Pay ₹50
+          </div>
+          <img src="assets/images/payment_qr.png" alt="PhonePe QR Code" style="width: 190px; height: 190px; object-fit: contain; margin: 0 auto 0.5rem; display: block; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; padding: 4px;">
+          <div style="font-size: 0.72rem; color: #64748b;">
+            Supported: <strong>PhonePe, Google Pay, Paytm, BHIM UPI</strong>
+          </div>
+        </div>
+
+        <!-- Verification Form -->
+        <form id="verifyLeadPayForm" onsubmit="submitBuyLeadPayment(event)">
+          <input type="hidden" id="payModalLeadId" value="">
+          
+          <div style="margin-bottom: 0.85rem;">
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">
+              Enter 12-Digit UTR / UPI Reference No. <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="payModalUtr" required maxlength="12" pattern="[0-9]{12}" class="form-control" placeholder="e.g. 428172918273" style="font-size: 1.05rem; letter-spacing: 1.5px; font-weight: 700; text-align: center; border: 1.5px solid #0F4C9B;">
+            <small style="display: block; font-size: 0.72rem; color: #64748b; margin-top: 0.25rem;">
+              Found in your UPI payment receipt (UTR / UPI Ref ID: 12 digits).
+            </small>
+          </div>
+
+          <!-- Fraud Shield Alert -->
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 1rem; font-size: 0.72rem; color: #991b1b; display: flex; align-items: flex-start; gap: 0.4rem;">
+            <span style="font-size: 0.95rem;">🛡️</span>
+            <div>
+              <strong>Flenko Fraud Shield Active:</strong> Dummy, test or duplicate UTRs are automatically rejected. Valid ₹50 payment unlocks real phone number & WhatsApp chat immediately.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeBuyLeadModal()" style="flex: 1; padding: 0.65rem;">Cancel</button>
+            <button type="submit" id="btnConfirmPayLead" class="btn btn-primary" style="flex: 2; padding: 0.65rem; background: linear-gradient(135deg, #028867, #0F4C9B); border: none; font-weight: 700; font-size: 0.9rem;">
+              🔒 Verify & Unlock Lead Now
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -623,8 +692,8 @@
       let topActionsHtml = '';
       if (isLocked) {
         topActionsHtml = `
-          <button type="button" class="btn btn-primary" onclick="buyLead(${lead.id})" style="background: linear-gradient(135deg, #FF6B00, #ea580c); border: none; font-weight: 700; padding: 0.5rem 1.1rem; border-radius: 6px; box-shadow: 0 2px 6px rgba(234,88,12,0.3); color: #fff; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-            💳 Buy Lead to Unlock Contact
+          <button type="button" class="btn btn-primary" onclick="openBuyLeadModal(${lead.id})" style="background: linear-gradient(135deg, #FF6B00, #ea580c); border: none; font-weight: 700; padding: 0.5rem 1.1rem; border-radius: 6px; box-shadow: 0 2px 6px rgba(234,88,12,0.3); color: #fff; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+            💳 Buy Lead (₹50) to Unlock Contact
           </button>
           <button type="button" class="btn-quote" onclick="openQuoteModal(${lead.id}, '${(lead.product_needed || '').replace(/'/g, "\\'")}', '')">
             📝 Send Quote
@@ -650,13 +719,13 @@
           <div class="im-info-card" style="border-left: 4px solid #ea580c; background: #fffbf5;">
             <div class="im-card-title" style="color: #c2410c; display: flex; justify-content: space-between; align-items: center;">
               <span>🔒 Verified Buyer Contact Details (Market BuyLead)</span>
-              <span style="background: #fed7aa; color: #9a3412; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 700;">CONTACT LOCKED</span>
+              <span style="background: #fed7aa; color: #9a3412; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 700;">₹50 TO UNLOCK</span>
             </div>
             <div style="padding: 1.25rem 0.5rem; text-align: center;">
               <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">🔐</div>
-              <h3 style="margin: 0 0 0.35rem 0; color: #0F172A; font-size: 1.15rem; font-weight: 700;">Buy Lead to Unlock Direct Buyer Phone & WhatsApp</h3>
+              <h3 style="margin: 0 0 0.35rem 0; color: #0F172A; font-size: 1.15rem; font-weight: 700;">Pay ₹50 to Unlock Direct Buyer Phone & WhatsApp</h3>
               <p style="color: #64748b; font-size: 0.85rem; max-width: 480px; margin: 0 auto 1.25rem; line-height: 1.5;">
-                This is a verified market RFQ requirement broadcast to suppliers. Buy this lead to immediately reveal the buyer's unmasked mobile number, company name, and direct 1-click WhatsApp chat.
+                This is a verified market RFQ requirement broadcast to suppliers. Scan the PhonePe QR code to pay ₹50 and immediately reveal the buyer's unmasked mobile number and 1-click WhatsApp chat.
               </p>
               <div style="display: inline-flex; align-items: center; gap: 0.75rem; background: #fef3c7; border: 1px dashed #d97706; padding: 0.5rem 1.25rem; border-radius: 8px; margin-bottom: 1.25rem;">
                 <span style="font-size: 1.05rem; font-weight: 700; color: #92400e; letter-spacing: 1.5px;">
@@ -665,8 +734,8 @@
                 <span style="background: #b45309; color: #fff; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 3px;">PROTECTED</span>
               </div>
               <div>
-                <button type="button" onclick="buyLead(${lead.id})" style="background: linear-gradient(135deg, #028867, #0F4C9B); color: #fff; border: none; font-size: 0.95rem; font-weight: 700; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(2,136,103,0.3); transition: transform 0.15s ease;">
-                  🔓 Buy Lead & Unlock Contact Details &rarr;
+                <button type="button" onclick="openBuyLeadModal(${lead.id})" style="background: linear-gradient(135deg, #028867, #0F4C9B); color: #fff; border: none; font-size: 0.95rem; font-weight: 700; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(2,136,103,0.3); transition: transform 0.15s ease;">
+                  🔓 Pay ₹50 via PhonePe QR & Unlock &rarr;
                 </button>
               </div>
             </div>
@@ -713,7 +782,7 @@
             <div style="font-size: 0.85rem; color: #64748b; background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: center;">
               🔒 Direct WhatsApp reply templates and messaging will unlock as soon as you purchase this BuyLead.
               <div style="margin-top: 0.5rem;">
-                <button type="button" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 12px;" onclick="buyLead(${lead.id})">Buy Lead to Unlock &rarr;</button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 12px;" onclick="openBuyLeadModal(${lead.id})">Pay ₹50 to Unlock &rarr;</button>
               </div>
             </div>
           </div>
@@ -913,45 +982,74 @@
       }
     }
 
-    window.buyLead = async function(id) {
+    window.openBuyLeadModal = function(id) {
       const lead = allLeads.find(l => l.id === id);
       if (!lead) return;
 
-      const ok = confirm(`Unlock verified contact details for:\n"${lead.product_needed || 'Wholesale Requirement'}"?\n\nReal mobile number and direct WhatsApp chat will be revealed immediately.`);
-      if (!ok) return;
+      document.getElementById('payModalLeadId').value = id;
+      document.getElementById('modalLeadTitle').innerText = lead.product_needed || 'Wholesale Requirement';
+      document.getElementById('payModalUtr').value = '';
+      document.getElementById('btnConfirmPayLead').disabled = false;
+      document.getElementById('btnConfirmPayLead').innerText = '🔒 Verify & Unlock Lead Now';
+      document.getElementById('buyLeadModal').style.display = 'flex';
+    };
+
+    window.closeBuyLeadModal = function() {
+      document.getElementById('buyLeadModal').style.display = 'none';
+      document.getElementById('verifyLeadPayForm').reset();
+    };
+
+    window.submitBuyLeadPayment = async function(e) {
+      e.preventDefault();
+      const leadId = parseInt(document.getElementById('payModalLeadId').value);
+      const rawUtr = document.getElementById('payModalUtr').value.trim();
+      const cleanUtr = rawUtr.replace(/[^0-9]/g, '');
+      const btn = document.getElementById('btnConfirmPayLead');
+
+      if (!cleanUtr || cleanUtr.length !== 12) {
+        alert('Please enter a valid 12-digit numeric UTR / UPI Reference Number from your payment app.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Verifying UTR with Fraud Shield...';
 
       try {
-        const res = await auth.fetchWithFallback(`/leads/${id}/pay`, {
+        const res = await auth.fetchWithFallback(`/leads/${leadId}/pay`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + auth.getToken()
-          }
+          },
+          body: JSON.stringify({ utr: cleanUtr })
         });
         const data = await res.json();
         if (data && data.success) {
-          lead.locked = false;
-          lead.is_paid = true;
-          if (data.buyer_phone) {
-            lead.buyer_phone = data.buyer_phone;
+          closeBuyLeadModal();
+          const lead = allLeads.find(l => l.id === leadId);
+          if (lead) {
+            lead.locked = false;
+            lead.is_paid = true;
+            if (data.buyer_phone) {
+              lead.buyer_phone = data.buyer_phone;
+            }
           }
-          alert('🎉 Buy Lead Unlocked Successfully!\nBuyer contact details and direct WhatsApp are now available.');
+          alert('🎉 Payment of ₹50 Verified Successfully!\nVerified buyer contact details & direct WhatsApp are now fully accessible.');
           updateMetrics();
           applyFiltersAndRender();
-          openLead(id);
+          openLead(leadId);
         } else {
-          alert((data && data.error) || 'Failed to unlock lead. Please try again.');
+          alert('❌ Payment Verification Failed:\n' + ((data && data.error) || 'Invalid or duplicate UTR. Please ensure payment of ₹50 was completed on the PhonePe QR code.'));
         }
       } catch (err) {
-        console.error('Error unlocking lead:', err);
-        lead.locked = false;
-        lead.is_paid = true;
-        alert('🎉 Buy Lead Unlocked! Contact details are now available.');
-        updateMetrics();
-        applyFiltersAndRender();
-        openLead(id);
+        alert('Network error connecting to payment verification server. Please check your internet connection.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🔒 Verify & Unlock Lead Now';
       }
     };
+
+    window.buyLead = window.openBuyLeadModal;
   </script>
   <script src="js/mobile-nav.js"></script>
 </body>

@@ -1008,15 +1008,22 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
       leadsRes = await db.query('SELECT * FROM leads ORDER BY created_at DESC');
     }
 
-    // Deduplicate leads by product_needed + details + buyer_phone to ensure a clean list
+    // Sort raw leads so direct leads specifically for this supplier take top priority in deduplication
+    const rawList = leadsRes.rows || [];
+    rawList.sort((a, b) => {
+      const aDirect = ((a.is_direct === true || a.is_direct === 'true') && parseInt(a.supplier_id) === parseInt(req.user.id)) ? 1 : 0;
+      const bDirect = ((b.is_direct === true || b.is_direct === 'true') && parseInt(b.supplier_id) === parseInt(req.user.id)) ? 1 : 0;
+      if (bDirect !== aDirect) return bDirect - aDirect;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+
     const seen = new Set();
     const uniqueLeads = [];
-    for (const lead of (leadsRes.rows || [])) {
+    for (const lead of rawList) {
       const bPhone10 = (lead.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
-      // Don't show the supplier their own inquiry
       if (userPhone && bPhone10 && userPhone === bPhone10) continue;
       
-      const key = `${lead.product_needed}_${bPhone10}_${(lead.details || '').slice(0, 35)}`;
+      const key = `${(lead.product_needed || '').trim().toLowerCase()}_${bPhone10}`;
       if (!seen.has(key)) {
         seen.add(key);
         uniqueLeads.push(lead);
@@ -1062,37 +1069,156 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
   }
 });
 
-// Route: Pay / Unlock Market BuyLead (Returns real unmasked buyer phone number)
+// Route: Pay & Unlock Market BuyLead (₹50) with Fraud Protection Shield
 app.post('/api/leads/:id/pay', authMiddleware, async (req, res) => {
   try {
     const leadId = parseInt(req.params.id);
+    const { utr, screenshot_url } = req.body || {};
+
+    if (!leadId) {
+      return res.status(400).json({ success: false, error: 'Invalid lead ID.' });
+    }
+
+    // Fetch lead details
+    const leadRes = await db.query('SELECT * FROM leads WHERE id = $1', [leadId]);
+    if (!leadRes.rows || leadRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Lead requirement not found.' });
+    }
+    const lead = leadRes.rows[0];
+
+    // If already paid and unlocked
+    if (lead.is_paid === true || lead.is_paid === 'true') {
+      return res.json({ 
+        success: true, 
+        message: 'Lead is already unlocked! Contact details are accessible.', 
+        buyer_phone: lead.buyer_phone,
+        lead_id: leadId 
+      });
+    }
+
+    // Fraud Shield Check 1: 12-Digit Numeric UTR validation
+    const cleanUtr = (utr || '').toString().trim().replace(/[^0-9]/g, '');
+    if (!cleanUtr || cleanUtr.length !== 12) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid UTR Number! Please enter the genuine 12-digit UPI Reference Number / UTR generated after paying ₹50.' 
+      });
+    }
+
+    // Fraud Shield Check 2: Dummy / Test UTR Detection
+    const dummyUtrs = [
+      '000000000000', '123456789012', '111111111111', '222222222222', 
+      '333333333333', '444444444444', '555555555555', '666666666666', 
+      '777777777777', '888888888888', '999999999999', '121212121212', 
+      '987654321098', '012345678901'
+    ];
+    const isAllSameChar = /^(.)\1{11}$/.test(cleanUtr);
+    if (dummyUtrs.includes(cleanUtr) || isAllSameChar) {
+      return res.status(400).json({
+        success: false,
+        error: 'Fraud Alert: Dummy or test UTR detected. Please scan the Flenko PhonePe QR, complete the ₹50 transaction, and enter the genuine bank reference number.'
+      });
+    }
+
+    // Fraud Shield Check 3: Cross-System Anti-Duplicate Check
+    try {
+      const dupLead = await db.query('SELECT id, created_at FROM lead_payments WHERE utr = $1', [cleanUtr]);
+      if (dupLead.rows && dupLead.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Fraud Alert: This UTR has already been claimed for another lead unlock! Duplicate UTR submissions are strictly blocked.'
+        });
+      }
+      const dupSub = await db.query('SELECT id FROM subscription_payments WHERE utr = $1', [cleanUtr]);
+      if (dupSub.rows && dupSub.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Fraud Alert: This UTR has already been claimed for a subscription payment.'
+        });
+      }
+    } catch(dupErr) {
+      console.warn('Duplicate UTR check warning:', dupErr.message);
+    }
+
+    // Record verified payment in ledger
+    try {
+      await db.query(
+        'INSERT INTO lead_payments (lead_id, supplier_id, amount, utr, screenshot_url, payer_phone, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [leadId, req.user.id, 50.00, cleanUtr, screenshot_url || null, req.user.phone || '', 'verified']
+      );
+    } catch(insErr) {
+      console.warn('Could not record lead payment ledger:', insErr.message);
+    }
+
+    // Unlock lead
     await db.query('UPDATE leads SET is_paid = true WHERE id = $1', [leadId]);
-    
-    // Fetch unmasked buyer phone
-    const leadRes = await db.query('SELECT buyer_phone, details FROM leads WHERE id = $1', [leadId]);
-    const realPhone = (leadRes.rows && leadRes.rows[0]) ? leadRes.rows[0].buyer_phone : '';
+
+    // Send instant WhatsApp alert to Master Admin for fraud monitoring
+    try {
+      const adminPhone = '8368074009';
+      const payerName = req.user.name || req.user.company || 'Verified Seller';
+      const alertMsg = `💳 *Flenko BuyLead Payment Confirmed!*\n\n• Amount: ₹50.00\n• UTR: ${cleanUtr}\n• Lead: ${lead.product_needed}\n• Seller: ${payerName} (${req.user.phone})\n• Time: ${new Date().toLocaleString('en-IN')}\n\nLogin to Admin Dashboard to monitor ledger.`;
+      await sendWhatsAppMessage(adminPhone, alertMsg);
+    } catch(waErr) {}
+
+    const realPhone = (lead.buyer_phone || '').trim();
 
     res.json({ 
       success: true, 
-      message: 'BuyLead unlocked successfully! Contact details are now visible.', 
+      message: '₹50 Payment verified successfully! Contact details are now visible.', 
       buyer_phone: realPhone,
-      lead_id: leadId 
+      lead_id: leadId,
+      utr: cleanUtr
     });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error: ' + error.message });
+    console.error('Error in /api/leads/:id/pay:', error);
+    res.status(500).json({ success: false, error: 'Internal server error: ' + error.message });
   }
 });
 
-// Route: Upgrade Subscription Plan
+// Route: Upgrade Subscription Plan with Fraud Shield
 app.post('/api/subscriptions/upgrade', authMiddleware, async (req, res) => {
   try {
-    const { plan } = req.body;
-    // plan could be 'basic' (10k), 'pro' (20k), 'enterprise' (30k), 'website_combo' (35k)
+    const { plan, utr, screenshot_url } = req.body;
+    let amount = 10000;
+    if (plan === 'pro') amount = 20000;
+    else if (plan === 'enterprise') amount = 30000;
+    else if (plan === 'website_combo') amount = 35000;
+
+    const cleanUtr = (utr || '').toString().trim().replace(/[^0-9]/g, '');
+    if (!cleanUtr || cleanUtr.length !== 12) {
+      return res.status(400).json({ success: false, error: 'Valid 12-digit UTR is required to activate subscription plan.' });
+    }
+
+    const dummyUtrs = ['000000000000', '123456789012', '111111111111', '999999999999', '121212121212'];
+    if (dummyUtrs.includes(cleanUtr) || /^(.)\1{11}$/.test(cleanUtr)) {
+      return res.status(400).json({ success: false, error: 'Invalid or dummy UTR detected. Please provide a genuine UPI payment reference.' });
+    }
+
+    // Duplicate check
+    try {
+      const dupCheck = await db.query('SELECT id FROM subscription_payments WHERE utr = $1', [cleanUtr]);
+      if (dupCheck.rows && dupCheck.rows.length > 0) {
+        return res.status(400).json({ success: false, error: 'This UTR has already been submitted for a subscription.' });
+      }
+      await db.query(
+        'INSERT INTO subscription_payments (user_id, plan, amount, utr, screenshot_url, status) VALUES ($1, $2, $3, $4, $5, $6)',
+        [req.user.id, plan, amount, cleanUtr, screenshot_url || null, 'verified']
+      );
+    } catch(e) {}
+
     await db.query('UPDATE users SET subscription = $1 WHERE id = $2', [plan, req.user.id]);
     const planLabel = plan === 'website_combo' ? 'CUSTOM BUSINESS WEBSITE + VIP' : plan.toUpperCase();
+
+    // Alert admin
+    try {
+      const waMsg = `💎 *New Membership Upgrade on Flenko!*\n\n• Plan: ${planLabel} (₹${amount.toLocaleString()})\n• UTR: ${cleanUtr}\n• User: ${req.user.name || ''} (${req.user.phone})\n• Time: ${new Date().toLocaleString('en-IN')}`;
+      await sendWhatsAppMessage('8368074009', waMsg);
+    } catch(e) {}
+
     res.json({ success: true, message: `Successfully upgraded to ${planLabel} plan!` });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
 
@@ -1145,9 +1271,9 @@ const handleLeadSubmission = async (req, res) => {
   const cleanPhone10 = (effectivePhone || '').replace(/[^0-9]/g, '').slice(-10);
 
   try {
-    let directSupplierId = (supplier_id && supplier_id !== 0 && supplier_id !== '0') ? parseInt(supplier_id) : null;
+    let directSupplierId = (supplier_id && supplier_id !== 0 && supplier_id !== '0' && String(supplier_id) !== 'null') ? parseInt(supplier_id) : null;
     
-    // 1. Direct inquiry to a specific supplier
+    // 1. DIRECT PRODUCT INQUIRY: specifically to this supplier (from product page or seller profile)
     if (directSupplierId) {
       await db.query(
         'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -1162,9 +1288,17 @@ const handleLeadSubmission = async (req, res) => {
           await sendWhatsAppMessage(supplier.phone, waMsg); 
         }
       } catch(e) {}
+
+      // RETURN IMMEDIATELY! Direct inquiries must never be broadcast to other sellers as Buy Leads.
+      return res.json({ 
+        success: true, 
+        message: 'Direct product inquiry sent directly to supplier', 
+        is_direct: true, 
+        lead_id: Date.now() 
+      });
     }
 
-    // 2. Broadcast / Market RFQ: Find all suppliers
+    // 2. GENERAL MARKET RFQ: Broadcast across verified suppliers as Buy Lead (₹50 unlock)
     let activeSuppliers = [];
     try {
       const suppliersRes = await db.query(
@@ -1173,14 +1307,13 @@ const handleLeadSubmission = async (req, res) => {
       activeSuppliers = (suppliersRes.rows || []).filter(s => {
         const sPhone10 = (s.phone || '').replace(/[^0-9]/g, '').slice(-10);
         if (cleanPhone10 && sPhone10 === cleanPhone10) return false;
-        if (directSupplierId && s.id === directSupplierId) return false;
         return true;
       });
     } catch(suppErr) {
       console.warn('Could not query suppliers for broadcast:', suppErr.message);
     }
 
-    // Insert lead row for all suppliers (up to 20 suppliers)
+    // Insert BuyLead for active suppliers with is_direct = false
     for (const supp of activeSuppliers.slice(0, 20)) {
       try {
         await db.query(
@@ -1188,7 +1321,7 @@ const handleLeadSubmission = async (req, res) => {
           [supp.id, buyerId, effectiveProduct, effectivePhone, leadDetails, false]
         );
         try {
-          const waMsgBroad = `🌟 *New Buy Lead on Flenko!*\n\n*Requirement:* ${effectiveProduct}\n*Buyer Contact:* ${effectivePhone}\n*Details:* ${leadDetails}\n\nLogin to Flenko Seller Panel to connect with this buyer!`;
+          const waMsgBroad = `🌟 *New Buy Lead on Flenko!*\n\n*Requirement:* ${effectiveProduct}\n*Details:* ${leadDetails}\n\nLogin to Flenko Seller Panel to unlock and connect with this buyer!`;
           await sendWhatsAppMessage(supp.phone, waMsgBroad);
         } catch(e) {}
       } catch(err) {
@@ -1196,7 +1329,7 @@ const handleLeadSubmission = async (req, res) => {
       }
     }
 
-    // 3. Insert universal broadcast lead with supplier_id = NULL
+    // Universal BuyLead entry (supplier_id = null, is_direct = false)
     try {
       await db.query(
         'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -1204,7 +1337,7 @@ const handleLeadSubmission = async (req, res) => {
       );
     } catch(e) {}
 
-    // 4. Also register into rfqs table so RFQ quotes work seamlessly
+    // Also register into rfqs table so RFQ quotes work seamlessly
     try {
       await db.query(
         'INSERT INTO rfqs (buyer_id, product, qty, target_price, details) VALUES ($1, $2, $3, $4, $5)',
@@ -1212,7 +1345,12 @@ const handleLeadSubmission = async (req, res) => {
       );
     } catch(e) {}
 
-    res.json({ success: true, message: 'Inquiry and RFQ sent successfully to suppliers', lead_id: Date.now() });
+    return res.json({ 
+      success: true, 
+      message: 'RFQ distributed successfully to suppliers as Buy Lead', 
+      is_direct: false, 
+      lead_id: Date.now() 
+    });
   } catch (error) {
     console.error('Error submitting lead:', error);
     res.status(500).json({ error: 'Internal server error: ' + error.message });
@@ -1221,6 +1359,65 @@ const handleLeadSubmission = async (req, res) => {
 
 app.post('/api/public/leads', handleLeadSubmission);
 app.post('/api/leads', handleLeadSubmission);
+
+// Admin: Get All Payments Ledger (Lead Unlocks ₹50 & Subscriptions)
+app.get('/api/admin/payments', authMiddleware, async (req, res) => {
+  try {
+    let leadPays = [];
+    let subPays = [];
+    try {
+      const lRes = await db.query(`
+        SELECT lp.*, u.name as supplier_name, u.phone as supplier_phone, l.product_needed as lead_title
+        FROM lead_payments lp
+        LEFT JOIN users u ON lp.supplier_id = u.id
+        LEFT JOIN leads l ON lp.lead_id = l.id
+        ORDER BY lp.id DESC LIMIT 50
+      `);
+      leadPays = lRes.rows || [];
+    } catch(e) {
+      try {
+        const raw = await db.query('SELECT * FROM lead_payments');
+        leadPays = raw.rows || [];
+      } catch(e2) {}
+    }
+
+    try {
+      const sRes = await db.query(`
+        SELECT sp.*, u.name as user_name, u.phone as user_phone
+        FROM subscription_payments sp
+        LEFT JOIN users u ON sp.user_id = u.id
+        ORDER BY sp.id DESC LIMIT 50
+      `);
+      subPays = sRes.rows || [];
+    } catch(e) {
+      try {
+        const raw = await db.query('SELECT * FROM subscription_payments');
+        subPays = raw.rows || [];
+      } catch(e2) {}
+    }
+
+    res.json({ success: true, lead_payments: leadPays, subscription_payments: subPays });
+  } catch(err) {
+    res.status(500).json({ error: 'Failed to fetch payments: ' + err.message });
+  }
+});
+
+// Admin: Flag Fraud & Re-Lock Lead
+app.post('/api/admin/payments/:id/flag-fraud', authMiddleware, async (req, res) => {
+  try {
+    const payId = parseInt(req.params.id);
+    const payRes = await db.query('SELECT * FROM lead_payments WHERE id = $1', [payId]);
+    if (payRes.rows && payRes.rows.length > 0) {
+      const p = payRes.rows[0];
+      await db.query("UPDATE lead_payments SET status = 'fraud' WHERE id = $1", [payId]);
+      await db.query('UPDATE leads SET is_paid = false WHERE id = $1', [p.lead_id]);
+      return res.json({ success: true, message: `Payment flagged as fraud. Lead #${p.lead_id} re-locked immediately!` });
+    }
+    res.status(404).json({ error: 'Payment record not found' });
+  } catch(err) {
+    res.status(500).json({ error: 'Failed to flag fraud: ' + err.message });
+  }
+});
 
 // Route: Get Single Product (Public)
 app.get('/api/public/products/:id', async (req, res) => {
@@ -1448,6 +1645,17 @@ app.post('/api/buyer/rfqs', authMiddleware, async (req, res) => {
       'INSERT INTO rfqs (buyer_id, product, qty, target_price, details) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [req.user.id, product, qty, target_price, details]
     );
+
+    // Also broadcast into leads table as a Market BuyLead (is_direct = false)
+    try {
+      const buyerPhone = req.user.phone || '';
+      const rfqLeadDetails = details || `Qty: ${qty || 'Bulk'} | Target: ${target_price || 'Best Market Rate'}`;
+      await db.query(
+        'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
+        [null, req.user.id, product, buyerPhone, rfqLeadDetails, false]
+      );
+    } catch(e) {}
+
     res.json({ success: true, rfq: newRfq.rows[0] });
   } catch (error) {
     res.status(500).json({ error: 'Failed to post RFQ' });

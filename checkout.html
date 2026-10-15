@@ -152,18 +152,19 @@
             body: JSON.stringify({ plan, utr })
           });
           const data = await res.json();
-          if(data.success) {
+          overlay.style.display = 'none';
+
+          if (res.ok && data.success) {
             alert('🎉 Payment Verified Successfully! Your supplier account has been upgraded to ' + displayName);
             window.location.href = 'supplier-dashboard.html';
           } else {
-            alert('Notice: ' + (data.message || 'Payment received and submitted for verification. Welcome!'));
-            window.location.href = 'supplier-dashboard.html';
+            alert('❌ Verification Failed:\n' + (data.error || data.message || 'Invalid or duplicate UTR. Please ensure payment was completed via UPI QR code.'));
           }
         } catch(e) {
-          alert('🎉 Payment submitted successfully! Welcome to Flenko VIP Supplier.');
-          window.location.href = 'supplier-dashboard.html';
+          overlay.style.display = 'none';
+          alert('❌ Verification Error:\n' + (e.message || 'Network error connecting to payment verification server.'));
         }
-      }, 2000);
+      }, 1500);
     }
   </script>
   <script src="js/mobile-nav.js"></script>
