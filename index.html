@@ -1138,129 +1138,6 @@
           }
         } catch(e) {}
 
-        // Default catalog items if empty
-        const defaultHomeCatalog = [
-          {
-            id: 'def_101',
-            name: "Automatic Rotary Industrial Bakery Oven",
-            category: "Bakery Equipment & Food Processing",
-            country: "India",
-            flag: "🇮🇳",
-            supplier: { name: "Apex Thermal Engineering Works", location: "Ahmedabad, India" },
-            supplier_id: 1,
-            price: 385000,
-            moq: 1,
-            unit: "Sets",
-            image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80",
-            badge: "VERIFIED PRO"
-          },
-          {
-            id: 'def_102',
-            name: "Heavy Duty 5-Ply Corrugated Shipping Boxes",
-            category: "Industrial Packaging & Boxes",
-            country: "India",
-            flag: "🇮🇳",
-            supplier: { name: "Flenko Kraft Pack Global Ltd", location: "New Delhi, India" },
-            supplier_id: 1,
-            price: 24,
-            moq: 500,
-            unit: "Pieces",
-            image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80",
-            badge: "FACTORY DIRECT"
-          },
-          {
-            id: 'def_103',
-            name: "Commercial Monocrystalline Solar Panels 550W Tier-1",
-            category: "Solar Energy & Renewable Power",
-            country: "United States",
-            flag: "🇺🇸",
-            supplier: { name: "SunVolt Americas Industrial Energy", location: "Houston, United States" },
-            supplier_id: 1,
-            price: 8500,
-            moq: 20,
-            unit: "Units",
-            image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?w=600&auto=format&fit=crop&q=80",
-            badge: "TOP SUPPLIER"
-          },
-          {
-            id: 'def_104',
-            name: "Custom Enterprise B2B Web Application & ERP Software",
-            category: "Web Development & IT Services",
-            country: "United States",
-            flag: "🇺🇸",
-            supplier: { name: "CloudMatrix Software Solutions LLC", location: "California, United States" },
-            supplier_id: 1,
-            price: 45000,
-            moq: 1,
-            unit: "Projects",
-            image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80",
-            badge: "VERIFIED PRO"
-          },
-          {
-            id: 'def_105',
-            name: "High Precision CNC Lathe Milling Machine",
-            category: "Machinery & Industrial Tools",
-            country: "Germany",
-            flag: "🇩🇪",
-            supplier: { name: "Bavaria Precision Machining GMBH", location: "Stuttgart, Germany" },
-            supplier_id: 1,
-            price: 1850000,
-            moq: 1,
-            unit: "Units",
-            image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80",
-            badge: "GERMAN VERIFIED"
-          },
-          {
-            id: 'def_106',
-            name: "Industrial Grade Stainless Steel Flanges & Valves",
-            category: "Metals & Construction Hardware",
-            country: "United Arab Emirates",
-            flag: "🇦🇪",
-            supplier: { name: "Gulf Steel & Pipeline Supplies FZE", location: "Dubai, United Arab Emirates" },
-            supplier_id: 1,
-            price: 1450,
-            moq: 50,
-            unit: "Pieces",
-            image: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80",
-            badge: "VERIFIED PRO"
-          },
-          {
-            id: 'def_107',
-            name: "100% Organic Combed Cotton Yarn & Fabric Rolls",
-            category: "Textiles & Apparel Fabrics",
-            country: "India",
-            flag: "🇮🇳",
-            supplier: { name: "Shree Ganesh Textiles Mill Pvt Ltd", location: "Surat, India" },
-            supplier_id: 1,
-            price: 280,
-            moq: 100,
-            unit: "Meters",
-            image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80",
-            badge: "FACTORY DIRECT"
-          },
-          {
-            id: 'def_108',
-            name: "Industrial Lithium LiFePO4 Energy Storage Battery 48V",
-            category: "Electronics & Energy Storage",
-            country: "China",
-            flag: "🇨🇳",
-            supplier: { name: "Shenzhen EverPower Battery Tech Co", location: "Shenzhen, China" },
-            supplier_id: 1,
-            price: 65000,
-            moq: 5,
-            unit: "Units",
-            image: "https://images.unsplash.com/photo-1558441719-8b489c63f7d1?w=600&auto=format&fit=crop&q=80",
-            badge: "TOP SUPPLIER"
-          }
-        ];
-
-        const existingNames = new Set(homeProducts.map(p => (p.name || '').toLowerCase().trim()));
-        defaultHomeCatalog.forEach(dp => {
-          if (!existingNames.has(dp.name.toLowerCase().trim())) {
-            homeProducts.push(dp);
-          }
-        });
-
         window.homeProductsList = homeProducts;
 
         window.openHomeInquiry = function(id) {
@@ -1272,42 +1149,64 @@
           }
         };
 
-        homeGrid.innerHTML = homeProducts.slice(0, 16).map(p => `
-          <article class="flenko-card">
-            <div class="flenko-card-img-wrap" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
-              <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='assets/images/logo.png'">
-              <span class="flenko-badge flenko-badge-blue">${p.badge}</span>
-              <span class="flenko-country-flag" title="${p.country}">${p.flag}</span>
-            </div>
-            <div class="flenko-card-body">
-              <h3 class="flenko-card-title" title="${p.name}">
-                <a href="products.html?q=${encodeURIComponent(p.name)}">${p.name}</a>
+        if (homeProducts.length === 0) {
+          homeGrid.innerHTML = `
+            <div style="grid-column:1/-1; padding:3.5rem 2rem; text-align:center; background:var(--color-white); border:1px dashed #cbd5e1; border-radius:var(--radius-lg);">
+              <div style="font-size:3rem; margin-bottom:0.75rem;">🏭</div>
+              <h3 style="font-size:1.25rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem;">
+                Global Wholesale B2B Marketplace
               </h3>
-              <div class="flenko-price-main" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
-                ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
-                  ? `<span class="flenko-price-val">₹${Number(p.price).toLocaleString('en-IN')}</span> <span class="flenko-price-unit">/ ${p.unit}</span>`
-                  : `<span style="color:#0284c7; font-weight:700; font-size:0.85rem;">Contact supplier to get best rates</span>`
-                }
-              </div>
-              <div class="flenko-moq-row">
-                <span>MOQ: <strong>${p.moq} ${p.unit}</strong></span>
-                <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
-              </div>
-              <div class="flenko-supplier-box">
-                <div class="flenko-supp-name">${p.supplier.name}</div>
-                <div class="flenko-supp-loc">📍 ${p.supplier.location}</div>
-              </div>
-              <div class="flenko-card-actions" style="display:flex; gap:0.4rem; margin-top:0.75rem;">
-                <button type="button" class="btn btn-orange" style="flex:1; font-size:0.8rem; font-weight:700; padding:0.48rem;" onclick="openHomeInquiry('${p.id}')">
-                  Contact Supplier
-                </button>
-                <button type="button" class="btn btn-secondary" style="padding:0.48rem 0.6rem; font-size:0.8rem;" onclick="openHomeInquiry('${p.id}')" title="Get Best Quotation">
-                  💬
-                </button>
+              <p style="color:#64748b; margin-bottom:1.5rem; max-width:540px; margin-left:auto; margin-right:auto; font-size:0.9rem;">
+                Verified suppliers are listing products across 22+ industries. Connect directly with manufacturers or list your products today.
+              </p>
+              <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
+                <a href="sell.html" class="btn btn-orange" style="font-weight:700; padding:0.6rem 1.5rem;">
+                  🏭 Start Selling on Flenko
+                </a>
+                <a href="rfq.html" class="btn btn-secondary" style="font-weight:600; padding:0.6rem 1.5rem;">
+                  ✉️ Post Buying RFQ (Free)
+                </a>
               </div>
             </div>
-          </article>
-        `).join('');
+          `;
+        } else {
+          homeGrid.innerHTML = homeProducts.slice(0, 16).map(p => `
+            <article class="flenko-card">
+              <div class="flenko-card-img-wrap" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
+                <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='assets/images/logo.png'">
+                <span class="flenko-badge flenko-badge-blue">${p.badge}</span>
+                <span class="flenko-country-flag" title="${p.country}">${p.flag}</span>
+              </div>
+              <div class="flenko-card-body">
+                <h3 class="flenko-card-title" title="${p.name}">
+                  <a href="products.html?q=${encodeURIComponent(p.name)}">${p.name}</a>
+                </h3>
+                <div class="flenko-price-main" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
+                  ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
+                    ? `<span class="flenko-price-val">₹${Number(p.price).toLocaleString('en-IN')}</span> <span class="flenko-price-unit">/ ${p.unit}</span>`
+                    : `<span style="color:#0284c7; font-weight:700; font-size:0.85rem;">Contact supplier to get best rates</span>`
+                  }
+                </div>
+                <div class="flenko-moq-row">
+                  <span>MOQ: <strong>${p.moq} ${p.unit}</strong></span>
+                  <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
+                </div>
+                <div class="flenko-supplier-box">
+                  <div class="flenko-supp-name">${p.supplier.name}</div>
+                  <div class="flenko-supp-loc">📍 ${p.supplier.location}</div>
+                </div>
+                <div class="flenko-card-actions" style="display:flex; gap:0.4rem; margin-top:0.75rem;">
+                  <button type="button" class="btn btn-orange" style="flex:1; font-size:0.8rem; font-weight:700; padding:0.48rem;" onclick="openHomeInquiry('${p.id}')">
+                    Contact Supplier
+                  </button>
+                  <button type="button" class="btn btn-secondary" style="padding:0.48rem 0.6rem; font-size:0.8rem;" onclick="openHomeInquiry('${p.id}')" title="Get Best Quotation">
+                    💬
+                  </button>
+                </div>
+              </div>
+            </article>
+          `).join('');
+        }
       }
     });
   </script>
