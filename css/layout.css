@@ -41,7 +41,8 @@
   width: auto;
   object-fit: contain;
   transition: transform 0.2s ease;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .brand img:hover {

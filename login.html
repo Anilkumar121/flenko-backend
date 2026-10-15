@@ -105,7 +105,7 @@
   <header class="site-header" style="border-bottom: 3px solid var(--color-blue-primary); background: #ffffff;">
     <div class="container header-top" style="justify-content: center; padding: 1rem 0;">
       <a href="index.html" class="brand" style="display:flex; align-items:center;">
-        <img src="assets/images/logo.png" alt="Flenko Global Business Hub" style="height: 68px; max-height: 75px; width: auto; object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.06));">
+        <img src="assets/images/logo.png" alt="Flenko Global Business Hub" style="height: 68px; max-height: 75px; width: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast;);">
       </a>
     </div>
   </header>
@@ -307,16 +307,11 @@
   <script src="js/translator.js"></script>
   <script src="js/mobile-nav.js"></script>
   <script>
-    const otpForm = document.getElementById('otpForm');
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const forgotForm = document.getElementById('forgotForm');
-    const tabOtp = document.getElementById('tabOtp');
     const tabSignIn = document.getElementById('tabSignIn');
     const tabSignUp = document.getElementById('tabSignUp');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const forgotForm = document.getElementById('forgotForm');
     const statusMsg = document.getElementById('statusMsg');
 
     function switchAuthTab(tab) {
