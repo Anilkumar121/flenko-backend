@@ -1031,9 +1031,27 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
     } catch(e) {}
 
     let processedLeads = uniqueLeads.map((lead) => {
+      // Direct inquiry: specifically for this supplier (from their products or profile)
+      const isDirect = (lead.is_direct === true || lead.is_direct === 'true') && (parseInt(lead.supplier_id) === parseInt(req.user.id));
+      const isPaid = lead.is_paid === true || lead.is_paid === 'true';
+      const isUnlocked = isDirect || isPaid;
+
+      let displayPhone = (lead.buyer_phone || '').trim();
+      if (!isUnlocked) {
+        if (displayPhone.length > 5) {
+          displayPhone = displayPhone.slice(0, displayPhone.length - 5) + 'XXXXX (Buy Lead)';
+        } else {
+          displayPhone = '********** (Buy Lead)';
+        }
+      }
+
       return {
         ...lead,
-        locked: false
+        buyer_phone: isUnlocked ? lead.buyer_phone : displayPhone,
+        real_phone: isUnlocked ? lead.buyer_phone : undefined,
+        is_direct: isDirect,
+        is_paid: isPaid,
+        locked: !isUnlocked
       };
     });
 
@@ -1044,14 +1062,24 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
   }
 });
 
-// Route: Pay for a specific lead (10 INR deduction/payment mock)
+// Route: Pay / Unlock Market BuyLead (Returns real unmasked buyer phone number)
 app.post('/api/leads/:id/pay', authMiddleware, async (req, res) => {
   try {
-    // In production, integrate Razorpay/Stripe here. For now, mark as paid.
-    await db.query('UPDATE leads SET is_paid = true WHERE id = $1', [parseInt(req.params.id)]);
-    res.json({ success: true, message: 'Payment of ₹10 successful. Lead unlocked!' });
+    const leadId = parseInt(req.params.id);
+    await db.query('UPDATE leads SET is_paid = true WHERE id = $1', [leadId]);
+    
+    // Fetch unmasked buyer phone
+    const leadRes = await db.query('SELECT buyer_phone, details FROM leads WHERE id = $1', [leadId]);
+    const realPhone = (leadRes.rows && leadRes.rows[0]) ? leadRes.rows[0].buyer_phone : '';
+
+    res.json({ 
+      success: true, 
+      message: 'BuyLead unlocked successfully! Contact details are now visible.', 
+      buyer_phone: realPhone,
+      lead_id: leadId 
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
 
