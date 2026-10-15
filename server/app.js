@@ -1024,16 +1024,7 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
       plan = (userRes.rows[0] && userRes.rows[0].subscription) ? userRes.rows[0].subscription : 'free';
     } catch(e) {}
 
-    let processedLeads = uniqueLeads.map((lead, index) => {
-      // Free suppliers get their first 25 leads 100% UNLOCKED with full buyer phone!
-      if (plan === 'free' && index >= 25 && !lead.is_paid && !lead.is_direct) {
-        return {
-          ...lead,
-          buyer_phone: '********** (Locked - Pay ₹50)',
-          locked: true,
-          unlock_fee: 50
-        };
-      }
+    let processedLeads = uniqueLeads.map((lead) => {
       return {
         ...lead,
         locked: false
@@ -1243,9 +1234,9 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const cleanStock = parseInt(stock_quantity) || 500;
   
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
-  const image_url = req.file 
-    ? `${backendHost}/assets/images/products/${req.file.filename}` 
-    : (req.body.image_data || req.body.image_url || 'assets/images/logo.png');
+  const image_url = (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image'))
+    ? req.body.image_data
+    : (req.file ? `${backendHost}/assets/images/products/${req.file.filename}` : (req.body.image_url || 'assets/images/logo.png'));
   
   // Auto-SEO Generator
   const autoSeoTags = `buy ${cleanName} wholesale, best ${cleanName} supplier, ${cleanName} manufacturers in ${effectiveCountry}, top quality ${effectiveCategory}`;
@@ -1350,6 +1341,7 @@ app.delete('/api/products/:id', authMiddleware, async (req, res) => {
 
 // Route: Get ALL Products (Public)
 app.get('/api/public/products', async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
     let prods;
     try {

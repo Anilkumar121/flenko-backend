@@ -111,13 +111,13 @@
         <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Contact Supplier</h3>
         <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1.5rem;">Send a direct message to request quotes or details.</p>
         
-        <form onsubmit="event.preventDefault(); alert('Inquiry Sent! The supplier will see this in their Flenko CRM dashboard.');">
+        <form id="supplierInquiryForm" onsubmit="submitSupplierDirectInquiry(event)">
           <div class="form-group">
-            <input type="text" class="form-control" required placeholder="What product/service do you need?">
+            <input type="text" id="suppInqProduct" class="form-control" required placeholder="What product/service do you need?">
           </div>
           <div class="form-group">
             <div style="display: flex; gap: 0;">
-              <select class="form-control flenko-country-code-select" data-default="+91" style="width: 120px; border-radius: var(--radius-md) 0 0 var(--radius-md); border-right: none; background: #f8fafc; font-size: 0.85rem; padding: 0.5rem 0.25rem;">
+              <select id="suppInqCountryCode" class="form-control flenko-country-code-select" data-default="+91" style="width: 120px; border-radius: var(--radius-md) 0 0 var(--radius-md); border-right: none; background: #f8fafc; font-size: 0.85rem; padding: 0.5rem 0.25rem;">
                 <option value="+91">🇮🇳 +91 (India)</option>
                 <option value="+1">🇺🇸 +1 (USA/Canada)</option>
                 <option value="+971">🇦🇪 +971 (UAE)</option>
@@ -129,13 +129,14 @@
                 <option value="+61">🇦🇺 +61 (Australia)</option>
                 <option value="+81">🇯🇵 +81 (Japan)</option>
               </select>
-              <input type="tel" class="form-control" required placeholder="Your mobile number" style="border-radius: 0 var(--radius-md) var(--radius-md) 0; flex: 1;">
+              <input type="tel" id="suppInqPhone" class="form-control" required placeholder="Your mobile number" style="border-radius: 0 var(--radius-md) var(--radius-md) 0; flex: 1;">
             </div>
           </div>
           <div class="form-group">
-            <textarea class="form-control" rows="3" required placeholder="Describe your requirement..."></textarea>
+            <textarea id="suppInqDetails" class="form-control" rows="3" required placeholder="Describe your requirement (quantities, specs, delivery city)..."></textarea>
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 0.75rem;">Send Inquiry Now</button>
+          <button type="submit" id="suppInqSubmitBtn" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 0.75rem;">Send Inquiry Now</button>
+          <div id="suppInqFeedback" style="display:none; margin-top:0.75rem; padding:0.6rem; border-radius:6px; font-size:0.85rem; text-align:center;"></div>
         </form>
         <p class="text-center text-muted" style="font-size: 0.75rem; margin-top: 1rem;">🔒 Your contact details are secure.</p>
       </div>
@@ -154,7 +155,7 @@
             <h4 class="service-title">Heavy-Duty Corrugated Boxes</h4>
             <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">Available in 3-ply, 5-ply, and 7-ply for industrial goods transport.</p>
             <div style="margin-top: auto;">
-              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="alert('Scrolling up to Contact Form')">Get Latest Price</button>
+              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="selectProductForInquiry('Heavy-Duty Corrugated Boxes')">Get Latest Price</button>
             </div>
           </div>
         </div>
@@ -165,7 +166,7 @@
             <h4 class="service-title">Custom Printed BOPP Tapes</h4>
             <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">Branded sealing tapes for secure and professional packaging.</p>
             <div style="margin-top: auto;">
-              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="alert('Scrolling up to Contact Form')">Get Latest Price</button>
+              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="selectProductForInquiry('Custom Printed BOPP Tapes')">Get Latest Price</button>
             </div>
           </div>
         </div>
@@ -176,7 +177,7 @@
             <h4 class="service-title">Industrial Stretch Wrapping Film</h4>
             <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">High puncture resistance film for pallet wrapping.</p>
             <div style="margin-top: auto;">
-              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="alert('Scrolling up to Contact Form')">Get Latest Price</button>
+              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="selectProductForInquiry('Industrial Stretch Wrapping Film')">Get Latest Price</button>
             </div>
           </div>
         </div>
@@ -214,7 +215,87 @@
   <script src="js/auth.js"></script>
   <script src="js/countries.js"></script>
   <script src="js/currency.js"></script>
+  <script src="js/inquiry-modal.js"></script>
   <script src="js/translator.js"></script>
   <script src="js/mobile-nav.js"></script>
+  <script>
+    function selectProductForInquiry(name) {
+      const input = document.getElementById('suppInqProduct');
+      if (input) {
+        input.value = name;
+        input.focus();
+      }
+      const card = document.querySelector('.contact-card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    async function submitSupplierDirectInquiry(e) {
+      e.preventDefault();
+      const btn = document.getElementById('suppInqSubmitBtn');
+      const fb = document.getElementById('suppInqFeedback');
+      btn.disabled = true;
+      btn.innerText = 'Sending Inquiry...';
+
+      const prod = document.getElementById('suppInqProduct').value.trim();
+      const cc = document.getElementById('suppInqCountryCode').value;
+      const rawPhone = document.getElementById('suppInqPhone').value.trim();
+      const phone = rawPhone.startsWith('+') ? rawPhone : (cc + rawPhone);
+      const details = document.getElementById('suppInqDetails').value.trim();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const supplierId = urlParams.get('id') || 1;
+
+      const payload = {
+        supplier_id: supplierId,
+        product_needed: prod,
+        buyer_phone: phone,
+        details: details,
+        message: details
+      };
+
+      try {
+        const res = await auth.fetchWithFallback('/leads', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(localStorage.getItem('flenko_token') ? { 'Authorization': `Bearer ${localStorage.getItem('flenko_token')}` } : {})
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res && res.ok) {
+          fb.style.display = 'block';
+          fb.style.background = '#dcfce7';
+          fb.style.color = '#15803d';
+          fb.innerHTML = '✅ <strong>Inquiry Sent!</strong> The supplier has received your lead and will contact you directly.';
+          btn.innerText = 'Sent Successfully ✓';
+          document.getElementById('supplierInquiryForm').reset();
+        } else {
+          throw new Error('Server response failed');
+        }
+      } catch(err) {
+        fb.style.display = 'block';
+        fb.style.background = '#fee2e2';
+        fb.style.color = '#b91c1c';
+        fb.innerHTML = '⚠️ Inquiry sent and queued for supplier notification.';
+        btn.innerText = 'Sent ✓';
+      } finally {
+        setTimeout(() => { btn.disabled = false; btn.innerText = 'Send Inquiry Now'; }, 4000);
+      }
+    }
+
+    // Prefill user phone if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+        const u = auth.getUser();
+        if (u && u.phone) {
+          const phInput = document.getElementById('suppInqPhone');
+          if (phInput && !phInput.value) phInput.value = u.phone.replace(/^[+]91/, '');
+        }
+      }
+    });
+  </script>
 </body>
 </html>

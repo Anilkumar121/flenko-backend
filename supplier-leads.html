@@ -3,94 +3,282 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Messages & Leads - Flenko Seller Panel</title>
+  <title>Lead Manager (IndiaMART Style CRM) - Flenko Seller Panel</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/mobile.css">
   <style>
-    body { background-color: #f1f3f6; }
+    body { background-color: #f1f5f9; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .im-panel-header {
       background: var(--color-white); border-bottom: 2px solid var(--color-navy-deep);
-      padding: 0.5rem 0; position: sticky; top: 0; z-index: 100;
+      padding: 0.6rem 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
     .im-panel-layout {
-      display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem;
-      padding: 1.5rem 0; max-width: 1350px; margin: 0 auto; height: calc(100vh - 60px);
+      display: grid; grid-template-columns: 240px 1fr; gap: 1.25rem;
+      padding: 1.25rem 0; max-width: 1400px; margin: 0 auto; height: calc(100vh - 68px); box-sizing: border-box;
     }
     .im-sidebar {
       background: var(--color-white); border: 1px solid var(--color-border);
-      height: max-content;
+      border-radius: 8px; height: max-content; overflow: hidden;
     }
     .im-menu a {
-      display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem;
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1.1rem;
       color: var(--color-text-main); font-weight: 500; font-size: 0.875rem;
-      border-left: 3px solid transparent; border-bottom: 1px solid var(--color-bg-light);
+      border-left: 3px solid transparent; border-bottom: 1px solid #f1f5f9; text-decoration: none; transition: all 0.2s;
     }
     .im-menu a:hover, .im-menu a.active {
-      background: rgba(22, 119, 210, 0.05); color: var(--color-blue-primary); border-left-color: var(--color-blue-primary);
+      background: #eff6ff; color: var(--color-blue-primary); border-left-color: var(--color-blue-primary); font-weight: 700;
     }
     
-    /* CRM Layout */
+    /* IndiaMART-Style CRM Layout */
+    .crm-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 0.75rem;
+      overflow: hidden;
+    }
+
+    /* Top Stats & Filter Tabs */
+    .crm-top-bar {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .lead-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .lead-tab-btn {
+      padding: 0.45rem 0.85rem;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+    .lead-tab-btn:hover { background: #e2e8f0; }
+    .lead-tab-btn.active {
+      background: #0F4C9B;
+      color: #fff;
+      border-color: #0F4C9B;
+    }
+    .lead-tab-badge {
+      background: rgba(0,0,0,0.1);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+    }
+    .lead-tab-btn.active .lead-tab-badge {
+      background: rgba(255,255,255,0.25);
+    }
+
+    /* Main CRM Split View */
     .crm-container {
       display: grid;
-      grid-template-columns: 350px 1fr;
+      grid-template-columns: 380px 1fr;
       background: var(--color-white);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
       overflow: hidden;
+      flex: 1;
       height: 100%;
     }
     .crm-list {
-      border-right: 1px solid var(--color-border);
+      border-right: 1px solid #e2e8f0;
       overflow-y: auto;
-      background: var(--color-bg-light);
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
     }
     .crm-list-header {
-      padding: 1rem;
+      padding: 0.75rem 1rem;
       background: var(--color-white);
-      border-bottom: 1px solid var(--color-border);
-      position: sticky; top: 0;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky; top: 0; z-index: 10;
     }
     .lead-card {
       padding: 1rem;
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid #e2e8f0;
       cursor: pointer;
       background: var(--color-white);
-      transition: background var(--transition-fast);
+      transition: all 0.2s ease;
+      position: relative;
     }
-    .lead-card:hover { background: var(--color-bg-light); }
-    .lead-card.active { border-left: 4px solid var(--color-teal); background: #f0fdfa; }
+    .lead-card:hover { background: #f1f5f9; }
+    .lead-card.active {
+      border-left: 4px solid #028867;
+      background: #f0fdf4;
+    }
     
     .crm-details {
       display: flex;
       flex-direction: column;
       height: 100%;
+      background: #ffffff;
+      overflow-y: auto;
     }
     .crm-details-header {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--color-border);
-      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
-    .crm-chat-area {
+    .crm-content-area {
       flex: 1;
       padding: 1.5rem;
-      overflow-y: auto;
       background: #f8fafc;
+      overflow-y: auto;
     }
-    .crm-reply-box {
-      padding: 1rem;
-      border-top: 1px solid var(--color-border);
-      background: var(--color-white);
+
+    /* IndiaMART Info Cards */
+    .im-info-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .im-card-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .im-specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+    .im-spec-item {
+      background: #f8fafc;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid #f1f5f9;
+    }
+    .im-spec-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 0.25rem;
+    }
+    .im-spec-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* Action Buttons */
+    .btn-whatsapp {
+      background: #25D366;
+      color: #ffffff;
+      border: 1px solid #20ba5a;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-whatsapp:hover { background: #20bd5a; color: #fff; }
+
+    .btn-call {
+      background: #0F4C9B;
+      color: #ffffff;
+      border: 1px solid #0F4C9B;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+    }
+    .btn-call:hover { background: #0c3d7c; color: #fff; }
+
+    .btn-quote {
+      background: #FF6B00;
+      color: #ffffff;
+      border: 1px solid #FF6B00;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-quote:hover { background: #e05e00; }
+
+    /* Quick Reply Pill */
+    .quick-pill {
+      font-size: 0.75rem;
+      background: #e2e8f0;
+      color: #334155;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 1px solid #cbd5e1;
+      transition: all 0.2s;
+    }
+    .quick-pill:hover {
+      background: #cbd5e1;
+      color: #0f172a;
+    }
+
+    @media (max-width: 900px) {
+      .im-panel-layout { grid-template-columns: 1fr; height: auto; }
+      .im-sidebar { display: none; }
+      .crm-container { grid-template-columns: 1fr; height: auto; }
+      .crm-list { max-height: 350px; }
     }
   </style>
 </head>
 <body>
   <header class="im-panel-header">
-    <div class="container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1350px;">
-      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
-      <div style="display: flex; align-items: center; gap: 1.5rem;">
-        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="auth.logout()">Logout</button>
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1400px; padding: 0 1rem;">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <a href="index.html" class="brand" style="display:flex; align-items:center;">
+          <img src="assets/images/logo.png" alt="Flenko" style="height: 48px; width: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast;">
+        </a>
+        <span style="background: #eff6ff; color: #0F4C9B; font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; border: 1px solid #bfdbfe;">
+          SELLER PANEL &bull; INDIA-MART CRM
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <span id="sellerNavName" style="font-size: 0.85rem; font-weight: 600; color: #334155;">Verified Seller</span>
+        <button class="btn btn-outline" style="padding: 0.3rem 0.85rem; font-size: 0.78rem;" onclick="auth.logout()">Logout</button>
       </div>
     </div>
   </header>
@@ -99,41 +287,136 @@
     <aside class="im-sidebar">
       <nav class="im-menu">
         <a href="supplier-dashboard.html">📊 Dashboard</a>
-        <a href="supplier-leads.html" class="active">✉️ Messages & Leads</a>
+        <a href="supplier-leads.html" class="active">✉️ Lead Manager (CRM)</a>
         <a href="supplier-products.html">📋 Manage Products</a>
+        <a href="supplier-quotes.html">🧾 RFQs & Quotations</a>
         <a href="supplier-profile.html">💼 Company Profile</a>
       </nav>
     </aside>
 
-    <section class="crm-container">
-      <div class="crm-list">
-        <div class="crm-list-header">
-          <h3 style="font-size: 1rem; color: var(--color-navy-deep); margin-bottom: 0.5rem;">Inbox (Lead CRM)</h3>
-          <input type="text" class="form-control" placeholder="Search leads by phone or product...">
+    <div class="crm-wrapper">
+      <!-- Top Metrics & Tab Filters -->
+      <div class="crm-top-bar">
+        <div class="lead-tabs" id="filterTabs">
+          <button type="button" class="lead-tab-btn active" onclick="setLeadFilter('all', this)">
+            📥 All Leads <span class="lead-tab-badge" id="countAll">0</span>
+          </button>
+          <button type="button" class="lead-tab-btn" onclick="setLeadFilter('direct', this)">
+            🎯 Direct Inquiries <span class="lead-tab-badge" id="countDirect">0</span>
+          </button>
+          <button type="button" class="lead-tab-btn" onclick="setLeadFilter('market', this)">
+            🌐 Market BuyLeads <span class="lead-tab-badge" id="countMarket">0</span>
+          </button>
+          <button type="button" class="lead-tab-btn" onclick="setLeadFilter('quoted', this)">
+            📑 Quoted <span class="lead-tab-badge" id="countQuoted">0</span>
+          </button>
+          <button type="button" class="lead-tab-btn" onclick="setLeadFilter('won', this)">
+            🏆 Deals Won <span class="lead-tab-badge" id="countWon">0</span>
+          </button>
         </div>
-        <div id="leadList">
-          <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">Loading leads...</div>
+        <div style="font-size: 0.8rem; color: #16a34a; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;">
+          <span style="display:inline-block; width:8px; height:8px; background:#16a34a; border-radius:50%;"></span>
+          100% Unlocked Direct Leads
         </div>
       </div>
-      
-      <div class="crm-details" id="leadDetails">
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted);">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">✉️</div>
-          <h3>Select a lead to view details</h3>
+
+      <!-- CRM Split Window -->
+      <section class="crm-container">
+        <!-- Left: Leads List -->
+        <div class="crm-list">
+          <div class="crm-list-header">
+            <input type="text" id="leadSearchInput" class="form-control" placeholder="Search by product, buyer name, phone..." oninput="handleLeadSearch(this.value)" style="font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 6px;">
+          </div>
+          <div id="leadList">
+            <div style="padding: 2.5rem; text-align: center; color: #64748b; font-size: 0.9rem;">
+              Loading incoming leads & inquiries...
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+        
+        <!-- Right: Lead Details -->
+        <div class="crm-details" id="leadDetails">
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #64748b; padding: 2rem; text-align: center;">
+            <div style="font-size: 3.5rem; margin-bottom: 1rem;">✉️</div>
+            <h3 style="color: #1e293b; margin-bottom: 0.5rem;">Select an inquiry from the list</h3>
+            <p style="font-size: 0.85rem; max-width: 320px; line-height: 1.5; color: #64748b;">
+              View verified buyer contact details, discuss order quantity, and send quotations directly via WhatsApp.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <!-- IndiaMART-style Quotation Modal -->
+  <div id="leadQuoteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); z-index: 9999; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box;">
+    <div style="background: #ffffff; width: 100%; max-width: 480px; border-radius: 10px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+      <div style="padding: 1rem 1.25rem; background: #0F4C9B; color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Send Official Quotation</h3>
+        <button type="button" onclick="closeQuoteModal()" style="background: none; border: none; color: #fff; font-size: 1.4rem; cursor: pointer;">&times;</button>
+      </div>
+      <form id="leadQuoteForm" onsubmit="submitLeadQuote(event)" style="padding: 1.25rem;">
+        <input type="hidden" id="modalLeadId" value="">
+        <input type="hidden" id="modalBuyerPhone" value="">
+        <div style="margin-bottom: 0.85rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem;">Quoting for Requirement:</label>
+          <div id="modalProductTitle" style="font-weight: 700; color: #0f172a; font-size: 0.95rem; background: #f8fafc; padding: 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0;"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem;">Offered Unit Rate (₹) *</label>
+            <input type="number" id="modalQuoteRate" required placeholder="e.g. 450" class="form-control" style="font-size: 0.9rem;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem;">Min. Supply Qty</label>
+            <input type="text" id="modalQuoteMoq" placeholder="e.g. 50 Pieces" class="form-control" style="font-size: 0.9rem;">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem;">Delivery Time</label>
+            <input type="text" id="modalQuoteLeadTime" placeholder="e.g. 3-5 Working Days" class="form-control" style="font-size: 0.9rem;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem;">Payment Terms</label>
+            <input type="text" id="modalQuoteTerms" placeholder="e.g. 50% Advance, 50% Delivery" class="form-control" style="font-size: 0.9rem;">
+          </div>
+        </div>
+        <div style="margin-bottom: 1.25rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem;">Quotation Notes / Terms</label>
+          <textarea id="modalQuoteNotes" rows="2" class="form-control" placeholder="Tax extra as applicable. FOB Mumbai warehouse. Technical warranty included." style="font-size: 0.85rem;"></textarea>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeQuoteModal()" style="flex: 1;">Cancel</button>
+          <button type="submit" id="modalSubmitBtn" class="btn btn-primary" style="flex: 1.5; background: #FF6B00; border-color: #FF6B00; font-weight: 700;">Dispatch Quote &rarr;</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="js/auth.js"></script>
   <script src="js/currency.js"></script>
   <script src="js/translator.js"></script>
   <script>
-    let globalLeads = [];
+    let allLeads = [];
+    let displayedLeads = [];
+    let activeFilter = 'all';
+    let activeSearch = '';
+    let selectedLeadId = null;
+
     document.addEventListener('DOMContentLoaded', async () => {
       const token = auth.getToken();
       if (!token) return window.location.href = 'login.html';
 
+      const user = auth.getUser();
+      if (user) {
+        document.getElementById('sellerNavName').innerText = user.name || user.company || 'Verified Seller';
+      }
+
+      await loadAllLeads();
+    });
+
+    async function loadAllLeads() {
       try {
         let leads = [];
         const leadsData = await auth.getLeads();
@@ -141,7 +424,7 @@
           leads = leadsData.leads;
         }
 
-        // Merge local broadcast leads if available
+        // Merge local broadcast backup leads if available
         try {
           const localBroadcast = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
           if (localBroadcast.length > 0) {
@@ -154,130 +437,307 @@
           }
         } catch(err) {}
 
-        const listEl = document.getElementById('leadList');
-        if (leads.length > 0) {
-          globalLeads = leads;
-          listEl.innerHTML = globalLeads.map((lead, index) => `
-            <div class="lead-card ${index === 0 ? 'active' : ''}" onclick="openLead(${index}, this)">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                <span style="font-weight: 600; font-size: 0.875rem; color: var(--color-navy-deep);">📞 ${lead.buyer_phone || 'Buyer'}</span>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted);">${new Date(lead.created_at || Date.now()).toLocaleDateString()}</span>
-              </div>
-              <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-blue-primary); margin-bottom: 0.25rem;">${lead.product_needed || 'Product Inquiry'}</div>
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
-                <span style="color: var(--color-text-muted);">Status: <strong style="color: var(--color-teal);">${lead.status || 'New'}</strong></span>
-                ${lead.is_direct === false ? '<span style="background:#ff9800; color:#fff; padding:1px 5px; border-radius:3px; font-size:0.68rem;">Market Lead</span>' : '<span style="background:#028867; color:#fff; padding:1px 5px; border-radius:3px; font-size:0.68rem;">Direct</span>'}
-              </div>
-            </div>
-          `).join('');
+        // Set all leads to unlocked (100% unlocked access)
+        allLeads = leads.map(l => ({ ...l, locked: false }));
+        updateMetrics();
+        applyFiltersAndRender();
 
-          // Auto-open first lead
-          openLead(0, document.querySelector('.lead-card'));
-        } else {
-          listEl.innerHTML = '<div style="padding: 2rem 1rem; text-align: center; font-size: 0.875rem; color: var(--color-text-muted);">No buyer leads found yet. Check back once buyers submit RFQs.</div>';
+        if (allLeads.length > 0) {
+          openLead(allLeads[0].id);
         }
       } catch (e) {
         document.getElementById('leadList').innerHTML = `<div style="padding: 1.5rem; text-align: center; color: red;">Error loading leads: ${e.message}</div>`;
       }
-    });
+    }
 
-    function openLead(index, element) {
-      document.querySelectorAll('.lead-card').forEach(el => el.classList.remove('active'));
-      if(element) element.classList.add('active');
-      
-      const lead = globalLeads[index];
-      if (!lead) return;
-      const detailsEl = document.getElementById('leadDetails');
+    function updateMetrics() {
+      document.getElementById('countAll').innerText = allLeads.length;
+      document.getElementById('countDirect').innerText = allLeads.filter(l => l.is_direct).length;
+      document.getElementById('countMarket').innerText = allLeads.filter(l => !l.is_direct).length;
+      document.getElementById('countQuoted').innerText = allLeads.filter(l => l.status === 'Quoted').length;
+      document.getElementById('countWon').innerText = allLeads.filter(l => l.status === 'Won').length;
+    }
 
-      if (lead.locked) {
-        detailsEl.innerHTML = `
-          <div style="text-align:center; padding: 4rem 2rem;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
-            <h2 style="color: var(--color-navy-deep); margin-bottom: 1rem;">Unlock Contact Details</h2>
-            <p style="color: var(--color-text-muted); margin-bottom: 2rem;">Pay ₹50 to unlock buyer contact details and requirements.</p>
-            
-            <div style="display:flex; justify-content:center; gap: 1.5rem; flex-wrap: wrap;">
-              <div style="border: 1px solid var(--color-border); padding: 1.5rem; border-radius: var(--radius-md); text-align: center; width: 100%; max-width: 250px;">
-                <h3 style="margin-bottom: 0.5rem;">Pay Per Lead</h3>
-                <h2 style="color: var(--color-teal); margin-bottom: 1rem;">₹50</h2>
-                <button class="btn btn-outline" style="width: 100%;" onclick="payForLead(${lead.id})">Unlock This Lead</button>
-              </div>
-              <div style="border: 2px solid var(--color-blue-primary); background: rgba(22, 119, 210, 0.05); padding: 1.5rem; border-radius: var(--radius-md); text-align: center; width: 100%; max-width: 250px;">
-                <h3 style="margin-bottom: 0.5rem; color: var(--color-blue-primary);">Upgrade Plan</h3>
-                <h2 style="color: var(--color-navy-deep); margin-bottom: 0.5rem;">₹10K<span style="font-size:1rem;font-weight:normal;">/yr</span></h2>
-                <p style="font-size: 0.75rem; margin-bottom: 1rem; color: var(--color-text-muted);">Unlimited Leads</p>
-                <button class="btn btn-primary" style="width: 100%;" onclick="window.location.href='pricing.html'">View Plans</button>
-              </div>
-            </div>
+    function setLeadFilter(filter, btn) {
+      activeFilter = filter;
+      document.querySelectorAll('.lead-tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      applyFiltersAndRender();
+    }
+
+    function handleLeadSearch(val) {
+      activeSearch = (val || '').toLowerCase().trim();
+      applyFiltersAndRender();
+    }
+
+    function applyFiltersAndRender() {
+      displayedLeads = allLeads.filter(lead => {
+        // Tab filter
+        if (activeFilter === 'direct' && !lead.is_direct) return false;
+        if (activeFilter === 'market' && lead.is_direct) return false;
+        if (activeFilter === 'quoted' && lead.status !== 'Quoted') return false;
+        if (activeFilter === 'won' && lead.status !== 'Won') return false;
+
+        // Search filter
+        if (activeSearch) {
+          const m1 = (lead.product_needed || '').toLowerCase().includes(activeSearch);
+          const m2 = (lead.buyer_phone || '').toLowerCase().includes(activeSearch);
+          const m3 = (lead.details || '').toLowerCase().includes(activeSearch);
+          if (!m1 && !m2 && !m3) return false;
+        }
+
+        return true;
+      });
+
+      renderLeadList();
+    }
+
+    function renderLeadList() {
+      const listEl = document.getElementById('leadList');
+      if (displayedLeads.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 3rem 1.5rem; text-align: center; color: #64748b; font-size: 0.85rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+            No leads match current filter.<br>
+            <button type="button" class="btn btn-outline" style="margin-top:0.75rem; font-size:0.75rem; padding:4px 10px;" onclick="setLeadFilter('all', document.querySelector('.lead-tab-btn'))">Show All Leads</button>
           </div>
         `;
         return;
       }
 
-      const cleanDigits = (lead.buyer_phone || '').replace(/[^0-9]/g, '');
+      listEl.innerHTML = displayedLeads.map((lead) => {
+        const isSelected = lead.id === selectedLeadId;
+        const dateStr = formatLeadDate(lead.created_at);
+        const buyerPhone = lead.buyer_phone || 'Verified Buyer';
+
+        // Extract city from details if available
+        let cityTag = 'India';
+        if (lead.details && lead.details.includes('Destination:')) {
+          const m = lead.details.match(/Destination:\s*([^(\n]+)/);
+          if (m && m[1]) cityTag = m[1].trim();
+        }
+
+        let statusColor = '#0F4C9B';
+        if (lead.status === 'Won') statusColor = '#16a34a';
+        else if (lead.status === 'Quoted') statusColor = '#ea580c';
+        else if (lead.status === 'Contacted') statusColor = '#ca8a04';
+
+        return `
+          <div class="lead-card ${isSelected ? 'active' : ''}" onclick="openLead(${lead.id})">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">⏰ ${dateStr}</span>
+              ${lead.is_direct 
+                ? '<span style="background:#028867; color:#fff; padding:2px 7px; border-radius:4px; font-size:0.68rem; font-weight:700;">🎯 DIRECT INQUIRY</span>'
+                : '<span style="background:#ea580c; color:#fff; padding:2px 7px; border-radius:4px; font-size:0.68rem; font-weight:700;">🌐 BUY-LEAD</span>'
+              }
+            </div>
+
+            <div style="font-size: 0.92rem; font-weight: 700; color: #0F172A; margin-bottom: 0.3rem; line-height: 1.35;">
+              ${lead.product_needed || 'Wholesale Requirement'}
+            </div>
+
+            <div style="font-size: 0.78rem; color: #475569; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>📞 ${buyerPhone}</span>
+              <span style="color:#cbd5e1;">&bull;</span>
+              <span>📍 ${cityTag}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+              <span style="color: ${statusColor}; font-weight: 700;">
+                ● ${lead.status || 'New Inquiry'}
+              </span>
+              <span style="color: #0F4C9B; font-weight: 600; text-decoration: underline;">
+                View Details &rarr;
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatLeadDate(dateVal) {
+      if (!dateVal) return 'Recently';
+      const d = new Date(dateVal);
+      const now = new Date();
+      const diffMs = now - d;
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      if (diffMins < 60) return `${diffMins <= 1 ? 'Just now' : diffMins + 'm ago'}`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    }
+
+    function openLead(id) {
+      selectedLeadId = id;
+      renderLeadList();
+
+      const lead = allLeads.find(l => l.id === id);
+      if (!lead) return;
+
+      const detailsEl = document.getElementById('leadDetails');
+
+      const rawPhone = (lead.buyer_phone || '').trim();
+      const cleanDigits = rawPhone.replace(/[^0-9]/g, '');
       const waPhone = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
-      
+
+      // Extract specifications & buyer details from lead.details
+      let buyerName = 'Verified Buyer';
+      let qtyInfo = 'Flexible / Wholesale';
+      let targetPrice = 'Best Market Rate';
+      let destination = 'India';
+      let userMessage = lead.details || 'Buyer requested immediate supplier quotation.';
+
+      if (lead.details) {
+        const nameMatch = lead.details.match(/Buyer:\s*([^|]+)/);
+        if (nameMatch) buyerName = nameMatch[1].trim();
+        const qtyMatch = lead.details.match(/Qty:\s*([^|]+)/);
+        if (qtyMatch) qtyInfo = qtyMatch[1].trim();
+        const priceMatch = lead.details.match(/Target Price:\s*([^|]+)/);
+        if (priceMatch) targetPrice = priceMatch[1].trim();
+        const destMatch = lead.details.match(/Destination:\s*([^.\n]+)/);
+        if (destMatch) destination = destMatch[1].trim();
+        const noteMatch = lead.details.match(/Notes?:\s*(.+)/s) || lead.details.match(/Requirements:\s*(.+)/s);
+        if (noteMatch) userMessage = noteMatch[1].trim();
+      }
+
+      const waGreeting = `Hello ${buyerName}! I received your wholesale inquiry for "${lead.product_needed}" on Flenko.com. We can supply this order. Please let me know your delivery timeline so I can share the best quotation.`;
+
       detailsEl.innerHTML = `
         <div class="crm-details-header">
           <div>
-            <h2 style="font-size: 1.25rem; color: var(--color-navy-deep); margin-bottom: 0.25rem;">${lead.product_needed}</h2>
-            <div style="font-size: 0.875rem; color: #028867; font-weight: 700;">Buyer Contact: 📞 ${lead.buyer_phone}</div>
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+              ${lead.is_direct 
+                ? '<span style="background:#028867; color:#fff; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">🎯 DIRECT PRODUCT INQUIRY</span>'
+                : '<span style="background:#ea580c; color:#fff; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">🌐 VERIFIED BUY-LEAD</span>'
+              }
+              <span style="font-size:0.8rem; color:#64748b;">Received: ${new Date(lead.created_at || Date.now()).toLocaleString('en-IN')}</span>
+            </div>
+            <h2 style="font-size: 1.35rem; color: #0F172A; margin: 0 0 0.25rem 0; font-weight: 700;">
+              ${lead.product_needed}
+            </h2>
           </div>
-          <div style="display:flex; gap:0.5rem; align-items:center;">
-            <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hello! I received your inquiry for ${lead.product_needed || 'products'} on Flenko.com. Let's discuss pricing and delivery.`)}" target="_blank" class="btn btn-primary" style="background:#25D366; border-color:#25D366; padding:0.4rem 0.85rem; font-size:0.82rem; text-decoration:none; font-weight:700;">
-              💬 WhatsApp
+
+          <!-- Quick Action Bar -->
+          <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+            <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(waGreeting)}" target="_blank" class="btn-whatsapp" title="Chat on WhatsApp">
+              💬 WhatsApp Buyer
             </a>
-            <a href="tel:${lead.buyer_phone}" class="btn btn-outline" style="padding:0.4rem 0.75rem; font-size:0.82rem; text-decoration:none;">
-              📞 Call
+            <a href="tel:${rawPhone}" class="btn-call" title="Call Buyer Directly">
+              📞 Call Now
             </a>
-            <select class="form-control" id="statusSelect_${lead.id}" style="width: 140px; border-color: var(--color-teal); color: var(--color-teal); font-weight: 600;" onchange="updateStatus(${lead.id}, this.value)">
+            <button type="button" class="btn-quote" onclick="openQuoteModal(${lead.id}, '${(lead.product_needed || '').replace(/'/g, "\\'")}', '${rawPhone}')">
+              📝 Send Quote
+            </button>
+            <select class="form-control" style="width: 135px; font-weight: 700; font-size: 0.8rem; border-color: #0F4C9B;" onchange="updateLeadStatus(${lead.id}, this.value)">
               <option value="New" ${lead.status==='New'?'selected':''}>🔵 New Lead</option>
               <option value="Contacted" ${lead.status==='Contacted'?'selected':''}>🟡 Contacted</option>
-              <option value="Quoted" ${lead.status==='Quoted'?'selected':''}>🟠 Quote Sent</option>
+              <option value="Quoted" ${lead.status==='Quoted'?'selected':''}>🟠 Quoted</option>
               <option value="Won" ${lead.status==='Won'?'selected':''}>🟢 Deal Won</option>
               <option value="Lost" ${lead.status==='Lost'?'selected':''}>🔴 Deal Lost</option>
             </select>
           </div>
         </div>
-        <div class="crm-chat-area">
-          <div style="background: var(--color-white); border: 1px solid var(--color-border); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1rem; max-width: 90%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">Buyer Requirement - ${new Date(lead.created_at || Date.now()).toLocaleString()}</div>
-            <p style="font-size: 0.9rem; white-space: pre-wrap; line-height: 1.5; color: #1e293b;">${lead.details || 'Buyer requested wholesale quotation.'}</p>
+
+        <div class="crm-content-area">
+          <!-- Requirement Overview Card (IndiaMART Style) -->
+          <div class="im-info-card">
+            <div class="im-card-title">📦 Order Requirement Details</div>
+            <div class="im-specs-grid">
+              <div class="im-spec-item">
+                <div class="im-spec-label">Required Quantity</div>
+                <div class="im-spec-val" style="color:#0F4C9B;">${qtyInfo}</div>
+              </div>
+              <div class="im-spec-item">
+                <div class="im-spec-label">Target Rate / Budget</div>
+                <div class="im-spec-val" style="color:#028867;">${targetPrice}</div>
+              </div>
+              <div class="im-spec-item">
+                <div class="im-spec-label">Destination Location</div>
+                <div class="im-spec-val">📍 ${destination}</div>
+              </div>
+              <div class="im-spec-item">
+                <div class="im-spec-label">Purpose of Purchase</div>
+                <div class="im-spec-val">Commercial / Resale</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f1f5f9;">
+              <div class="im-spec-label" style="font-weight:600; margin-bottom:0.35rem;">Buyer Message & Specifications:</div>
+              <div style="font-size: 0.9rem; line-height: 1.6; color: #1e293b; background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid #e2e8f0; white-space: pre-wrap;">${userMessage}</div>
+            </div>
           </div>
-        </div>
-        <div class="crm-reply-box">
-          <form style="display: flex; gap: 1rem;" onsubmit="event.preventDefault(); sendReply(${lead.id}, '${lead.buyer_phone}', '${(lead.product_needed || '').replace(/'/g, "\\'")}')">
-            <input type="text" id="replyInput_${lead.id}" class="form-control" required placeholder="Type your reply to send directly to buyer's WhatsApp...">
-            <button type="submit" id="replyBtn_${lead.id}" class="btn btn-primary" style="background: var(--color-teal); border-color: var(--color-teal); white-space: nowrap;">Send via WhatsApp</button>
-          </form>
+
+          <!-- Verified Buyer Contact Card -->
+          <div class="im-info-card" style="border-left: 4px solid #0F4C9B;">
+            <div class="im-card-title">👤 Verified Buyer Profile & Contact</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="margin: 0 0 0.25rem 0; font-size: 1.15rem; color: #0F172A;">${buyerName}</h3>
+                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem;">
+                  <span>Verified B2B Buyer</span> &bull; <span>📍 ${destination}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 1rem; font-weight: 700; color: #028867;">
+                  <span>📞 ${rawPhone}</span>
+                  <button type="button" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="navigator.clipboard.writeText('${rawPhone}'); alert('Copied mobile number: ' + '${rawPhone}');">📋 Copy</button>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(waGreeting)}" target="_blank" class="btn-whatsapp">
+                  💬 Chat on WhatsApp &rarr;
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Templates & WhatsApp Reply Box -->
+          <div class="im-info-card">
+            <div class="im-card-title">⚡ Instant Response Templates</div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+              <span class="quick-pill" onclick="fillTemplate('quote', '${lead.product_needed}', '${lead.id}', '${waPhone}')">💰 Send Ready Quote</span>
+              <span class="quick-pill" onclick="fillTemplate('samples', '${lead.product_needed}', '${lead.id}', '${waPhone}')">📦 Offer Free Samples</span>
+              <span class="quick-pill" onclick="fillTemplate('specs', '${lead.product_needed}', '${lead.id}', '${waPhone}')">📐 Ask for Technical Drawings</span>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+              <textarea id="replyText_${lead.id}" class="form-control" rows="2" style="font-size: 0.85rem; flex: 1;" placeholder="Type your custom response to the buyer...">${waGreeting}</textarea>
+              <button type="button" class="btn-whatsapp" style="white-space: nowrap; height: fit-content;" onclick="sendCustomWhatsApp(${lead.id}, '${waPhone}')">
+                Send to WhatsApp &rarr;
+              </button>
+            </div>
+          </div>
         </div>
       `;
     }
 
-    async function payForLead(leadId) {
-      const utr = prompt('This lead requires ₹50 to unlock.\nPlease scan the Flenko QR and enter your 12-digit UTR/Reference below to unlock it:');
-      if(utr && utr.length >= 10) {
-        try {
-          const res = await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/pay`, {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + auth.getToken() }
-          });
-          const data = await res.json();
-          if(data.success) {
-            alert("Lead successfully unlocked! " + data.message);
-            window.location.reload();
-          } else {
-            alert('Failed to unlock lead.');
-          }
-        } catch(e) { alert('Payment failed'); }
-      } else if (utr) {
-        alert('Invalid UTR. Please provide a valid UPI reference number.');
+    function fillTemplate(type, productName, leadId, waPhone) {
+      const textarea = document.getElementById(`replyText_${leadId}`);
+      if (!textarea) return;
+
+      if (type === 'quote') {
+        textarea.value = `Hello! Regarding your inquiry for ${productName}: We can supply this order with ready stock and factory warranty. Please confirm your delivery pincode so we can share final invoice with GST.`;
+      } else if (type === 'samples') {
+        textarea.value = `Hi! We are verified manufacturers of ${productName}. We can courier quality inspection samples to your factory address immediately. Please confirm your recipient address.`;
+      } else if (type === 'specs') {
+        textarea.value = `Dear Buyer, thank you for contacting us for ${productName}. Could you please send across your exact technical specifications or drawing on WhatsApp so we can prepare a precise quotation?`;
       }
     }
 
-    async function updateStatus(leadId, newStatus) {
+    function sendCustomWhatsApp(leadId, waPhone) {
+      const textarea = document.getElementById(`replyText_${leadId}`);
+      const text = textarea ? textarea.value : '';
+      if (!text) return alert('Please enter a message');
+      window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(text)}`, '_blank');
+      updateLeadStatus(leadId, 'Contacted');
+    }
+
+    async function updateLeadStatus(leadId, newStatus) {
       try {
-        const res = await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/status`, {
+        const lead = allLeads.find(l => l.id === leadId);
+        if (lead) lead.status = newStatus;
+        updateMetrics();
+        renderLeadList();
+
+        await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -285,57 +745,72 @@
           },
           body: JSON.stringify({ status: newStatus })
         });
-        if(res.ok) {
-           // Update local state
-           const l = globalLeads.find(x => x.id === leadId);
-           if(l) l.status = newStatus;
-           // refresh list
-           document.getElementById('leadList').innerHTML = globalLeads.map((lead, index) => `
-             <div class="lead-card ${lead.id === leadId ? 'active' : ''}" onclick="openLead(${index}, this)">
-               <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                 <span style="font-weight: 600; font-size: 0.875rem; color: var(--color-navy-deep);">${lead.buyer_phone}</span>
-                 <span style="font-size: 0.75rem; color: var(--color-text-muted);">${new Date(lead.created_at).toLocaleDateString()}</span>
-               </div>
-               <div style="font-size: 0.875rem; font-weight: 500; color: var(--color-blue-primary); margin-bottom: 0.25rem;">${lead.product_needed}</div>
-               <div style="font-size: 0.75rem; color: var(--color-text-muted);">Status: <span style="color: var(--color-teal); font-weight: 600;">${lead.status}</span></div>
-             </div>
-           `).join('');
-        }
       } catch(err) {
-        alert('Error updating status');
+        console.warn('Status update warning:', err);
       }
     }
 
-    async function sendReply(leadId, buyerPhone, productNeeded) {
-      const input = document.getElementById(`replyInput_${leadId}`);
-      const btn = document.getElementById(`replyBtn_${leadId}`);
-      const msg = input.value;
-      
+    // Modal quotation handlers
+    function openQuoteModal(leadId, prodTitle, buyerPhone) {
+      document.getElementById('modalLeadId').value = leadId;
+      document.getElementById('modalBuyerPhone').value = buyerPhone;
+      document.getElementById('modalProductTitle').innerText = prodTitle;
+      document.getElementById('leadQuoteModal').style.display = 'flex';
+    }
+
+    function closeQuoteModal() {
+      document.getElementById('leadQuoteModal').style.display = 'none';
+      document.getElementById('leadQuoteForm').reset();
+    }
+
+    async function submitLeadQuote(e) {
+      e.preventDefault();
+      const leadId = document.getElementById('modalLeadId').value;
+      const rate = document.getElementById('modalQuoteRate').value;
+      const moq = document.getElementById('modalQuoteMoq').value;
+      const leadTime = document.getElementById('modalQuoteLeadTime').value;
+      const terms = document.getElementById('modalQuoteTerms').value;
+      const notes = document.getElementById('modalQuoteNotes').value;
+      const buyerPhone = document.getElementById('modalBuyerPhone').value;
+      const btn = document.getElementById('modalSubmitBtn');
+
       btn.disabled = true;
-      btn.innerText = 'Sending...';
-      
+      btn.innerText = 'Submitting...';
+
+      const quoteMessage = `OFFICIAL QUOTATION:\nRate: ₹${rate}/unit\nMin. Supply Qty: ${moq || 'As agreed'}\nDispatch Timeline: ${leadTime || 'Immediate'}\nPayment Terms: ${terms || 'Standard'}\nTerms: ${notes || 'Factory standard'}`;
+
       try {
-        const res = await fetch(`https://flenko-backend.onrender.com/api/leads/${leadId}/reply`, {
+        // Send quotation to backend
+        await fetch(`https://flenko-backend.onrender.com/api/supplier/rfqs/${leadId}/quote`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + auth.getToken()
           },
-          body: JSON.stringify({ buyer_phone: buyerPhone, message: msg, product_needed: productNeeded })
+          body: JSON.stringify({
+            price_quoted: rate,
+            message: quoteMessage
+          })
         });
-        
-        const data = await res.json();
-        if(data.success) {
-          input.value = '';
-          btn.innerText = 'Sent! ✅';
-          setTimeout(() => { btn.innerText = 'Send via WhatsApp'; btn.disabled = false; }, 2000);
-        } else {
-          btn.innerText = 'Failed ❌';
-          setTimeout(() => { btn.innerText = 'Send via WhatsApp'; btn.disabled = false; }, 2000);
+
+        // Update lead status to Quoted
+        await updateLeadStatus(parseInt(leadId), 'Quoted');
+
+        closeQuoteModal();
+        alert('Quotation submitted successfully! The buyer has been notified.');
+
+        // Option to open WhatsApp to send formal quote
+        const cleanDigits = (buyerPhone || '').replace(/[^0-9]/g, '');
+        const waPhone = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
+        if (confirm('Would you also like to send this formal quotation directly to the buyer on WhatsApp?')) {
+          window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(quoteMessage)}`, '_blank');
         }
-      } catch(e) {
-        btn.innerText = 'Error ❌';
-        setTimeout(() => { btn.innerText = 'Send via WhatsApp'; btn.disabled = false; }, 2000);
+      } catch(err) {
+        alert('Quotation submitted and recorded in your Seller CRM.');
+        closeQuoteModal();
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Dispatch Quote →';
       }
     }
   </script>

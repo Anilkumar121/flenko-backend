@@ -657,7 +657,7 @@
 
       const fetchProductsFrom = async (base) => {
         try {
-          const res = await fetch(`${base}/public/products`);
+          const res = await fetch(`${base}/public/products?_t=${Date.now()}`);
           const ct = (res.headers && res.headers.get('content-type')) || '';
           if (res.ok && !ct.includes('text/html')) {
             const data = await res.json();
