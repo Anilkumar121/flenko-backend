@@ -93,6 +93,7 @@ async function ensureTables() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription VARCHAR(50) DEFAULT 'free';
     CREATE TABLE IF NOT EXISTS otp_requests (
       id SERIAL PRIMARY KEY,
       phone VARCHAR(20) NOT NULL,
@@ -115,6 +116,8 @@ async function ensureTables() {
     );
     ALTER TABLE businesses ADD COLUMN IF NOT EXISTS logo_url TEXT;
     ALTER TABLE businesses ADD COLUMN IF NOT EXISTS category VARCHAR(100);
+    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+    ALTER TABLE businesses ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -131,6 +134,7 @@ async function ensureTables() {
     );
     ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 500;
     ALTER TABLE products ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS seo_tags TEXT;
     CREATE TABLE IF NOT EXISTS leads (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER,
@@ -144,17 +148,23 @@ async function ensureTables() {
       replies JSONB DEFAULT '[]'::jsonb,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_direct BOOLEAN DEFAULT FALSE;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT FALSE;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS replies JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE leads ALTER COLUMN supplier_id DROP NOT NULL;
     ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_supplier_id_fkey;
+    ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_buyer_id_fkey;
     CREATE TABLE IF NOT EXISTS rfqs (
       id SERIAL PRIMARY KEY,
-      buyer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      buyer_id INTEGER,
       product VARCHAR(255) NOT NULL,
       qty VARCHAR(50),
       target_price VARCHAR(50),
       details TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE rfqs ALTER COLUMN buyer_id DROP NOT NULL;
+    ALTER TABLE rfqs DROP CONSTRAINT IF EXISTS rfqs_buyer_id_fkey;
     CREATE TABLE IF NOT EXISTS quotations (
       id SERIAL PRIMARY KEY,
       rfq_id INTEGER REFERENCES rfqs(id) ON DELETE CASCADE,
@@ -444,10 +454,17 @@ module.exports = {
       saveMockDB();
       return { rows: [newLead] };
     }
+    if (text.includes('FROM leads WHERE id = $1') || text.includes('SELECT * FROM leads WHERE id')) {
+      const row = (mockDB.leads || []).find(l => l.id == params[0]);
+      return { rows: row ? [row] : [] };
+    }
     if (text.includes('UPDATE leads SET is_paid')) {
-      const lead = mockDB.leads.find(l => l.id === params[0]);
-      if (lead) lead.is_paid = true;
-      saveMockDB();
+      const isPaidVal = !text.includes('is_paid = false');
+      const lead = (mockDB.leads || []).find(l => l.id == params[0]);
+      if (lead) {
+        lead.is_paid = isPaidVal;
+        saveMockDB();
+      }
       return { rows: [] };
     }
     if (text.includes('INSERT INTO lead_payments')) {
@@ -456,6 +473,20 @@ module.exports = {
       mockDB.lead_payments.push(rec);
       saveMockDB();
       return { rows: [rec] };
+    }
+    if (text.includes('FROM lead_payments WHERE id = $1') || text.includes('SELECT * FROM lead_payments WHERE id')) {
+      mockDB.lead_payments = mockDB.lead_payments || [];
+      const row = mockDB.lead_payments.find(p => p.id == params[0]);
+      return { rows: row ? [row] : [] };
+    }
+    if (text.includes('UPDATE lead_payments SET status')) {
+      mockDB.lead_payments = mockDB.lead_payments || [];
+      const pay = mockDB.lead_payments.find(p => p.id == params[0]);
+      if (pay) {
+        pay.status = 'fraud';
+        saveMockDB();
+      }
+      return { rows: [] };
     }
     if (text.includes('FROM lead_payments WHERE utr')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
@@ -474,11 +505,11 @@ module.exports = {
       saveMockDB();
       return { rows: [rec] };
     }
-    if (text.includes('SELECT * FROM lead_payments')) {
+    if (text.includes('SELECT * FROM lead_payments') || text.includes('FROM lead_payments')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       return { rows: mockDB.lead_payments.slice().reverse() };
     }
-    if (text.includes('SELECT * FROM subscription_payments')) {
+    if (text.includes('SELECT * FROM subscription_payments') || text.includes('FROM subscription_payments')) {
       mockDB.subscription_payments = mockDB.subscription_payments || [];
       return { rows: mockDB.subscription_payments.slice().reverse() };
     }
@@ -644,6 +675,26 @@ module.exports = {
         saveMockDB();
         return { rows: deleted };
       }
+      return { rows: [] };
+    }
+    if (text.includes("DELETE FROM users WHERE role = 'supplier'")) {
+      mockDB.users = (mockDB.users || []).filter(u => u.id == 1 || u.role !== 'supplier');
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM businesses WHERE user_id !=')) {
+      mockDB.businesses = (mockDB.businesses || []).filter(b => b.user_id == 1);
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM products') && !text.includes('WHERE id')) {
+      mockDB.products = [];
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM leads') && !text.includes('WHERE id')) {
+      mockDB.leads = [];
+      saveMockDB();
       return { rows: [] };
     }
 

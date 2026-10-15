@@ -13,7 +13,7 @@ function detectApiBase() {
 
 const API_BASE = detectApiBase();
 window.API_BASE = API_BASE;
-window.API_FALLBACK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000/api' : 'https://flenko-backend.onrender.com/api';
+window.API_FALLBACK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000/api' : '/api';
 
 const auth = {
   async fetchWithFallback(urlPath, options = {}) {
