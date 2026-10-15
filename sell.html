@@ -232,7 +232,8 @@
       e.preventDefault();
       
       const countryCode = document.getElementById('regCountryCode') ? document.getElementById('regCountryCode').value : '+91';
-      const rawPhone = document.getElementById('regPhone').value.replace(/[^0-9]/g, '');
+      let rawPhone = document.getElementById('regPhone').value.replace(/[^0-9]/g, '');
+      if (rawPhone.startsWith('0')) rawPhone = rawPhone.replace(/^0+/, '');
       const fullPhone = rawPhone ? (countryCode + rawPhone) : '';
 
       const sellerData = {
@@ -308,6 +309,14 @@
         regSubmitBtn.disabled = false;
       }
     });
+
+    if (regSubmitBtn) {
+      regSubmitBtn.addEventListener('click', () => {
+        if (regForm && regForm.checkValidity && !regForm.checkValidity()) {
+          regForm.reportValidity();
+        }
+      });
+    }
   </script>
 
   <section class="container" style="padding-bottom: 5rem;">

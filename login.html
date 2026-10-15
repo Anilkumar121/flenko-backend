@@ -417,12 +417,12 @@
       if (savedId) {
         const idInput = document.getElementById('loginIdentifier');
         if (idInput && !idInput.value) idInput.value = savedId;
-        const otpInp = document.getElementById('otpPhone');
-        if (otpInp && !otpInp.value) {
-          const digits = savedId.replace(/[^0-9]/g, '').slice(-10);
-          otpInp.value = digits;
-        }
       }
+    } catch(e) {}
+
+    // Initialize role UI (Buyer vs Seller)
+    try {
+      updateRoleUi();
     } catch(e) {}
 
     // Check for ?tab= or ?role= in URL
@@ -568,7 +568,8 @@
       const isSupplier = document.getElementById('roleSupplier') && document.getElementById('roleSupplier').checked;
       const name = document.getElementById('regName').value.trim();
       const countryCode = document.getElementById('regCountryCode') ? document.getElementById('regCountryCode').value : '+91';
-      const rawPhone = document.getElementById('regPhone').value.replace(/[^0-9]/g, '');
+      let rawPhone = document.getElementById('regPhone').value.replace(/[^0-9]/g, '');
+      if (rawPhone.startsWith('0')) rawPhone = rawPhone.replace(/^0+/, '');
       const fullPhone = rawPhone ? (countryCode + rawPhone) : '';
       const email = document.getElementById('regEmail') ? document.getElementById('regEmail').value.trim() : '';
       const password = document.getElementById('regPassword').value.trim();
@@ -576,7 +577,7 @@
 
       statusMsg.innerText = 'Creating account and signing in...';
       statusMsg.style.color = '#64748b';
-      btn.disabled = true;
+      if (btn) btn.disabled = true;
 
       try {
         const res = await auth.register({
@@ -612,14 +613,33 @@
             statusMsg.innerText = (res && res.error) || 'Registration failed.';
             statusMsg.style.color = '#ef4444';
           }
-          btn.disabled = false;
+          if (btn) btn.disabled = false;
         }
       } catch (err) {
         statusMsg.innerText = 'Server error during registration. Please check your internet connection and try again.';
         statusMsg.style.color = '#ef4444';
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
       }
     });
+
+    // Ensure buttons always report validity if clicked with incomplete form
+    const regSubmitBtn = document.getElementById('regSubmitBtn');
+    if (regSubmitBtn) {
+      regSubmitBtn.addEventListener('click', () => {
+        if (registerForm && registerForm.checkValidity && !registerForm.checkValidity()) {
+          registerForm.reportValidity();
+        }
+      });
+    }
+
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    if (loginSubmitBtn) {
+      loginSubmitBtn.addEventListener('click', () => {
+        if (loginForm && loginForm.checkValidity && !loginForm.checkValidity()) {
+          loginForm.reportValidity();
+        }
+      });
+    }
   </script>
 </body>
 </html>
