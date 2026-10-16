@@ -264,6 +264,7 @@
             <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
               <h1 id="suppHeroName" style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin: 0;">Apex Packaging Solutions</h1>
               <span id="suppVerifiedBadge" class="badge badge-teal" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">Verified Supplier ✓</span>
+              <span id="suppPaidTrustedBadge" class="badge" style="display:none; font-size: 0.72rem; padding: 0.2rem 0.55rem; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-weight: 700; border-radius: 4px; box-shadow: 0 1px 4px rgba(217,119,6,0.3);">🛡️ Paid Trusted Seller</span>
               <span class="seller-id-pill" id="sellerIdDisplay" title="Click to copy Seller ID" onclick="copySellerId()">
                 <span>🆔</span> <span id="sellerCodeText">FLK-SUP-1</span> <small style="font-size:0.7rem; color:#60a5fa;">(Copy)</small>
               </span>
@@ -285,6 +286,9 @@
           <button class="btn btn-primary" onclick="scrollToInquiry()" style="display:flex; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem;">
             ✉️ Contact Supplier Directly
           </button>
+          <a id="suppWebsiteBtn" href="#" target="_blank" class="btn btn-outline" style="display:none; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem; color: #0F4C9B; border-color: #0F4C9B; font-weight: 700; text-decoration: none; border-radius: 6px;">
+            🌐 Official Storefront Website ↗
+          </a>
           <button class="btn btn-outline" onclick="openReviewModal()" style="display:flex; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem;">
             ⭐ Write a Review
           </button>
@@ -657,6 +661,19 @@
 
       if (supplier.logo_url) {
         document.getElementById('suppHeroLogo').src = supplier.logo_url;
+      }
+
+      // Paid Trusted & Branded Website visibility
+      if (supplier.is_paid_trusted || supplier.subscription === 'premium' || supplier.website_enabled) {
+        const pBadge = document.getElementById('suppPaidTrustedBadge');
+        if (pBadge) pBadge.style.display = 'inline-flex';
+      }
+      if (supplier.website_enabled && supplier.subdomain) {
+        const webBtn = document.getElementById('suppWebsiteBtn');
+        if (webBtn) {
+          webBtn.href = supplier.website_url || `site.html?store=${supplier.subdomain}`;
+          webBtn.style.display = 'inline-flex';
+        }
       }
 
       const ratingVal = stats.rating || '4.8';

@@ -345,6 +345,10 @@
         <div id="topCountryBox" style="display:inline-block;"></div>
       </div>
       <div style="display:flex; align-items:center; gap:0.75rem;">
+        <a href="download-app.html" style="color:#028867; font-weight:700;">📲 Download App</a>
+        <span style="margin: 0 0.15rem;">|</span>
+        <a href="grocery.html" style="color:#eab308; font-weight:700;">🌾 Bulk Grocery Mandi <span style="font-size:0.65rem; background:#fef08a; color:#854d0e; padding:1px 5px; border-radius:3px;">SOON</span></a>
+        <span style="margin: 0 0.15rem;">|</span>
         <span onclick="window.openFlenkoTranslatorModal()" style="cursor:pointer; display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);" title="Translate Website into Any Language">
           <span class="flenko-lang-display-flag">🌐</span> <span class="flenko-lang-display-name" style="font-weight:700;">Language</span> ▾
         </span>
@@ -410,6 +414,9 @@
       </button>
       <button type="button" class="fast-pill-btn" id="pillLowMoq">
         📦 Low MOQ (≤ 50)
+      </button>
+      <button type="button" class="fast-pill-btn" onclick="window.location.href='grocery.html'" style="background:#fef3c7; border-color:#fde68a; color:#92400e; font-weight:700;">
+        🌾 Bulk Grocery (Coming Soon)
       </button>
       <button type="button" class="btn btn-outline" id="clearAllFiltersBtn" style="padding:0.25rem 0.6rem; font-size:0.75rem; border:none; color:var(--color-flenko-orange); margin-left:auto;">
         Clear All
@@ -1028,8 +1035,9 @@
             <div class="flenko-card-img-wrap">
               <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80'">
               <div style="position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px;">
+                ${(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted) || p.badge === 'Paid Trusted') ? `<span class="badge" style="font-size:0.68rem; padding:2px 7px; background:linear-gradient(135deg, #f59e0b, #d97706); color:white; font-weight:700; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.25);">🛡️ Paid Trusted</span>` : ''}
                 ${p.tradeAssurance ? `<span class="badge badge-trade-assurance" style="font-size:0.68rem; padding:2px 6px;">🛡️ Trade Assurance</span>` : ''}
-                ${p.badge ? `<span class="badge badge-verified-pro" style="font-size:0.68rem; padding:2px 6px;">${p.badge}</span>` : ''}
+                ${(p.badge && p.badge !== 'Paid Trusted') ? `<span class="badge badge-verified-pro" style="font-size:0.68rem; padding:2px 6px;">${p.badge}</span>` : ''}
               </div>
             </div>
             
@@ -1052,8 +1060,9 @@
 
               <div class="flenko-supplier-meta">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
-                  <a href="supplier-details.html?id=${p.supplier_id || 1}" style="font-weight:600; color:#0284c7; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;" title="View Supplier Storefront & Products">
+                  <a href="supplier-details.html?id=${p.supplier_id || 1}" style="font-weight:600; color:#0284c7; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; display:inline-flex; align-items:center; gap:3px;" title="View Supplier Storefront & Products">
                     ${p.flag || '📍'} ${p.supplier ? p.supplier.name : 'Supplier'}
+                    ${(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? `<span title="Paid Trusted Supplier" style="color:#d97706; font-size:0.75rem;">🛡️</span>` : ''}
                   </a>
                   <a href="supplier-details.html?id=${p.supplier_id || 1}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
                     #FLK-SUP-${p.supplier_id || 1}

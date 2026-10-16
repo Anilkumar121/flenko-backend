@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Grocery Mandi (Coming Soon) - Flenko B2B Agriculture & FMCG</title>
+  <meta name="description" content="Flenko B2B Grocery & Mandi Marketplace (Coming Soon). Direct millers, farmers and bulk wholesale staples, pulses, grains, spices, and edible oils across India.">
+  <link rel="icon" type="image/png" href="assets/images/logo.png">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    :root {
+      --mandi-green: #028867;
+      --mandi-gold: #d97706;
+      --mandi-dark: #0f291e;
+    }
+    body {
+      background: #fdfbf7;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+    }
+    .mandi-hero {
+      background: linear-gradient(135deg, #072318 0%, #064e3b 50%, #028867 100%);
+      color: white;
+      padding: 4.5rem 1.5rem 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .mandi-hero::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.15), transparent 70%);
+      pointer-events: none;
+    }
+    .coming-soon-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 0.45rem 1.25rem;
+      border-radius: 30px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);
+      margin-bottom: 1.25rem;
+      animation: pulseGlow 2s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.03); opacity: 0.95; }
+    }
+    .mandi-title {
+      font-size: 2.75rem;
+      font-weight: 800;
+      line-height: 1.2;
+      max-width: 800px;
+      margin: 0 auto 1rem;
+    }
+    .mandi-subtitle {
+      font-size: 1.15rem;
+      color: #cbd5e1;
+      max-width: 650px;
+      margin: 0 auto 2.25rem;
+      line-height: 1.6;
+    }
+    .waitlist-card {
+      background: white;
+      max-width: 620px;
+      margin: -2.5rem auto 3.5rem;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      border: 1px solid #fde68a;
+      position: relative;
+      z-index: 5;
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto 4rem;
+      padding: 0 1.5rem;
+    }
+    .cat-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .cat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px -5px rgba(0,0,0,0.08);
+    }
+    .cat-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #fde68a;
+    }
+    .cat-icon {
+      font-size: 2.25rem;
+      margin-bottom: 0.75rem;
+      display: inline-block;
+    }
+    .cat-card h3 {
+      font-size: 1.15rem;
+      margin: 0 0 0.4rem;
+      color: #0f172a;
+    }
+    .cat-card p {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header style="background: white; border-bottom: 1px solid #e2e8f0; padding: 0.75rem 1.5rem;">
+    <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+      <a href="index.html" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+        <img src="assets/images/logo.png" alt="Flenko" style="height: 44px; width: auto; object-fit: contain;">
+        <span style="font-size: 0.72rem; background: #ecfdf5; color: #028867; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid #a7f3d0;">
+          MANDI B2B
+        </span>
+      </a>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <a href="products.html" style="color: #334155; text-decoration: none; font-size: 0.88rem; font-weight: 600;">Explore Industrial Market</a>
+        <a href="download-app.html" style="color: #028867; text-decoration: none; font-size: 0.88rem; font-weight: 700;">📲 Download App</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="mandi-hero">
+    <div class="coming-soon-pill">
+      <span>🚀</span> COMING SOON &bull; FLENKO GROCERY MANDI
+    </div>
+    <h1 class="mandi-title">Direct-from-Source B2B Grocery & Mandi Marketplace</h1>
+    <p class="mandi-subtitle">
+      We are expanding Flenko into India's largest bulk agri-commodities and FMCG wholesale network. Connect directly with farmers, grain millers, and edible oil refineries with zero commission.
+    </p>
+    <div>
+      <a href="products.html" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; text-decoration: none; padding: 0.65rem 1.5rem; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+        &larr; View Active Industrial Products
+      </a>
+    </div>
+  </section>
+
+  <!-- Waitlist Form Card -->
+  <div class="waitlist-card">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <div style="font-size: 2rem; margin-bottom: 0.25rem;">🌾</div>
+      <h2 style="font-size: 1.4rem; color: #0f172a; margin: 0 0 0.35rem;">Join Priority Mandi Access</h2>
+      <p style="color: #64748b; font-size: 0.88rem; margin: 0;">Be the first to trade bulk grains, pulses, spices & oils at direct mandi floor prices.</p>
+    </div>
+
+    <form id="mandiWaitlistForm" onsubmit="submitMandiWaitlist(event)">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">Your Name / Company</label>
+          <input type="text" id="mandiName" required class="form-control" placeholder="e.g. Sharma Trading Co." style="font-size: 0.88rem;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">WhatsApp Number *</label>
+          <input type="tel" id="mandiPhone" required pattern="[0-9]{10}" placeholder="10-digit mobile" class="form-control" style="font-size: 0.88rem;">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">Business Type</label>
+          <select id="mandiBizType" class="form-control" style="font-size: 0.88rem;">
+            <option value="Kirana Retailer">Kirana / Supermarket Retailer</option>
+            <option value="Bulk Wholesaler">Bulk Wholesaler / Distributor</option>
+            <option value="Miller / Processor">Grain / Oil Miller / Processor</option>
+            <option value="Farmer / FPO">Farmer Producer Organization (FPO)</option>
+            <option value="Hotel / Restaurant">Hotel / Restaurant / Caterer</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">City / District</label>
+          <input type="text" id="mandiCity" required placeholder="e.g. Indore, MP" class="form-control" style="font-size: 0.88rem;">
+        </div>
+      </div>
+
+      <button type="submit" id="btnMandiWaitlist" style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #028867, #064e3b); color: white; border: none; font-size: 0.95rem; font-weight: 700; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(2,136,103,0.3);">
+        🔔 Notify Me on Launch & Get ₹1,000 Early Trading Credit
+      </button>
+    </form>
+  </div>
+
+  <!-- Upcoming Mandi Categories -->
+  <div style="text-align: center; max-width: 700px; margin: 0 auto 2rem; padding: 0 1rem;">
+    <h2 style="font-size: 1.85rem; color: #0f172a; margin: 0 0 0.5rem;">Upcoming Bulk Grocery Silos</h2>
+    <p style="color: #64748b; font-size: 0.95rem; margin: 0;">Verified agricultural commodities with AGMARK grade verification, moisture testing, and bulk truckload logistics.</p>
+  </div>
+
+  <div class="category-grid">
+    <div class="cat-card">
+      <span class="cat-badge">🔒 COMING SOON</span>
+      <div class="cat-icon">🌾</div>
+      <h3>Basmati & Non-Basmati Rice</h3>
+      <p>1121 Sella, 1509 Steam, Sona Masoori, Kolam, Sharbati, Gobindobhog in 25kg / 50kg wholesale bags directly from Punjab & Haryana mills.</p>
+    </div>
+
+    <div class="cat-card">
+      <span class="cat-badge">🔒 COMING SOON</span>
+      <div class="cat-icon">🫘</div>
+      <h3>Pulses & Dal (Wholesale)</h3>
+      <p>Polished and unpolished Toor / Arhar Dal, Moong Dal, Chana Dal, Urad Mogar, and Kabuli Chana direct from Maharashtra & MP dal mills.</p>
+    </div>
+
+    <div class="cat-card">
+      <span class="cat-badge">🔒 COMING SOON</span>
+      <div class="cat-icon">🌶️</div>
+      <h3>Whole & Ground Spices</h3>
+      <p>Guntur Teja Chilli, Salem Turmeric fingers, Idukki Green Cardamom, Unjha Cumin, and Malabar Black Pepper in bulk gunny bags.</p>
+    </div>
+
+    <div class="cat-card">
+      <span class="cat-badge">🔒 COMING SOON</span>
+      <div class="cat-icon">🛢️</div>
+      <h3>Edible Oils & Pure Ghee</h3>
+      <p>Kachi Ghani Mustard Oil, Refined Sunflower & Soyabean Oil, Cottonseed Oil, and Pure Desi Cow Ghee in 15L tins and tankers.</p>
+    </div>
+
+    <div class="cat-card">
+      <span class="cat-badge">🔒 COMING SOON</span>
+      <div class="cat-icon">🥜</div>
+      <h3>Dry Fruits & Premium Nuts</h3>
+      <p>California & Mamra Almonds, W240 & W320 Cashews, Kashmiri Walnuts, Pistachios, and Seedless Raisins direct from importers.</p>
+    </div>
+
+    <div class="cat-card">
+      <span class="cat-badge">🔒 COMING SOON</span>
+      <div class="cat-icon">🍚</div>
+      <h3>Sugar, Jaggery & Salt</h3>
+      <p>M-30 & S-30 Refined Sugar, Organic Kolhapuri Jaggery / Gud blocks, and Free Flow Iodized & Rock Salt in bulk container loads.</p>
+    </div>
+  </div>
+
+  <!-- B2B Value Strip -->
+  <section style="background: white; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 3rem 1.5rem; text-align: center;">
+    <div style="max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem;">
+      <div>
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚜</div>
+        <h4 style="margin: 0 0 0.25rem; font-size: 1.05rem;">Direct From Mills</h4>
+        <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Zero middlemen commissions, farm-gate and mill-head rates.</p>
+      </div>
+      <div>
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🛡️</div>
+        <h4 style="margin: 0 0 0.25rem; font-size: 1.05rem;">Trade Escrow Security</h4>
+        <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Payment released to seller only after quality inspection at arrival.</p>
+      </div>
+      <div>
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚚</div>
+        <h4 style="margin: 0 0 0.25rem; font-size: 1.05rem;">All-India Truck Logistics</h4>
+        <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Full truckload (FTL) and part-truckload (PTL) pan-India delivery.</p>
+      </div>
+      <div>
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📱</div>
+        <h4 style="margin: 0 0 0.25rem; font-size: 1.05rem;">Mandi App Integration</h4>
+        <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Instant quotes and mandi daily price ticker on your phone.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background: #0f172a; color: #94a3b8; padding: 2.5rem 1.5rem; text-align: center; font-size: 0.85rem;">
+    <div style="max-width: 800px; margin: 0 auto;">
+      <p style="color: white; font-weight: 700; margin: 0 0 0.5rem;">Flenko Global B2B Marketplace &copy; 2026. All rights reserved.</p>
+      <p style="margin: 0 0 1rem;">Coming Soon: Flenko B2B Grocery Mandi Platform for Farmers, Millers & Retailers</p>
+      <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap;">
+        <a href="index.html" style="color: #94a3b8; text-decoration: none;">Home</a>
+        <a href="products.html" style="color: #94a3b8; text-decoration: none;">Industrial Products</a>
+        <a href="download-app.html" style="color: #94a3b8; text-decoration: none;">Download App</a>
+        <a href="supplier-dashboard.html" style="color: #94a3b8; text-decoration: none;">Seller Center</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function submitMandiWaitlist(e) {
+      e.preventDefault();
+      const name = document.getElementById('mandiName').value.trim();
+      const phone = document.getElementById('mandiPhone').value.trim();
+      const type = document.getElementById('mandiBizType').value;
+      const city = document.getElementById('mandiCity').value.trim();
+
+      const waitlist = JSON.parse(localStorage.getItem('flenko_grocery_waitlist') || '[]');
+      waitlist.push({ name, phone, type, city, date: new Date().toISOString() });
+      localStorage.setItem('flenko_grocery_waitlist', JSON.stringify(waitlist));
+
+      alert(`🎉 Thank you, ${name}!\n\nYou have been placed on the VIP Early Access Waitlist for Flenko Grocery Mandi.\nWe will notify you on WhatsApp (${phone}) with your ₹1,000 trading credit as soon as live mandi trading commences.`);
+      document.getElementById('mandiWaitlistForm').reset();
+    }
+  </script>
+</body>
+</html>

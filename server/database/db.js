@@ -97,6 +97,36 @@ if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').sl
   });
 }
 
+// Ensure default business for supplier 1 has subdomain & paid trusted status
+let supBiz = (mockDB.businesses || []).find(b => b.user_id == 1 || b.id == 1);
+if (!supBiz) {
+  mockDB.businesses = mockDB.businesses || [];
+  mockDB.businesses.push({
+    id: 1,
+    user_id: 1,
+    company_name: 'Apex Packaging Solutions',
+    category: 'Packaging & Printing',
+    business_type: 'Manufacturer & Wholesaler',
+    gst_number: '27AADCA9821Z5',
+    city: 'Mumbai',
+    country: 'India',
+    address: 'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
+    about: 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
+    is_verified: true,
+    is_paid_trusted: true,
+    subdomain: 'apexpackaging',
+    website_enabled: true,
+    website_tagline: 'Leading Industrial Packaging & Corrugated Box Manufacturer',
+    logo_url: 'assets/images/logo.png',
+    created_at: new Date('2020-01-15')
+  });
+} else {
+  supBiz.subdomain = supBiz.subdomain || 'apexpackaging';
+  supBiz.is_paid_trusted = (supBiz.is_paid_trusted !== undefined) ? supBiz.is_paid_trusted : true;
+  supBiz.website_enabled = (supBiz.website_enabled !== undefined) ? supBiz.website_enabled : true;
+  supBiz.website_tagline = supBiz.website_tagline || 'Leading Industrial Packaging & Corrugated Box Manufacturer';
+}
+
 function saveMockDB() {
   try {
     fs.writeFileSync(mockDbPath, JSON.stringify(mockDB, null, 2), 'utf8');
@@ -146,6 +176,11 @@ async function ensureTables() {
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS category VARCHAR(100)`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India'`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subdomain VARCHAR(100)`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_paid_trusted BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_enabled BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_tagline TEXT`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_theme VARCHAR(50) DEFAULT 'modern'`,
     `CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER,
@@ -174,11 +209,13 @@ async function ensureTables() {
       is_direct BOOLEAN DEFAULT FALSE,
       is_paid BOOLEAN DEFAULT FALSE,
       replies JSONB DEFAULT '[]'::jsonb,
+      source VARCHAR(50) DEFAULT 'flenko_direct',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
     `ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_direct BOOLEAN DEFAULT FALSE`,
     `ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT FALSE`,
     `ALTER TABLE leads ADD COLUMN IF NOT EXISTS replies JSONB DEFAULT '[]'::jsonb`,
+    `ALTER TABLE leads ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'flenko_direct'`,
     `ALTER TABLE leads ALTER COLUMN supplier_id DROP NOT NULL`,
     `ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_supplier_id_fkey`,
     `ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_buyer_id_fkey`,
@@ -453,6 +490,11 @@ module.exports = {
       const row = mockDB.businesses.find(b => b.user_id == targetId || b.id == targetId);
       return { rows: row ? [row] : [] };
     }
+    if (text.includes('FROM businesses WHERE LOWER(subdomain)') || text.includes('FROM businesses WHERE subdomain')) {
+      const targetSub = (params[0] || '').toString().toLowerCase().trim();
+      const row = mockDB.businesses.find(b => (b.subdomain || '').toLowerCase().trim() === targetSub || String(b.user_id) === targetSub);
+      return { rows: row ? [row] : [] };
+    }
     if (text.includes('FROM businesses') && text.includes('SELECT')) {
       let rows = [...mockDB.businesses];
       if (params.length > 0 && text.includes('LOWER(b.category) = LOWER($1)')) {
@@ -473,12 +515,28 @@ module.exports = {
         logo_url: params[7] || null,
         country: params[8] || 'India',
         about: params[9] || '',
+        subdomain: params[10] || null,
+        is_paid_trusted: params[11] || false,
+        website_enabled: params[12] || false,
+        website_tagline: params[13] || null,
         is_verified: true,
         created_at: new Date()
       };
       mockDB.businesses.push(newBiz);
       saveMockDB();
       return { rows: [newBiz] };
+    }
+    if (text.includes('UPDATE businesses SET website_enabled')) {
+      const targetUserId = params[params.length - 1];
+      let biz = mockDB.businesses.find(b => b.user_id == targetUserId || b.id == targetUserId);
+      if (biz) {
+        biz.website_enabled = true;
+        biz.subdomain = params[0];
+        biz.website_tagline = params[1] || biz.website_tagline;
+        biz.is_paid_trusted = true;
+      }
+      saveMockDB();
+      return { rows: biz ? [biz] : [] };
     }
     if (text.includes('UPDATE businesses SET')) {
       const targetUserId = params[params.length - 1];
@@ -495,6 +553,10 @@ module.exports = {
           biz.country = params[7] || biz.country || 'India';
           biz.about = params[8] !== undefined ? params[8] : biz.about;
         }
+        if (params.length >= 11) {
+          biz.subdomain = params[9] || biz.subdomain;
+          if (params[10] !== undefined) biz.is_paid_trusted = params[10];
+        }
       } else {
         biz = {
           id: mockDB.idCounter++,
@@ -508,6 +570,9 @@ module.exports = {
           logo_url: params[6] || null,
           country: params[7] || 'India',
           about: params[8] || '',
+          subdomain: params[9] || null,
+          is_paid_trusted: false,
+          website_enabled: false,
           is_verified: true,
           created_at: new Date()
         };
@@ -568,6 +633,7 @@ module.exports = {
         is_direct: params[5],
         is_paid: params[6] !== undefined ? params[6] : (params[5] === true),
         status: 'New', 
+        source: (params[7] !== undefined) ? params[7] : 'flenko_direct',
         created_at: new Date() 
       };
       mockDB.leads.push(newLead);

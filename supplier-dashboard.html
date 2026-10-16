@@ -125,21 +125,81 @@
         </div>
         <input type="file" id="dashAvatarInput" accept="image/*" style="display: none;">
         <div id="welcomeName" style="font-weight: 700; font-size: 1rem; color: var(--color-navy-deep);">Loading...</div>
-        <div style="font-size: 0.72rem; color: #028867; font-weight: 600; margin-top: 2px;">● Verified Supplier</div>
+        <div id="sellerTrustBadge" style="font-size: 0.72rem; color: #028867; font-weight: 600; margin-top: 2px;">● Verified Supplier</div>
       </div>
       <nav class="im-menu">
         <a href="supplier-dashboard.html" class="active">📊 Dashboard</a>
         <a href="supplier-leads.html">✉️ Messages & Leads</a>
         <a href="supplier-products.html">📋 Manage Products</a>
         <a href="supplier-profile.html">💼 Company Profile</a>
+        <a href="site.html" id="sideNavWebsiteLink" target="_blank" style="display:none; color: #0F4C9B; font-weight: 700;">🌐 My Branded Website ↗</a>
       </nav>
       <div style="padding: 1rem; background: rgba(22,133,107,0.1); text-align: center; margin: 1rem;">
-        <p style="font-size: 0.75rem; font-weight: 600; color: var(--color-teal); margin-bottom: 0.5rem;">Upgrade to Premium Supplier</p>
-        <button class="btn btn-primary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;" onclick="window.location.href='pricing.html'">Upgrade Now</button>
+        <p id="dashUpgradeText" style="font-size: 0.75rem; font-weight: 600; color: var(--color-teal); margin-bottom: 0.5rem;">Upgrade to Premium Supplier</p>
+        <button id="dashUpgradeBtn" class="btn btn-primary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;" onclick="window.location.href='pricing.html'">Upgrade Now</button>
       </div>
     </aside>
 
     <section>
+      <!-- Branded Seller Website & Subdomain Card -->
+      <div class="panel-card" id="sellerWebsiteCard" style="border: 1px solid #bfdbfe; background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);">
+        <div class="panel-card-body" style="padding: 1.25rem 1.5rem;">
+          <div id="websiteActiveView" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.85rem;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                  <span style="font-size: 1.2rem;">🌐</span>
+                  <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Your Branded Website is Live</h3>
+                  <span class="badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; box-shadow: 0 1px 3px rgba(217,119,6,0.3);">🛡️ Paid Trusted Seller</span>
+                  <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">● Real-time Sync Active</span>
+                </div>
+                <p style="color: #64748b; font-size: 0.85rem; margin: 0;">
+                  Any updates to your profile, products or pricing in this dashboard reflect <strong>automatically in real-time</strong> on your standalone website.
+                </p>
+              </div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a id="dashLiveWebsiteLink" href="#" target="_blank" class="btn btn-primary" style="background: linear-gradient(135deg, #0F4C9B, #028867); border: none; font-weight: 700; font-size: 0.85rem; padding: 0.5rem 1.1rem; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none;">
+                  🔗 Open Website ↗
+                </a>
+                <button type="button" class="btn btn-outline" onclick="copyMyWebsiteUrl()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;">
+                  📋 Copy Link
+                </button>
+                <button type="button" class="btn btn-outline" onclick="openWebsiteModal()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;">
+                  ⚙️ Settings
+                </button>
+              </div>
+            </div>
+
+            <!-- Domain Display Box -->
+            <div style="background: white; border: 1.5px dashed #3b82f6; border-radius: 8px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;">Custom Subdomain:</span>
+                <span id="dashSubdomainDisplay" style="font-family: monospace; font-size: 1rem; font-weight: 800; color: #0F4C9B;">https://yourcompany.flenko.com</span>
+              </div>
+              <div style="font-size: 0.78rem; color: #028867; font-weight: 600; display: flex; align-items: center; gap: 0.3rem;">
+                <span>🎯</span> Direct Inquiries flow straight to your Lead Manager (100% Free)
+              </div>
+            </div>
+          </div>
+
+          <div id="websiteInactiveView" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div style="flex: 1; min-width: 280px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.4rem;">🚀</span>
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Get Your Own Branded Website & Subdomain</h3>
+                <span class="badge" style="background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px;">Exclusive Feature</span>
+              </div>
+              <p style="color: #475569; font-size: 0.88rem; line-height: 1.5; margin: 0;">
+                Launch a professional B2B company website (e.g. <strong>xyz.flenko.com</strong>) in 1 click! Displays your full product catalog, factory overview, and client reviews. Inquiries flow directly into your Lead Manager.
+              </p>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="openWebsiteModal()" style="background: linear-gradient(135deg, #028867, #0F4C9B); border: none; font-weight: 700; font-size: 0.95rem; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(2,136,103,0.3); display: flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
+              ✨ Get Your Website (1-Click Launch)
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="panel-card">
         <div class="panel-card-body" style="display: flex; gap: 2rem; align-items: center;">
           <div style="flex: 1;">
@@ -298,6 +358,58 @@
         });
       }
 
+      // Helper to synchronize Website & Paid Trusted badge
+      function syncWebsiteUI(biz, userObj) {
+        const b = biz || {};
+        const u = userObj || auth.getUser() || {};
+        const isPaid = b.is_paid_trusted === true || b.is_paid_trusted === 'true' || u.is_paid_trusted === true || u.subscription === 'premium' || u.subscription === 'vip';
+        const isWebEnabled = b.website_enabled === true || b.website_enabled === 'true';
+        const sub = b.subdomain;
+
+        if (isPaid) {
+          const trustBadge = document.getElementById('sellerTrustBadge');
+          if (trustBadge) {
+            trustBadge.innerHTML = '🛡️ Paid Trusted Seller';
+            trustBadge.style.color = '#d97706';
+            trustBadge.style.fontWeight = '700';
+          }
+          const upText = document.getElementById('dashUpgradeText');
+          const upBtn = document.getElementById('dashUpgradeBtn');
+          if (upText) upText.innerText = '👑 Premium Plan Active';
+          if (upBtn) {
+            upBtn.innerText = 'Plan Details';
+            upBtn.style.background = '#028867';
+          }
+        }
+
+        if (isWebEnabled && sub) {
+          const liveUrl = `https://${sub}.flenko.com`;
+          const previewUrl = `site.html?store=${sub}`;
+          window.currentWebsiteUrl = liveUrl;
+
+          const inact = document.getElementById('websiteInactiveView');
+          const act = document.getElementById('websiteActiveView');
+          if (inact) inact.style.display = 'none';
+          if (act) act.style.display = 'block';
+
+          const disp = document.getElementById('dashSubdomainDisplay');
+          if (disp) disp.innerText = liveUrl;
+          const link = document.getElementById('dashLiveWebsiteLink');
+          if (link) link.href = previewUrl;
+
+          const sideLink = document.getElementById('sideNavWebsiteLink');
+          if (sideLink) {
+            sideLink.href = previewUrl;
+            sideLink.style.display = 'block';
+          }
+        } else {
+          const inact = document.getElementById('websiteInactiveView');
+          const act = document.getElementById('websiteActiveView');
+          if (act) act.style.display = 'none';
+          if (inact) inact.style.display = 'flex';
+        }
+      }
+
       // 2. Instant rendering from local session
       try {
         const localU = auth.getUser();
@@ -315,6 +427,7 @@
           logoImg.style.display = 'block';
           document.getElementById('userAvatarText').style.display = 'none';
         }
+        syncWebsiteUI(localSeller, localU);
       } catch(e) {}
 
       // 3. Fetch Profile from server
@@ -329,6 +442,7 @@
              logoImg.style.display = 'block';
              document.getElementById('userAvatarText').style.display = 'none';
            }
+           syncWebsiteUI(profileData.user.business, profileData.user);
         }
       } catch(e) {}
 
@@ -380,14 +494,26 @@
         leadsContainer.innerHTML = allLeads.map(lead => {
           const cleanPhoneDigits = (lead.buyer_phone || '').replace(/[^0-9]/g, '');
           const waPhone = cleanPhoneDigits.length === 10 ? ('91' + cleanPhoneDigits) : cleanPhoneDigits;
-          const isPhoneLocked = lead.locked || (lead.buyer_phone && (lead.buyer_phone.includes('***') || lead.buyer_phone.includes('XXXXX') || lead.buyer_phone.includes('Buy Lead')));
+          const isWebsiteLead = lead.source === 'seller_website' || (lead.details && lead.details.includes('[🌐 Website Lead'));
+          const isPhoneLocked = !isWebsiteLead && !lead.is_direct && (lead.locked || (lead.buyer_phone && (lead.buyer_phone.includes('***') || lead.buyer_phone.includes('XXXXX') || lead.buyer_phone.includes('Buy Lead'))));
+
+          let badgeHtml = '';
+          if (isWebsiteLead) {
+            badgeHtml = '<span class="badge" style="background:linear-gradient(135deg, #2563eb, #0891b2); color:white; font-size:0.7rem; padding:2px 7px;">🌐 Website Lead (Direct & Free)</span>';
+          } else if (lead.is_direct) {
+            badgeHtml = '<span class="badge" style="background:#028867; color:white; font-size:0.7rem; padding:2px 6px;">🎯 Direct Buyer Inquiry (Free)</span>';
+          } else if (isPhoneLocked) {
+            badgeHtml = '<span class="badge" style="background:#ea580c; color:white; font-size:0.7rem; padding:2px 6px;">🔒 Buy Lead (Locked)</span>';
+          } else {
+            badgeHtml = '<span class="badge" style="background:#0F4C9B; color:white; font-size:0.7rem; padding:2px 6px;">🌐 Buy Lead (Unlocked)</span>';
+          }
 
           return `
             <div class="lead-item" style="border-left: 4px solid #028867; margin-bottom: 1rem; padding: 1rem; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
               <div class="lead-info" style="flex: 1;">
                 <h4 style="font-size: 1rem; color: var(--color-navy-deep); margin-bottom: 0.25rem;">
                   ${lead.product_needed || 'Wholesale Inquiry'} 
-                  ${lead.is_direct ? '<span class="badge" style="background:#028867; color:white; font-size:0.7rem; padding:2px 6px;">🎯 Direct Buyer Inquiry (Free)</span>' : (isPhoneLocked ? '<span class="badge" style="background:#ea580c; color:white; font-size:0.7rem; padding:2px 6px;">🔒 Buy Lead (Locked)</span>' : '<span class="badge" style="background:#0F4C9B; color:white; font-size:0.7rem; padding:2px 6px;">🌐 Buy Lead (Unlocked)</span>')}
+                  ${badgeHtml}
                 </h4>
                 <div class="lead-meta" style="font-size: 0.78rem; color: #64748b; margin-bottom: 0.5rem; display: flex; gap: 1rem;">
                   <span>🕒 ${new Date(lead.created_at || Date.now()).toLocaleDateString()}</span>
@@ -428,6 +554,58 @@
         `;
       }
     });
+  </script>
+
+  <!-- Website Generation & Customization Modal -->
+  <div id="websiteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.7); z-index: 10001; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; backdrop-filter: blur(4px);">
+    <div style="background: #ffffff; width: 100%; max-width: 500px; border-radius: 12px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);">
+      <div style="padding: 1.1rem 1.25rem; background: linear-gradient(135deg, #0F4C9B, #028867); color: white; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+          🌐 Launch Your Branded B2B Website
+        </h3>
+        <button type="button" onclick="closeWebsiteModal()" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+
+      <form id="websiteForm" onsubmit="submitGenerateWebsite(event)" style="padding: 1.5rem;">
+        <div style="margin-bottom: 1.25rem;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">
+            Choose Subdomain Handle <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="display: flex; align-items: center; border: 1.5px solid #0F4C9B; border-radius: 6px; overflow: hidden; background: #fff;">
+            <input type="text" id="siteSubdomainInput" required class="form-control" placeholder="e.g. xyz" style="border: none; font-size: 1rem; font-weight: 700; color: #0F4C9B; padding: 0.6rem 0.75rem; text-align: right;" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '')">
+            <span style="background: #f1f5f9; padding: 0.6rem 0.85rem; font-size: 0.95rem; font-weight: 700; color: #475569; border-left: 1px solid #cbd5e1;">.flenko.com</span>
+          </div>
+          <small style="display: block; font-size: 0.75rem; color: #64748b; margin-top: 0.35rem;">
+            Example: If company is XYZ Pvt Ltd, domain becomes: <strong>https://xyz.flenko.com</strong>
+          </small>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">
+            Company Headline / Tagline
+          </label>
+          <input type="text" id="siteTaglineInput" class="form-control" placeholder="e.g. Leading Manufacturer of High Quality B2B Industrial Packaging" style="font-size: 0.9rem; padding: 0.6rem 0.75rem;">
+          <small style="display: block; font-size: 0.75rem; color: #64748b; margin-top: 0.35rem;">
+            Displays prominently on the top banner of your standalone website.
+          </small>
+        </div>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.78rem; color: #166534;">
+          <div style="font-weight: 700; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.3rem;">
+            <span>🛡️</span> Instant Paid Trusted Seller Badge Included:
+          </div>
+          Activating your website grants your profile and product listings the verified <strong>"Paid Trusted"</strong> badge across the Flenko marketplace.
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeWebsiteModal()" style="flex: 1; padding: 0.7rem;">Cancel</button>
+          <button type="submit" id="btnSubmitWebsite" class="btn btn-primary" style="flex: 2; padding: 0.7rem; background: linear-gradient(135deg, #028867, #0F4C9B); border: none; font-weight: 700; font-size: 0.95rem;">
+            🚀 Launch Website Now
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- BuyLead ₹50 PhonePe QR Payment Modal -->
   <div id="buyLeadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.75); z-index: 10000; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; backdrop-filter: blur(4px);">
@@ -499,6 +677,87 @@
   </div>
 
   <script>
+    window.openWebsiteModal = function() {
+      const u = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? (auth.getUser() || {}) : {};
+      const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      const biz = u.business || localSeller || {};
+      const compName = biz.company_name || u.company_name || u.name || 'mystore';
+      const defaultSubdomain = (biz.subdomain) || compName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+      document.getElementById('siteSubdomainInput').value = defaultSubdomain;
+      document.getElementById('siteTaglineInput').value = biz.website_tagline || `Verified Manufacturer & Wholesale Exporter of ${biz.category || 'Quality B2B Products'}`;
+      document.getElementById('websiteModal').style.display = 'flex';
+    };
+
+    window.closeWebsiteModal = function() {
+      document.getElementById('websiteModal').style.display = 'none';
+    };
+
+    window.copyMyWebsiteUrl = function() {
+      const url = window.currentWebsiteUrl || (document.getElementById('dashSubdomainDisplay') ? document.getElementById('dashSubdomainDisplay').innerText : '');
+      if (url) {
+        navigator.clipboard.writeText(url);
+        alert('📋 Website URL copied to clipboard:\n' + url);
+      }
+    };
+
+    window.submitGenerateWebsite = async function(e) {
+      e.preventDefault();
+      const rawSub = document.getElementById('siteSubdomainInput').value.trim().toLowerCase();
+      const cleanSub = rawSub.replace(/[^a-z0-9-]/g, '').slice(0, 30);
+      const tagline = document.getElementById('siteTaglineInput').value.trim();
+      const btn = document.getElementById('btnSubmitWebsite');
+
+      if (!cleanSub || cleanSub.length < 2) {
+        alert('Please enter a valid subdomain handle (at least 2 letters/numbers).');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Launching website...';
+
+      try {
+        const res = await auth.fetchWithFallback('/seller/website/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + auth.getToken()
+          },
+          body: JSON.stringify({ subdomain: cleanSub, tagline })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          // Update local seller profile
+          const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+          localSeller.subdomain = data.subdomain;
+          localSeller.website_enabled = true;
+          localSeller.is_paid_trusted = true;
+          localSeller.website_tagline = tagline;
+          localStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller));
+
+          const u = auth.getUser() || {};
+          u.is_paid_trusted = true;
+          u.subscription = 'premium';
+          if (u.business) {
+            u.business.subdomain = data.subdomain;
+            u.business.website_enabled = true;
+            u.business.is_paid_trusted = true;
+          }
+          auth.setUser(u);
+
+          closeWebsiteModal();
+          alert(`🎉 Congratulations! Your Branded Website & Subdomain is Live!\n\nOfficial Subdomain: ${data.website_url}\nPreview Store: ${data.preview_url}\n\n🛡️ "Paid Trusted Seller" badge is now active across Flenko!`);
+          window.location.reload();
+        } else {
+          alert('❌ Failed to activate website: ' + ((data && data.error) || 'Please try again.'));
+        }
+      } catch(err) {
+        alert('Network error connecting to website generator.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Launch Website Now';
+      }
+    };
+
     window.openBuyLeadModal = function(id) {
       const lead = (window.currentDashboardLeads || []).find(l => String(l.id) === String(id));
       document.getElementById('payModalLeadId').value = id;

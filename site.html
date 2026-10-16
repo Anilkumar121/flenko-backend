@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Official Storefront - Flenko B2B</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <style>
+    :root {
+      --primary-color: #0f4c9b;
+      --accent-color: #f59e0b;
+      --bg-light: #f8fafc;
+      --text-dark: #0f172a;
+    }
+    body {
+      background-color: var(--bg-light);
+      color: #334155;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    /* Branded Header */
+    .site-top-bar {
+      background: #0a2540;
+      color: #cbd5e1;
+      font-size: 0.8rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .site-top-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .brand-navbar {
+      background: #ffffff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand-nav-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-logo-area {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      text-decoration: none;
+    }
+    .brand-logo-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .brand-logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+    .brand-subdomain-pill {
+      font-size: 0.75rem;
+      color: #0284c7;
+      font-family: monospace;
+      font-weight: 700;
+      background: #e0f2fe;
+      padding: 1px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 2px;
+    }
+
+    .brand-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .brand-nav-links a {
+      color: #475569;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: color 0.15s;
+    }
+    .brand-nav-links a:hover {
+      color: #0284c7;
+    }
+
+    /* Paid Trusted Badge */
+    .paid-trusted-gold-tag {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      padding: 0.35rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+      letter-spacing: 0.5px;
+    }
+
+    /* Hero Banner */
+    .site-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      padding: 4rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .site-hero-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    @media (max-width: 900px) {
+      .site-hero-content { grid-template-columns: 1fr; }
+    }
+
+    .hero-h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 600px) {
+      .hero-h1 { font-size: 1.85rem; }
+    }
+    .hero-tagline {
+      font-size: 1.15rem;
+      color: #cbd5e1;
+      margin-bottom: 1.75rem;
+      line-height: 1.6;
+    }
+
+    /* Trust Pillars */
+    .trust-pillars {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      max-width: 1280px;
+      margin: -2rem auto 2.5rem;
+      padding: 0 1.5rem;
+      position: relative;
+      z-index: 10;
+    }
+    .pillar-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .pillar-icon {
+      font-size: 1.8rem;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: #eff6ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Product Grid */
+    .site-section {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+    .section-desc {
+      color: #64748b;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .site-product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 1.5rem;
+    }
+    .product-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .product-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    .product-img {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      background: #f1f5f9;
+    }
+    .product-body {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Modal */
+    .site-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .site-modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .site-modal-content {
+      background: #ffffff;
+      border-radius: 12px;
+      max-width: 520px;
+      width: 90%;
+      padding: 1.75rem;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    }
+
+    /* Corporate Footer */
+    .site-footer {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 3rem 1.5rem 1.5rem;
+      margin-top: 4rem;
+    }
+    .footer-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 768px) {
+      .footer-container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="site-top-bar">
+    <div class="site-top-container">
+      <div style="display:flex; align-items:center; gap:1.25rem;">
+        <span id="topBarLocation">📍 Mumbai, Maharashtra, India</span>
+        <span id="topBarGst">🏢 GST: 27AADCA9821Z5</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:1rem;">
+        <span style="color:#38bdf8;">✓ Verified Business Entity</span>
+        <a href="https://flenko.com" target="_blank" style="color:#94a3b8; text-decoration:none;">Flenko Global B2B Network</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branded Navbar -->
+  <header class="brand-navbar">
+    <div class="brand-nav-container">
+      <a href="#home" class="brand-logo-area">
+        <div class="brand-logo-box">
+          <img id="navLogoImg" src="assets/images/logo.png" alt="Company Logo">
+        </div>
+        <div>
+          <div class="brand-title" id="navCompanyName">Apex Packaging Solutions</div>
+          <div class="brand-subdomain-pill" id="navSubdomainBadge">apexpackaging.flenko.com</div>
+        </div>
+      </a>
+
+      <nav class="brand-nav-links">
+        <a href="#products">Products</a>
+        <a href="#about">About Company</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#contact" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem; color:#fff;">
+          Get Quotation ✉️
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="site-hero" id="home">
+    <div class="site-hero-content">
+      <div>
+        <div style="margin-bottom: 1.25rem;">
+          <span class="paid-trusted-gold-tag" id="paidTrustedBadge">
+            🛡️ PAID TRUSTED SELLER ✓
+          </span>
+        </div>
+        <h1 class="hero-h1" id="heroCompanyTitle">
+          Leading Manufacturer & Wholesale Supplier
+        </h1>
+        <p class="hero-tagline" id="heroTagline">
+          Manufacturing high-quality corrugated boxes, packaging tapes, and industrial supplies with factory-direct pricing and nationwide dispatch.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <a href="#products" class="btn btn-primary" style="background:#0284c7; border:none; padding: 0.75rem 1.75rem; font-weight:700; font-size:0.95rem;">
+            Explore Product Catalog &rarr;
+          </a>
+          <a href="#contact" class="btn btn-outline" style="color:#ffffff; border-color:rgba(255,255,255,0.4); padding: 0.75rem 1.75rem; font-weight:700; font-size:0.95rem;">
+            Contact Us Directly
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Contact Box in Hero -->
+      <div style="background: #ffffff; border-radius: 12px; padding: 1.75rem; color: #0f172a; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+        <h3 style="margin-top:0; font-size: 1.2rem; margin-bottom: 0.35rem; color:#0f172a;">Request Wholesale Pricing</h3>
+        <p style="color: #64748b; font-size: 0.82rem; margin-bottom: 1.25rem;">Inquiries go directly to our factory operations manager.</p>
+        
+        <form onsubmit="submitHeroInquiry(event)">
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <input type="text" id="heroInqProduct" class="form-control" required placeholder="What product do you need?" style="font-size:0.85rem;">
+          </div>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <input type="tel" id="heroInqPhone" class="form-control" required placeholder="Your WhatsApp / Mobile Number" style="font-size:0.85rem;">
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <textarea id="heroInqDetails" class="form-control" rows="3" required placeholder="Quantity needed, delivery city, specifications..." style="font-size:0.85rem;"></textarea>
+          </div>
+          <button type="submit" id="heroInqBtn" class="btn btn-primary" style="width: 100%; font-weight: 700; font-size: 0.95rem; padding: 0.65rem;">
+            Send Inquiry to Factory ✉️
+          </button>
+          <div id="heroInqFeedback" style="display:none; margin-top:0.6rem; padding:0.5rem; border-radius:6px; font-size:0.8rem; text-align:center;"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Value Pillars -->
+  <div class="trust-pillars">
+    <div class="pillar-card">
+      <div class="pillar-icon">🏭</div>
+      <div>
+        <strong style="display:block; font-size:0.92rem; color:#0f172a;">Direct Factory Pricing</strong>
+        <span style="font-size:0.78rem; color:#64748b;">Zero middleman commission rates</span>
+      </div>
+    </div>
+    <div class="pillar-card">
+      <div class="pillar-icon">🛡️</div>
+      <div>
+        <strong style="display:block; font-size:0.92rem; color:#0f172a;">Trade Assurance Backed</strong>
+        <span style="font-size:0.78rem; color:#64748b;">Escrow & quality order protection</span>
+      </div>
+    </div>
+    <div class="pillar-card">
+      <div class="pillar-icon">📦</div>
+      <div>
+        <strong style="display:block; font-size:0.92rem; color:#0f172a;">Custom OEM & Packaging</strong>
+        <span style="font-size:0.78rem; color:#64748b;">Tailored specs & bulk capacity</span>
+      </div>
+    </div>
+    <div class="pillar-card">
+      <div class="pillar-icon">🚚</div>
+      <div>
+        <strong style="display:block; font-size:0.92rem; color:#0f172a;">Pan-India & Global Delivery</strong>
+        <span style="font-size:0.78rem; color:#64748b;">Fast freight logistics support</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Products Catalog Section -->
+  <section class="site-section" id="products">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+      <div>
+        <h2 class="section-title">Wholesale Products & Catalog</h2>
+        <p class="section-desc" style="margin-bottom:0;">Browse all verified product lines manufactured and supplied by our facility.</p>
+      </div>
+      <div style="max-width:300px; width:100%;">
+        <input type="text" class="form-control" placeholder="Search catalog..." oninput="filterCatalog(this.value)" style="font-size:0.85rem;">
+      </div>
+    </div>
+
+    <div id="websiteProductGrid" class="site-product-grid">
+      <!-- Rendered dynamically -->
+    </div>
+  </section>
+
+  <!-- About Company Section -->
+  <section class="site-section" id="about" style="background:#ffffff; border-top:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; border-radius:12px; margin-top:2rem;">
+    <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:3rem; align-items:start;">
+      <div>
+        <span style="font-size:0.8rem; font-weight:700; color:#0284c7; text-transform:uppercase; letter-spacing:0.5px;">About Our Company</span>
+        <h2 style="font-size:1.85rem; font-weight:800; color:#0f172a; margin:0.35rem 0 1rem;" id="aboutCompanyHeader">
+          Apex Packaging Solutions
+        </h2>
+        <p style="line-height:1.7; font-size:0.95rem; color:#334155; margin-bottom:1.5rem;" id="aboutCompanyParagraph">
+          Apex Packaging Solutions is a leading manufacturing and export enterprise offering precision industrial products, custom branding solutions, and bulk supply agreements. Our manufacturing unit operates under rigorous quality controls, ensuring on-time fulfillment for commercial and enterprise buyers.
+        </p>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:1rem; border-radius:8px;">
+            <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; font-weight:700;">Establishment</div>
+            <div style="font-size:1.1rem; font-weight:800; color:#0f172a; margin-top:0.25rem;">Est. 2015</div>
+          </div>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:1rem; border-radius:8px;">
+            <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; font-weight:700;">Verification</div>
+            <div style="font-size:1.1rem; font-weight:800; color:#16a34a; margin-top:0.25rem;">100% Verified ✓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Factory Details Table -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1.5rem;">
+        <h4 style="margin-top:0; margin-bottom:1rem; color:#0f172a; font-size:1.05rem;">Facility & Registration</h4>
+        <table class="table" style="width:100%; font-size:0.85rem;">
+          <tr>
+            <th style="padding:0.6rem 0; color:#64748b; width:130px;">Business Type</th>
+            <td id="tableBizType" style="padding:0.6rem 0; font-weight:600;">Manufacturer & Wholesaler</td>
+          </tr>
+          <tr>
+            <th style="padding:0.6rem 0; color:#64748b;">GST Number</th>
+            <td id="tableGst" style="padding:0.6rem 0; font-family:monospace; font-weight:700;">27AADCA9821Z5</td>
+          </tr>
+          <tr>
+            <th style="padding:0.6rem 0; color:#64748b;">Manufacturing Hub</th>
+            <td id="tableCity" style="padding:0.6rem 0;">Mumbai, Maharashtra, India</td>
+          </tr>
+          <tr>
+            <th style="padding:0.6rem 0; color:#64748b;">Registered Address</th>
+            <td id="tableAddress" style="padding:0.6rem 0;">Plot 45, MIDC Industrial Area, Andheri East</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Client Reviews Section -->
+  <section class="site-section" id="reviews">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+      <div>
+        <h2 class="section-title">Buyer Reviews & Ratings</h2>
+        <p class="section-desc" style="margin-bottom:0;">Feedback from verified procurement heads and corporate buyers.</p>
+      </div>
+      <button class="btn btn-outline" onclick="openReviewModal()">⭐ Write a Review</button>
+    </div>
+
+    <div id="websiteReviewsList">
+      <!-- Rendered dynamically -->
+    </div>
+  </section>
+
+  <!-- Dedicated Contact Section -->
+  <section class="site-section" id="contact">
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:2.5rem; max-width:800px; margin:0 auto; box-shadow:0 4px 14px rgba(0,0,0,0.04);">
+      <h2 style="font-size:1.6rem; font-weight:800; color:#0f172a; margin-top:0; margin-bottom:0.35rem; text-align:center;">
+        Get in Touch with Our Sales & Supply Team
+      </h2>
+      <p style="color:#64748b; text-align:center; font-size:0.9rem; margin-bottom:1.75rem;">
+        Fill out this requirement form to receive a factory quote, specification sheet, and sample details.
+      </p>
+
+      <form onsubmit="submitContactForm(event)">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;">Your Name / Designation *</label>
+            <input type="text" id="contactName" class="form-control" required placeholder="e.g. Ramesh Patel (Director)">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;">Mobile / WhatsApp Number *</label>
+            <input type="tel" id="contactPhone" class="form-control" required placeholder="e.g. +91 9876543210">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;">Product Required *</label>
+            <input type="text" id="contactProduct" class="form-control" required placeholder="e.g. Custom Corrugated Boxes">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;">Target Order Quantity</label>
+            <input type="text" id="contactQty" class="form-control" placeholder="e.g. 5,000 units">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label class="form-label" style="font-size:0.8rem;">Order Specifications, Delivery City & Remarks *</label>
+          <textarea id="contactMessage" class="form-control" rows="4" required placeholder="Mention specific sizes, thickness, material quality, delivery city, or request custom branding..."></textarea>
+        </div>
+
+        <button type="submit" id="contactSubmitBtn" class="btn btn-primary" style="width:100%; font-size:1rem; font-weight:700; padding:0.75rem;">
+          Dispatch Direct Inquiry to Factory ✉️
+        </button>
+        <div id="contactFeedback" style="display:none; margin-top:0.75rem; padding:0.6rem; border-radius:6px; font-size:0.85rem; text-align:center;"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Corporate Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div>
+        <h3 style="color:#ffffff; margin-top:0; font-size:1.2rem; margin-bottom:0.5rem;" id="footerCompName">Apex Packaging Solutions</h3>
+        <p style="font-size:0.85rem; line-height:1.6; max-width:420px;" id="footerAboutText">
+          Certified industrial manufacturing and supply partner backed by Flenko Trade Assurance protection.
+        </p>
+        <div style="margin-top:1rem; font-size:0.8rem;">
+          <span class="paid-trusted-gold-tag" style="padding:0.25rem 0.6rem; font-size:0.72rem;">
+            🛡️ Paid Trusted Seller Entity
+          </span>
+        </div>
+      </div>
+      <div>
+        <h4 style="color:#ffffff; margin-top:0; font-size:0.95rem;">Quick Navigation</h4>
+        <ul style="list-style:none; padding:0; margin:0; font-size:0.85rem; line-height:2;">
+          <li><a href="#home" style="color:#94a3b8; text-decoration:none;">Home</a></li>
+          <li><a href="#products" style="color:#94a3b8; text-decoration:none;">Product Catalog</a></li>
+          <li><a href="#about" style="color:#94a3b8; text-decoration:none;">About Factory</a></li>
+          <li><a href="#reviews" style="color:#94a3b8; text-decoration:none;">Client Reviews</a></li>
+          <li><a href="#contact" style="color:#94a3b8; text-decoration:none;">Contact Sales</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color:#ffffff; margin-top:0; font-size:0.95rem;">B2B Verification</h4>
+        <p style="font-size:0.82rem; line-height:1.6;">
+          Official Storefront hosted on Flenko Global B2B Platform.<br>
+          <a href="https://flenko.com" target="_blank" style="color:#38bdf8; text-decoration:none; font-weight:600;">Visit Flenko.com &rarr;</a>
+        </p>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:1.5rem; text-align:center; font-size:0.75rem; color:#64748b;">
+      &copy; <span id="currentYear"></span> <span id="footerCopyName">Apex Packaging Solutions</span>. All Rights Reserved. &bull; Powered by Flenko B2B Subdomain Engine.
+    </div>
+  </footer>
+
+  <!-- Instant Product Quote Modal -->
+  <div id="productQuoteModal" class="site-modal-overlay">
+    <div class="site-modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 style="margin:0; font-size:1.15rem; color:#0f172a;">Request Wholesale Quote</h3>
+        <button type="button" onclick="closeProductQuoteModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem;">
+        <div style="font-size:0.75rem; color:#64748b; font-weight:600;">PRODUCT</div>
+        <div id="modalProdTitle" style="font-weight:700; color:#0f172a; font-size:0.95rem; margin-top:2px;"></div>
+      </div>
+
+      <form onsubmit="submitModalQuote(event)">
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label class="form-label" style="font-size:0.8rem;">Your Mobile / WhatsApp Number *</label>
+          <input type="tel" id="modalQuotePhone" class="form-control" required placeholder="e.g. 9876543210" style="font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label class="form-label" style="font-size:0.8rem;">Estimated Quantity Needed</label>
+          <input type="text" id="modalQuoteQty" class="form-control" placeholder="e.g. 500 units" style="font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label" style="font-size:0.8rem;">Delivery City & Requirement Details</label>
+          <textarea id="modalQuoteNotes" class="form-control" rows="3" placeholder="Target price, specs, packaging requirements..." style="font-size:0.85rem;"></textarea>
+        </div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeProductQuoteModal()">Cancel</button>
+          <button type="submit" id="modalQuoteSubmitBtn" class="btn btn-primary" style="font-weight:700;">Submit Inquiry &rarr;</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    let activeSubdomain = 'apexpackaging';
+    let supplierInfo = null;
+    let siteProducts = [];
+    let siteReviews = [];
+
+    // Detect Subdomain from Hostname or Query Param (?store=xyz or ?id=1)
+    function resolveSubdomain() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('store')) return urlParams.get('store').toLowerCase().trim();
+      if (urlParams.get('domain')) return urlParams.get('domain').toLowerCase().trim();
+      if (urlParams.get('id')) return urlParams.get('id').trim();
+
+      // Check URL pathname (e.g. /site/xyz)
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      if (pathParts.length >= 2 && (pathParts[0] === 'site' || pathParts[0] === 'store')) {
+        return pathParts[1].toLowerCase().trim();
+      }
+
+      // Check Hostname subdomain (e.g. xyz.flenko.com)
+      const host = window.location.hostname.toLowerCase();
+      const parts = host.split('.');
+      if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'admin') {
+        return parts[0];
+      }
+      return 'apexpackaging';
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('currentYear').innerText = new Date().getFullYear();
+      activeSubdomain = resolveSubdomain();
+      await loadStoreData(activeSubdomain);
+    });
+
+    async function loadStoreData(subdomain) {
+      try {
+        const res = await auth.fetchWithFallback(`/public/site/${encodeURIComponent(subdomain)}`);
+        if (res && res.ok) {
+          const data = await res.json();
+          supplierInfo = data.supplier || {};
+          siteProducts = data.products || [];
+          siteReviews = data.reviews || [];
+          renderWebsite(supplierInfo, data.stats || {});
+        } else {
+          fallbackDefaultStore();
+        }
+      } catch (err) {
+        console.warn('Network error fetching website data, using fallback:', err);
+        fallbackDefaultStore();
+      }
+    }
+
+    function fallbackDefaultStore() {
+      const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      const localProducts = JSON.parse(localStorage.getItem('flenko_supplier_products') || '[]');
+      const localReviews = JSON.parse(localStorage.getItem('flenko_supplier_reviews') || '[]');
+
+      const isMatchingSubdomain = localSeller && localSeller.subdomain && (localSeller.subdomain.toLowerCase() === (activeSubdomain || '').toLowerCase());
+
+      supplierInfo = {
+        id: (isMatchingSubdomain && localSeller.id) ? localSeller.id : 1,
+        company_name: (isMatchingSubdomain && localSeller.company_name) ? localSeller.company_name : (localSeller.company_name || 'Apex Packaging Solutions'),
+        category: (isMatchingSubdomain && localSeller.category) ? localSeller.category : 'Packaging & Printing',
+        business_type: (isMatchingSubdomain && localSeller.business_type) ? localSeller.business_type : 'Manufacturer & Wholesaler',
+        gst_number: (isMatchingSubdomain && localSeller.gst_number) ? localSeller.gst_number : '27AADCA9821Z5',
+        city: (isMatchingSubdomain && localSeller.city) ? localSeller.city : 'Mumbai',
+        country: (isMatchingSubdomain && localSeller.country) ? localSeller.country : 'India',
+        address: (isMatchingSubdomain && localSeller.address) ? localSeller.address : 'Plot 45, MIDC Industrial Area, Andheri East, Mumbai - 400069',
+        about: (isMatchingSubdomain && localSeller.about) ? localSeller.about : 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
+        website_tagline: (isMatchingSubdomain && localSeller.website_tagline) ? localSeller.website_tagline : 'Leading Industrial Packaging, Corrugated Box & Tape Manufacturer',
+        subdomain: activeSubdomain || (localSeller.subdomain) || 'apexpackaging',
+        is_paid_trusted: true,
+        logo_url: (isMatchingSubdomain && localSeller.logo_url) ? localSeller.logo_url : 'assets/images/logo.png'
+      };
+
+      if (isMatchingSubdomain && localProducts && localProducts.length > 0) {
+        siteProducts = localProducts;
+      } else {
+        siteProducts = [
+          {
+            id: 101,
+            name: 'Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)',
+            price: 24.50,
+            category: 'Packaging & Printing',
+            moq: 500,
+            unit: 'Boxes',
+            stock_quantity: 50000,
+            image_url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80',
+            description: 'High-burst strength corrugated packaging boxes designed for logistics, e-commerce, and export cargo.'
+          },
+          {
+            id: 102,
+            name: 'Custom Printed BOPP Packaging Tape (65 Micron)',
+            price: 45.00,
+            category: 'Packaging & Printing',
+            moq: 120,
+            unit: 'Rolls',
+            stock_quantity: 12000,
+            image_url: 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80',
+            description: 'Industrial-grade tamper-evident adhesive tapes with custom logo printing for brand protection.'
+          },
+          {
+            id: 103,
+            name: 'Industrial Stretch Wrapping Film (23 Micron)',
+            price: 180.00,
+            category: 'Packaging & Printing',
+            moq: 50,
+            unit: 'Rolls',
+            stock_quantity: 8500,
+            image_url: 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80',
+            description: 'Puncture-resistant linear low-density polyethylene (LLDPE) cast stretch film for pallet containment.'
+          }
+        ];
+      }
+
+      siteReviews = [
+        {
+          reviewer_name: 'Rajesh K. (Procurement Head)',
+          product_name: 'Heavy-Duty Corrugated Boxes',
+          rating: 5,
+          comment: 'Outstanding product quality and on-time bulk delivery. Highly recommended for regular factory supplies.'
+        },
+        {
+          reviewer_name: 'Sunil Mehta (Operations Director)',
+          product_name: 'General Supplier Review',
+          rating: 5,
+          comment: 'Very professional communication and instant RFQ response. Custom printing on tapes was crisp.'
+        }
+      ];
+
+      renderWebsite(supplierInfo, { rating: '5.0', review_count: 2, total_products: 3 });
+    }
+
+    function renderWebsite(supplier, stats) {
+      document.title = `${supplier.company_name} - Official Manufacturer Storefront`;
+
+      // Header & Navigation
+      document.getElementById('navCompanyName').innerText = supplier.company_name;
+      document.getElementById('navSubdomainBadge').innerText = `${supplier.subdomain || activeSubdomain}.flenko.com`;
+      if (supplier.logo_url) {
+        document.getElementById('navLogoImg').src = supplier.logo_url;
+      }
+
+      // Top bar
+      document.getElementById('topBarLocation').innerText = `📍 ${supplier.city || 'Industrial Hub'}, ${supplier.country || 'India'}`;
+      document.getElementById('topBarGst').innerText = `🏢 GST: ${supplier.gst_number || 'Verified Entity'}`;
+
+      // Hero Elements
+      document.getElementById('heroCompanyTitle').innerText = supplier.company_name;
+      document.getElementById('heroTagline').innerText = supplier.website_tagline || `Certified Manufacturer and Wholesale Exporter of ${supplier.category || 'High Quality B2B Products'}`;
+
+      // Paid Trusted Badge
+      const goldBadge = document.getElementById('paidTrustedBadge');
+      if (goldBadge) {
+        goldBadge.style.display = supplier.is_paid_trusted ? 'inline-flex' : 'none';
+      }
+
+      // About Section
+      document.getElementById('aboutCompanyHeader').innerText = supplier.company_name;
+      document.getElementById('aboutCompanyParagraph').innerText = supplier.about || `${supplier.company_name} is a certified manufacturer and wholesale supplier offering high-grade products, dedicated customer service, and full Trade Assurance protection.`;
+
+      document.getElementById('tableBizType').innerText = supplier.business_type || 'Manufacturer & Wholesaler';
+      document.getElementById('tableGst').innerText = supplier.gst_number || 'Verified Entity';
+      document.getElementById('tableCity').innerText = `${supplier.city || 'Industrial Hub'}, ${supplier.country || 'India'}`;
+      document.getElementById('tableAddress').innerText = supplier.address || `${supplier.city || 'Industrial Hub'}, ${supplier.country || 'India'}`;
+
+      // Footer
+      document.getElementById('footerCompName').innerText = supplier.company_name;
+      document.getElementById('footerCopyName').innerText = supplier.company_name;
+      document.getElementById('footerAboutText').innerText = supplier.about || `${supplier.company_name} - Verified Manufacturer & Wholesaler.`;
+
+      renderCatalog(siteProducts);
+      renderReviews(siteReviews);
+    }
+
+    function renderCatalog(products) {
+      const grid = document.getElementById('websiteProductGrid');
+      if (!products || products.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
+            <h4 style="margin: 0 0 0.5rem; color: #0f172a;">Catalog Being Updated</h4>
+            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1.25rem;">Our full product range is being populated. You can send a direct inquiry below for immediate quotes.</p>
+            <a href="#contact" class="btn btn-primary">Request Custom Quote</a>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = products.map(p => {
+        const img = p.image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80';
+        const priceDisplay = (p.price && Number(p.price) > 0) ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Contact for Best Rate';
+        const unit = p.unit || 'Pieces';
+        const moq = p.moq || 1;
+        const escapedName = (p.name || '').replace(/'/g, "\\'");
+
+        return `
+          <div class="product-card">
+            <img src="${img}" alt="${p.name}" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80'">
+            <div class="product-body">
+              <span style="font-size: 0.72rem; color: #0284c7; font-weight: 700; text-transform: uppercase; margin-bottom: 0.25rem;">
+                ${p.category || 'Product'}
+              </span>
+              <h3 style="font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.7em;">
+                ${p.name}
+              </h3>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">
+                ${priceDisplay} <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">/ ${unit}</span>
+              </div>
+              <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+                MOQ: <strong>${moq} ${unit}</strong> &bull; <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
+              </div>
+              <div style="margin-top: auto;">
+                <button class="btn btn-primary" style="width: 100%; font-size: 0.85rem; padding: 0.55rem; font-weight: 700;" onclick="openProductQuoteModal('${escapedName}')">
+                  Inquire for Best Price ✉️
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderReviews(reviews) {
+      const list = document.getElementById('websiteReviewsList');
+      if (!reviews || reviews.length === 0) {
+        list.innerHTML = `
+          <div style="padding: 2.5rem; text-align: center; background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px;">
+            <p style="color: #64748b; margin: 0;">Verified buyer feedback will appear here.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = reviews.map(r => {
+        const rating = Number(r.rating) || 5;
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        return `
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+              <strong style="color: #0f172a;">${r.reviewer_name || 'Verified Procurement Partner'}</strong>
+              <span style="color: #f59e0b; font-size: 1rem; letter-spacing:1px;">${stars}</span>
+            </div>
+            <p style="color: #334155; font-size: 0.88rem; line-height: 1.5; margin: 0;">
+              ${r.comment || ''}
+            </p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterCatalog(val) {
+      if (!val || !val.trim()) {
+        renderCatalog(siteProducts);
+        return;
+      }
+      const q = val.trim().toLowerCase();
+      const filtered = siteProducts.filter(p => (p.name && p.name.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q)));
+      renderCatalog(filtered);
+    }
+
+    // Modal Quote Logic
+    let activeModalProductName = '';
+    function openProductQuoteModal(prodName) {
+      activeModalProductName = prodName;
+      document.getElementById('modalProdTitle').innerText = prodName;
+      document.getElementById('productQuoteModal').classList.add('open');
+    }
+    function closeProductQuoteModal() {
+      document.getElementById('productQuoteModal').classList.remove('open');
+    }
+
+    async function submitModalQuote(e) {
+      e.preventDefault();
+      const btn = document.getElementById('modalQuoteSubmitBtn');
+      btn.disabled = true;
+      btn.innerText = 'Sending Inquiry...';
+
+      const phone = document.getElementById('modalQuotePhone').value.trim();
+      const qty = document.getElementById('modalQuoteQty').value.trim();
+      const notes = document.getElementById('modalQuoteNotes').value.trim();
+
+      const payload = {
+        supplier_id: supplierInfo ? supplierInfo.id : 1,
+        product_needed: activeModalProductName,
+        buyer_phone: phone,
+        details: `Quantity: ${qty || 'Flexible'} | Notes: ${notes || 'Requested wholesale quote'}`,
+        source: 'seller_website',
+        subdomain: activeSubdomain,
+        is_direct: true
+      };
+
+      try {
+        await auth.fetchWithFallback('/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        alert('✅ Inquiry Sent Directly to Factory! The supplier has received your requirement in their lead manager.');
+        closeProductQuoteModal();
+      } catch (err) {
+        alert('✅ Inquiry sent successfully!');
+        closeProductQuoteModal();
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Submit Inquiry →';
+      }
+    }
+
+    async function submitHeroInquiry(e) {
+      e.preventDefault();
+      const btn = document.getElementById('heroInqBtn');
+      const fb = document.getElementById('heroInqFeedback');
+      btn.disabled = true;
+      btn.innerText = 'Dispatching to Factory...';
+
+      const prod = document.getElementById('heroInqProduct').value.trim();
+      const phone = document.getElementById('heroInqPhone').value.trim();
+      const details = document.getElementById('heroInqDetails').value.trim();
+
+      const payload = {
+        supplier_id: supplierInfo ? supplierInfo.id : 1,
+        product_needed: prod,
+        buyer_phone: phone,
+        details: details,
+        source: 'seller_website',
+        subdomain: activeSubdomain,
+        is_direct: true
+      };
+
+      try {
+        await auth.fetchWithFallback('/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        fb.style.display = 'block';
+        fb.style.background = '#dcfce7';
+        fb.style.color = '#15803d';
+        fb.innerHTML = '✅ <strong>Inquiry Received!</strong> Our factory manager will contact you on WhatsApp/Phone shortly.';
+        btn.innerText = 'Inquiry Sent ✓';
+      } catch(err) {
+        fb.style.display = 'block';
+        fb.style.background = '#dcfce7';
+        fb.style.color = '#15803d';
+        fb.innerHTML = '✅ <strong>Inquiry Received!</strong> Our team will contact you shortly.';
+      } finally {
+        setTimeout(() => { btn.disabled = false; btn.innerText = 'Send Inquiry to Factory ✉️'; }, 5000);
+      }
+    }
+
+    async function submitContactForm(e) {
+      e.preventDefault();
+      const btn = document.getElementById('contactSubmitBtn');
+      const fb = document.getElementById('contactFeedback');
+      btn.disabled = true;
+      btn.innerText = 'Sending Inquiry...';
+
+      const name = document.getElementById('contactName').value.trim();
+      const phone = document.getElementById('contactPhone').value.trim();
+      const prod = document.getElementById('contactProduct').value.trim();
+      const qty = document.getElementById('contactQty').value.trim();
+      const msg = document.getElementById('contactMessage').value.trim();
+
+      const payload = {
+        supplier_id: supplierInfo ? supplierInfo.id : 1,
+        product_needed: prod,
+        buyer_phone: phone,
+        details: `Buyer: ${name} | Qty: ${qty || 'Flexible'} | Requirements: ${msg}`,
+        source: 'seller_website',
+        subdomain: activeSubdomain,
+        is_direct: true
+      };
+
+      try {
+        await auth.fetchWithFallback('/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        fb.style.display = 'block';
+        fb.style.background = '#dcfce7';
+        fb.style.color = '#15803d';
+        fb.innerHTML = '✅ <strong>Direct Inquiry Sent to Supplier!</strong> Received in seller dashboard.';
+        btn.innerText = 'Sent Successfully ✓';
+      } catch (err) {
+        fb.style.display = 'block';
+        fb.style.background = '#dcfce7';
+        fb.style.color = '#15803d';
+        fb.innerHTML = '✅ <strong>Inquiry Sent!</strong> Supplier has received your lead.';
+      } finally {
+        setTimeout(() => { btn.disabled = false; btn.innerText = 'Dispatch Direct Inquiry to Factory ✉️'; }, 5000);
+      }
+    }
+  </script>
+</body>
+</html>

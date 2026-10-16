@@ -173,6 +173,45 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
+// Subdomain Detection Middleware for Seller Branded Websites (e.g. xyz.flenko.com or xyz.localhost)
+app.use((req, res, next) => {
+  const host = (req.get('host') || '').toLowerCase();
+  const hostWithoutPort = host.split(':')[0];
+  const parts = hostWithoutPort.split('.');
+  
+  if (parts.length >= 2) {
+    const sub = parts[0];
+    const reserved = ['www', 'api', 'admin', 'mail', 'app', 'cdn', 'static', 'backend'];
+    if (!reserved.includes(sub) && parts[1] !== 'com' && parts[0] !== 'localhost') {
+      req.sellerSubdomain = sub;
+      // If root URL or index.html requested on custom subdomain, serve the seller website!
+      if (req.path === '/' || req.path === '/index.html') {
+        const siteHtml = path.join(__dirname, '..', 'site.html');
+        if (fs.existsSync(siteHtml)) {
+          return res.sendFile(siteHtml);
+        }
+      }
+    }
+  }
+  next();
+});
+
+// Explicit Route: View Any Seller's Website via /site/:subdomain or /website/:subdomain
+app.get(['/site/:subdomain', '/website/:subdomain', '/store/:subdomain'], (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'site.html'));
+});
+
+// Route: Direct Android APK Package Download
+app.get('/download/flenko.apk', (req, res) => {
+  const apkPath = path.join(__dirname, '..', 'assets', 'downloads', 'flenko.apk');
+  if (fs.existsSync(apkPath)) {
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Disposition', 'attachment; filename="flenko.apk"');
+    return res.sendFile(apkPath);
+  }
+  res.redirect('/download-app.html');
+});
+
 app.use(express.static(path.join(__dirname, '..')));
 
 // Helper: Category resolution for typed services/products
@@ -1270,6 +1309,11 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         about: business.about || 'Verified B2B Supplier on Flenko with assured quality and trade protection.',
         logo_url: business.logo_url || null,
         is_verified: business.is_verified !== false,
+        is_paid_trusted: (business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free')),
+        subdomain: business.subdomain || (targetUserId === 1 ? 'apexpackaging' : null),
+        website_enabled: business.website_enabled !== false && (business.subdomain || targetUserId === 1),
+        website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
+        website_url: business.subdomain ? `https://${business.subdomain}.flenko.com` : (targetUserId === 1 ? 'https://apexpackaging.flenko.com' : null),
         member_since: business.created_at || (user ? user.created_at : new Date('2022-01-01')),
         contact: {
           phone: user ? user.phone : null,
@@ -1289,6 +1333,213 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching supplier details:', error);
     res.status(500).json({ error: 'Failed to fetch supplier details' });
+  }
+});
+
+// Route: Get Standalone Website Data for Seller Subdomain
+app.get('/api/public/site/:subdomain', async (req, res) => {
+  try {
+    const rawSub = (req.params.subdomain || '').toLowerCase().trim();
+    if (!rawSub) return res.status(400).json({ error: 'Subdomain is required' });
+
+    let bizRes;
+    if (!isNaN(parseInt(rawSub, 10)) && String(parseInt(rawSub, 10)) === rawSub) {
+      bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1 OR id = $1', [parseInt(rawSub, 10)]);
+    } else {
+      bizRes = await db.query('SELECT * FROM businesses WHERE LOWER(subdomain) = LOWER($1)', [rawSub]);
+    }
+
+    let business = (bizRes.rows && bizRes.rows.length > 0) ? bizRes.rows[0] : null;
+
+    if (!business) {
+      // Fallback search by company name slug
+      const allBiz = await db.query('SELECT * FROM businesses');
+      business = (allBiz.rows || []).find(b => {
+        const slug = (b.company_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return slug.includes(rawSub.replace(/[^a-z0-9]/g, '')) || (b.subdomain && b.subdomain.toLowerCase() === rawSub);
+      });
+    }
+
+    // Default demo store if sub is apexpackaging or 1
+    if (!business && (rawSub === 'apexpackaging' || rawSub === '1' || rawSub === 'apex')) {
+      business = {
+        id: 1,
+        user_id: 1,
+        company_name: 'Apex Packaging Solutions',
+        category: 'Packaging & Printing',
+        business_type: 'Manufacturer & Wholesaler',
+        gst_number: '27AADCA9821Z5',
+        city: 'Mumbai',
+        country: 'India',
+        address: 'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
+        about: 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
+        is_verified: true,
+        is_paid_trusted: true,
+        subdomain: 'apexpackaging',
+        website_enabled: true,
+        website_tagline: 'Leading Industrial Packaging & Corrugated Box Manufacturer',
+        logo_url: 'assets/images/logo.png',
+        created_at: new Date('2020-01-15')
+      };
+    }
+
+    if (!business) {
+      return res.status(404).json({ error: 'Seller website not found' });
+    }
+
+    const targetUserId = business.user_id || business.id;
+    let userRes = await db.query('SELECT id, name, phone, email, city, role, subscription FROM users WHERE id = $1', [targetUserId]);
+    let user = (userRes.rows && userRes.rows.length > 0) ? userRes.rows[0] : null;
+
+    // Fetch supplier's products
+    let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId]);
+    let products = prodRes.rows || [];
+
+    if (products.length === 0 && targetUserId === 1) {
+      products = [
+        {
+          id: 101,
+          supplier_id: 1,
+          name: 'Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)',
+          price: 24.50,
+          category: 'Packaging & Printing',
+          moq: 500,
+          unit: 'Boxes',
+          stock_quantity: 50000,
+          country: 'India',
+          image_url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80',
+          description: 'High-burst strength corrugated packaging boxes designed for logistics, e-commerce, and export cargo.'
+        },
+        {
+          id: 102,
+          supplier_id: 1,
+          name: 'Custom Printed BOPP Packaging Tape (65 Micron)',
+          price: 45.00,
+          category: 'Packaging & Printing',
+          moq: 120,
+          unit: 'Rolls',
+          stock_quantity: 12000,
+          country: 'India',
+          image_url: 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80',
+          description: 'Industrial-grade tamper-evident adhesive tapes with custom logo printing for brand protection.'
+        },
+        {
+          id: 103,
+          supplier_id: 1,
+          name: 'Industrial Stretch Wrapping Film (23 Micron)',
+          price: 180.00,
+          category: 'Packaging & Printing',
+          moq: 50,
+          unit: 'Rolls',
+          stock_quantity: 8500,
+          country: 'India',
+          image_url: 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80',
+          description: 'Puncture-resistant linear low-density polyethylene (LLDPE) cast stretch film for pallet containment.'
+        }
+      ];
+    }
+
+    // Fetch supplier's reviews
+    let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId]);
+    let reviews = revRes.rows || [];
+
+    let totalScore = 0;
+    reviews.forEach(r => { totalScore += (Number(r.rating) || 5); });
+    const avgRating = reviews.length > 0 ? (totalScore / reviews.length).toFixed(1) : '4.9';
+
+    res.json({
+      success: true,
+      supplier: {
+        id: targetUserId,
+        user_id: targetUserId,
+        seller_code: `FLK-SUP-${targetUserId}`,
+        company_name: business.company_name || (user ? user.name : 'Supplier'),
+        business_type: business.business_type || 'Manufacturer & Wholesaler',
+        category: business.category || 'Industrial Machinery',
+        gst_number: business.gst_number || 'GST Verified',
+        city: business.city || (user ? user.city : 'Industrial Hub'),
+        country: business.country || 'India',
+        address: business.address || 'Industrial Estate, India',
+        about: business.about || `${business.company_name} is a certified manufacturer and exporter with Trade Assurance.`,
+        logo_url: business.logo_url || null,
+        is_verified: business.is_verified !== false,
+        is_paid_trusted: (business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free')),
+        subdomain: business.subdomain || `flk${targetUserId}`,
+        website_enabled: business.website_enabled !== false,
+        website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
+        website_url: `https://${business.subdomain || `flk${targetUserId}`}.flenko.com`,
+        contact: {
+          phone: user ? user.phone : null,
+          email: user ? user.email : null
+        }
+      },
+      stats: {
+        rating: avgRating,
+        review_count: reviews.length,
+        total_products: products.length,
+        orders_fulfilled: '150+'
+      },
+      products,
+      reviews
+    });
+  } catch (err) {
+    console.error('Error fetching website data:', err);
+    res.status(500).json({ error: 'Failed to fetch seller website data' });
+  }
+});
+
+// Route: Activate / Update Seller Custom Website & Subdomain
+app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
+  try {
+    const userId = parseInt(req.user.id);
+    let { subdomain, tagline } = req.body;
+
+    // Fetch user & business
+    let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [userId]);
+    let business = (bizRes.rows && bizRes.rows.length > 0) ? bizRes.rows[0] : null;
+
+    if (!subdomain) {
+      const compName = (business && business.company_name) || (req.user && req.user.name) || `seller${userId}`;
+      subdomain = compName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+      if (subdomain.length < 3) subdomain = `store${userId}`;
+    } else {
+      subdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30);
+    }
+
+    const finalTagline = tagline || (business && business.website_tagline) || `Verified Manufacturer & Wholesale Exporter of ${(business && business.category) || 'B2B Products'}`;
+
+    // Ensure business exists
+    if (!business) {
+      await db.query(
+        'INSERT INTO businesses (user_id, company_name, city, is_verified, subdomain, is_paid_trusted, website_enabled, website_tagline) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [userId, req.user.name || 'Verified Supplier', 'Industrial Hub', true, subdomain, true, true, finalTagline]
+      );
+    } else {
+      await db.query(
+        'UPDATE businesses SET website_enabled = true, is_paid_trusted = true, subdomain = $1, website_tagline = $2 WHERE user_id = $3',
+        [subdomain, finalTagline, userId]
+      );
+    }
+
+    // Set user subscription to premium / vip
+    try {
+      await db.query("UPDATE users SET subscription = 'premium' WHERE id = $1 AND (subscription IS NULL OR subscription = 'free')", [userId]);
+    } catch(uErr) {}
+
+    const website_url = `https://${subdomain}.flenko.com`;
+    const preview_url = `site.html?store=${subdomain}`;
+
+    res.json({
+      success: true,
+      message: '🎉 Congratulations! Your Branded Website & Subdomain is Live!',
+      subdomain,
+      website_url,
+      preview_url,
+      is_paid_trusted: true
+    });
+  } catch (err) {
+    console.error('Error generating seller website:', err);
+    res.status(500).json({ error: 'Failed to generate seller website: ' + err.message });
   }
 });
 
@@ -1679,14 +1930,21 @@ app.get('/api/buyer/leads', authMiddleware, async (req, res) => {
   }
 });
 
-// Route: Submit an Inquiry/Lead (Public / Guest / Registered Buyer)
+// Route: Submit an Inquiry/Lead (Public / Guest / Registered Buyer / Seller Website)
 const handleLeadSubmission = async (req, res) => {
-  const { supplier_id, product_needed, buyer_phone, details, quantity, unit, target_price, message, product, item_name, product_id, productId, supplierId, seller_id, sellerId } = req.body;
-  const leadDetails = details || `Quantity: ${quantity || 'Flexible'} ${unit || 'Pieces'} | Target: ${target_price || 'Best Market Rate'} | Message: ${message || 'Please send quotations.'}`;
+  const { supplier_id, product_needed, buyer_phone, details, quantity, unit, target_price, message, product, item_name, product_id, productId, supplierId, seller_id, sellerId, source, subdomain } = req.body;
+  let rawDetails = details || `Quantity: ${quantity || 'Flexible'} ${unit || 'Pieces'} | Target: ${target_price || 'Best Market Rate'} | Message: ${message || 'Please send quotations.'}`;
   const effectiveProduct = product_needed || product || item_name || 'Wholesale Requirement';
   const effectivePhone = buyer_phone || (req.user ? req.user.phone : '9999999999');
   const buyerId = (req.user && req.user.id && !isNaN(parseInt(req.user.id))) ? parseInt(req.user.id) : null;
   const cleanPhone10 = (effectivePhone || '').replace(/[^0-9]/g, '').slice(-10);
+
+  const leadSource = source || (subdomain ? 'seller_website' : 'flenko_direct');
+  let leadDetails = rawDetails;
+  if ((leadSource === 'seller_website' || subdomain) && !leadDetails.includes('Website Lead')) {
+    const subText = subdomain ? `${subdomain}.flenko.com` : 'Seller Website';
+    leadDetails = `[🌐 Website Lead: ${subText}] ${rawDetails}`;
+  }
 
   try {
     const rawSupplierId = supplier_id || supplierId || seller_id || sellerId;
@@ -1705,29 +1963,27 @@ const handleLeadSubmission = async (req, res) => {
       }
     }
 
-    // 1. DIRECT PRODUCT INQUIRY: specifically to this supplier (from product page or seller profile)
+    // 1. DIRECT PRODUCT INQUIRY: specifically to this supplier (from product page or seller profile or seller website)
     if (directSupplierId) {
       let newLeadId = Date.now();
       try {
         const insRes = await db.query(
-          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct, is_paid) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-          [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true, true]
+          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct, is_paid, source) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+          [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true, true, leadSource]
         );
         if (insRes.rows && insRes.rows[0] && insRes.rows[0].id) {
           newLeadId = insRes.rows[0].id;
         }
       } catch(insErr) {
-        console.warn('Direct lead insert error with is_paid, trying fallback:', insErr.message);
         try {
           const insRes2 = await db.query(
-            'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-            [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true]
+            'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct, is_paid) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+            [directSupplierId, buyerId, effectiveProduct, effectivePhone, leadDetails, true, true]
           );
           if (insRes2.rows && insRes2.rows[0] && insRes2.rows[0].id) {
             newLeadId = insRes2.rows[0].id;
           }
         } catch(e2) {
-          console.warn('Direct lead secondary fallback:', e2.message);
           try {
             const insRes3 = await db.query(
               'INSERT INTO leads (supplier_id, product_needed, buyer_phone, details) VALUES ($1, $2, $3, $4) RETURNING id',

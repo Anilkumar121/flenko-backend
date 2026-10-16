@@ -304,6 +304,9 @@
           <button type="button" class="lead-tab-btn" onclick="setLeadFilter('direct', this)">
             🎯 Direct Inquiries <span class="lead-tab-badge" id="countDirect">0</span>
           </button>
+          <button type="button" class="lead-tab-btn" onclick="setLeadFilter('website', this)">
+            🌐 Website Leads <span class="lead-tab-badge" id="countWebsite">0</span>
+          </button>
           <button type="button" class="lead-tab-btn" onclick="setLeadFilter('market', this)">
             🌐 Market BuyLeads (₹50) <span class="lead-tab-badge" id="countMarket">0</span>
           </button>
@@ -511,14 +514,16 @@
           }
         } catch(err) {}
 
-        // Direct inquiries for this supplier are 100% free; Market BuyLeads remain locked until bought
+        // Direct inquiries & Storefront Website leads for this supplier are 100% free
         allLeads = leads.map(l => {
-          const isDirect = (l.is_direct === true || l.is_direct === 'true') && (!l.supplier_id || !currentUserId || String(l.supplier_id) === String(currentUserId));
+          const isWebsiteLead = l.source === 'seller_website' || (l.details && l.details.includes('[🌐 Website Lead'));
+          const isDirect = isWebsiteLead || ((l.is_direct === true || l.is_direct === 'true') && (!l.supplier_id || !currentUserId || String(l.supplier_id) === String(currentUserId)));
           const isPaid = l.is_paid === true || l.is_paid === 'true';
-          const isLocked = l.locked !== undefined ? l.locked : (!isDirect && !isPaid);
+          const isLocked = isWebsiteLead ? false : (l.locked !== undefined ? l.locked : (!isDirect && !isPaid));
           return {
             ...l,
             is_direct: isDirect,
+            is_website: isWebsiteLead,
             is_paid: isPaid,
             locked: isLocked
           };
@@ -536,7 +541,9 @@
 
     function updateMetrics() {
       document.getElementById('countAll').innerText = allLeads.length;
-      document.getElementById('countDirect').innerText = allLeads.filter(l => l.is_direct).length;
+      document.getElementById('countDirect').innerText = allLeads.filter(l => l.is_direct && !l.is_website).length;
+      const countWebEl = document.getElementById('countWebsite');
+      if (countWebEl) countWebEl.innerText = allLeads.filter(l => l.is_website).length;
       document.getElementById('countMarket').innerText = allLeads.filter(l => !l.is_direct).length;
       document.getElementById('countQuoted').innerText = allLeads.filter(l => l.status === 'Quoted').length;
       document.getElementById('countWon').innerText = allLeads.filter(l => l.status === 'Won').length;
@@ -557,7 +564,8 @@
     function applyFiltersAndRender() {
       displayedLeads = allLeads.filter(lead => {
         // Tab filter
-        if (activeFilter === 'direct' && !lead.is_direct) return false;
+        if (activeFilter === 'direct' && (!lead.is_direct || lead.is_website)) return false;
+        if (activeFilter === 'website' && !lead.is_website) return false;
         if (activeFilter === 'market' && lead.is_direct) return false;
         if (activeFilter === 'quoted' && lead.status !== 'Quoted') return false;
         if (activeFilter === 'won' && lead.status !== 'Won') return false;
@@ -608,7 +616,9 @@
         else if (lead.status === 'Contacted') statusColor = '#ca8a04';
 
         let badgeHtml = '';
-        if (lead.is_direct) {
+        if (lead.is_website) {
+          badgeHtml = '<span style="background:linear-gradient(135deg, #2563eb, #0891b2); color:#fff; padding:2px 7px; border-radius:4px; font-size:0.68rem; font-weight:700;">🌐 STORE WEBSITE LEAD</span>';
+        } else if (lead.is_direct) {
           badgeHtml = '<span style="background:#028867; color:#fff; padding:2px 7px; border-radius:4px; font-size:0.68rem; font-weight:700;">🎯 DIRECT INQUIRY</span>';
         } else if (isLocked) {
           badgeHtml = '<span style="background:#ea580c; color:#fff; padding:2px 7px; border-radius:4px; font-size:0.68rem; font-weight:700;">🔒 BUY-LEAD (LOCKED)</span>';
@@ -752,7 +762,7 @@
             <div class="im-card-title" style="display: flex; justify-content: space-between; align-items: center;">
               <span>👤 Verified Buyer Profile & Contact Details</span>
               <span style="background: #dcfce7; color: #166534; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
-                ${lead.is_direct ? '✓ DIRECT INQUIRY (100% FREE)' : '✓ UNLOCKED BUY-LEAD'}
+                ${lead.is_website ? '🌐 FROM YOUR BRANDED WEBSITE (DIRECT & FREE)' : (lead.is_direct ? '✓ DIRECT INQUIRY (100% FREE)' : '✓ UNLOCKED BUY-LEAD')}
               </span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
