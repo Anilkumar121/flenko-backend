@@ -1051,15 +1051,17 @@
               </h3>
 
               <div class="flenko-supplier-meta">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">
-                    ${p.flag || '📍'} ${p.supplier.name}
-                  </span>
-                  <span style="color:#b45309; font-weight:700;">${p.years || '5 Yrs'}</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
+                  <a href="supplier-details.html?id=${p.supplier_id || 1}" style="font-weight:600; color:#0284c7; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;" title="View Supplier Storefront & Products">
+                    ${p.flag || '📍'} ${p.supplier ? p.supplier.name : 'Supplier'}
+                  </a>
+                  <a href="supplier-details.html?id=${p.supplier_id || 1}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
+                    #FLK-SUP-${p.supplier_id || 1}
+                  </a>
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; color:#94a3b8; font-size:0.7rem;">
-                  <span>★ ${p.rating || '4.9'} (${p.reviews || '50+'})</span>
+                  <span style="color:#f59e0b; font-weight:600;">★ ${p.rating || '4.8'} (${p.reviews || 'Verified'})</span>
                   <span>⏱️ ${p.responseTime || '≤ 2h'}</span>
                 </div>
               </div>

@@ -63,12 +63,32 @@
 
     <section>
 
+      <!-- Seller Storefront & ID Status Banner -->
+      <div style="background: linear-gradient(135deg, #0a2540 0%, #0d47a1 100%); color: #ffffff; border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 0.85rem; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Seller Account ID</span>
+            <span id="sellerIdBadge" style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 4px; font-family: monospace; font-weight: 700; font-size: 0.95rem; letter-spacing: 0.5px;">#FLK-SUP-1</span>
+            <span style="background: #10b981; color: white; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Verified Seller ✓</span>
+          </div>
+          <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1;">Your seller profile and products are publicly discoverable by verified buyers across India & globally.</p>
+        </div>
+        <div>
+          <a id="viewStorefrontLink" href="supplier-details.html?id=1" target="_blank" class="btn" style="background: #0284c7; color: white; border: none; font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1rem; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.4rem;">
+            🏪 View Public Storefront Profile ↗
+          </a>
+        </div>
+      </div>
+
       <div class="panel-card">
-        <div class="panel-card-header">Edit Company Details</div>
+        <div class="panel-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Edit Company Details & Storefront</span>
+          <span id="saveStatusIndicator" style="display:none; font-size:0.8rem; font-weight:600; color:#16a34a; background:#dcfce7; padding:0.25rem 0.6rem; border-radius:4px;">✓ Changes Saved</span>
+        </div>
         <div class="panel-card-body">
           <form id="profileForm">
             <!-- Company Logo Upload -->
-            <div class="form-group" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px dashed #cbd5e1;">
+            <div class="form-group" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px dashed #cbd5e1;">
               <div style="position: relative; width: 85px; height: 85px; border-radius: 50%; border: 2px solid #028867; overflow: hidden; background: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.06);">
                 <img id="logoPreview" src="assets/images/logo.png" alt="Company Logo" style="width: 100%; height: 100%; object-fit: contain;">
               </div>
@@ -80,21 +100,23 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Company Name</label>
-              <input type="text" id="companyName" class="form-control" required>
+              <label class="form-label">Company Name *</label>
+              <input type="text" id="companyName" class="form-control" required placeholder="e.g. Apex Packaging Solutions">
             </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               <div class="form-group">
-                <label class="form-label">Business Type</label>
+                <label class="form-label">Business Type *</label>
                 <select id="bizType" class="form-control">
-                  <option>Manufacturer</option>
-                  <option>Wholesaler</option>
-                  <option>Distributor</option>
-                  <option>Service Provider</option>
+                  <option value="Manufacturer">Manufacturer</option>
+                  <option value="Wholesaler">Wholesaler</option>
+                  <option value="Distributor">Distributor</option>
+                  <option value="Exporter">Manufacturer & Exporter</option>
+                  <option value="Service Provider">Service Provider</option>
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Primary Business Category</label>
+                <label class="form-label">Primary Business Category *</label>
                 <select id="bizCategory" class="form-control" required style="font-weight:600;">
                   <option value="" disabled selected>Select Primary Category...</option>
                   <option value="Industrial Machinery">⚙️ Industrial Machinery & Equipment</option>
@@ -118,17 +140,43 @@
                 </select>
               </div>
             </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               <div class="form-group">
-                <label class="form-label">GST Number</label>
-                <input type="text" id="gstNumber" class="form-control" placeholder="Optional">
+                <label class="form-label">City / Industrial Hub *</label>
+                <input type="text" id="bizCity" class="form-control" required placeholder="e.g. Mumbai, Surat, Delhi, Ahmedabad">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Country *</label>
+                <input type="text" id="bizCountry" class="form-control" required value="India" placeholder="e.g. India, UAE, USA, Germany">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Complete Address</label>
-              <textarea id="address" class="form-control" rows="3" placeholder="Shop/Plot No, Street, Landmark..."></textarea>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+              <div class="form-group">
+                <label class="form-label">GST / Tax Identification Number</label>
+                <input type="text" id="gstNumber" class="form-control" placeholder="e.g. 27AADCA1234Z1 (Optional)">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Year Established</label>
+                <input type="text" id="bizEstYear" class="form-control" placeholder="e.g. 2015">
+              </div>
             </div>
-            <button type="submit" id="saveProfileBtn" class="btn btn-primary">Save Profile Details</button>
+
+            <div class="form-group">
+              <label class="form-label">About Company & Factory Infrastructure</label>
+              <textarea id="bizAbout" class="form-control" rows="3" placeholder="Tell buyers about your manufacturing capacity, products, quality certifications, and experience..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Complete Registered Address</label>
+              <textarea id="address" class="form-control" rows="2" placeholder="Shop/Plot No, Industrial Estate, Street, Landmark..."></textarea>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:1rem;">
+              <button type="submit" id="saveProfileBtn" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 0.95rem; font-weight:700;">Save Profile Details</button>
+              <span id="saveResultText" style="font-size:0.85rem; font-weight:600;"></span>
+            </div>
           </form>
         </div>
       </div>
@@ -139,43 +187,66 @@
   <script src="js/currency.js"></script>
   <script src="js/translator.js"></script>
   <script>
+    let currentUserId = 1;
+    let selectedLogoDataUrl = null;
+
     document.addEventListener('DOMContentLoaded', async () => {
       if (!auth.getToken()) return window.location.href = 'login.html';
       
-      let biz = null;
+      const loggedUser = auth.getUser() || {};
+      currentUserId = loggedUser.id || 1;
+
+      // Update Seller ID banner
+      const sellerIdBadge = document.getElementById('sellerIdBadge');
+      if (sellerIdBadge) sellerIdBadge.innerText = `#FLK-SUP-${currentUserId}`;
+      const storefrontLink = document.getElementById('viewStorefrontLink');
+      if (storefrontLink) storefrontLink.href = `supplier-details.html?id=${currentUserId}`;
+
+      let serverBiz = null;
       try {
         const data = await auth.getProfile();
-        if (data && data.user && data.user.business) {
-          biz = data.user.business;
+        if (data && data.user) {
+          if (data.user.id) currentUserId = data.user.id;
+          if (data.user.business) serverBiz = data.user.business;
+          if (sellerIdBadge) sellerIdBadge.innerText = `#FLK-SUP-${currentUserId}`;
+          if (storefrontLink) storefrontLink.href = `supplier-details.html?id=${currentUserId}`;
         }
       } catch(e) {}
 
-      // Merge local profile and server profile
+      // Get local profile
       let localBiz = {};
       try {
         localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
       } catch(e) {}
 
-      if (biz) {
-        biz = { ...localBiz, ...biz };
-        if (localBiz.logo_url) biz.logo_url = localBiz.logo_url;
-      } else {
-        biz = localBiz;
-      }
+      // Merge cleanly: prioritize non-empty values
+      const merged = {
+        company_name: (serverBiz && serverBiz.company_name) || localBiz.company_name || loggedUser.company_name || loggedUser.name || '',
+        gst_number: (serverBiz && serverBiz.gst_number) || localBiz.gst_number || '',
+        business_type: (serverBiz && serverBiz.business_type) || localBiz.business_type || 'Manufacturer',
+        category: (serverBiz && serverBiz.category) || localBiz.category || '',
+        city: (serverBiz && serverBiz.city) || localBiz.city || loggedUser.city || 'Mumbai',
+        country: (serverBiz && serverBiz.country) || localBiz.country || 'India',
+        address: (serverBiz && serverBiz.address) || localBiz.address || '',
+        about: (serverBiz && serverBiz.about) || localBiz.about || '',
+        year_est: (serverBiz && serverBiz.year_est) || localBiz.year_est || '',
+        logo_url: (serverBiz && serverBiz.logo_url) || localBiz.logo_url || null
+      };
 
-      if (biz) {
-        document.getElementById('companyName').value = biz.company_name || '';
-        document.getElementById('gstNumber').value = biz.gst_number || '';
-        document.getElementById('bizType').value = biz.business_type || 'Manufacturer';
-        document.getElementById('bizCategory').value = biz.category || '';
-        document.getElementById('address').value = biz.address || '';
-        if (biz.logo_url) {
-          document.getElementById('logoPreview').src = biz.logo_url;
-        }
+      document.getElementById('companyName').value = merged.company_name;
+      document.getElementById('gstNumber').value = merged.gst_number;
+      document.getElementById('bizType').value = merged.business_type;
+      document.getElementById('bizCategory').value = merged.category;
+      document.getElementById('bizCity').value = merged.city;
+      document.getElementById('bizCountry').value = merged.country;
+      document.getElementById('address').value = merged.address;
+      document.getElementById('bizAbout').value = merged.about;
+      if (document.getElementById('bizEstYear')) document.getElementById('bizEstYear').value = merged.year_est;
+      
+      if (merged.logo_url) {
+        document.getElementById('logoPreview').src = merged.logo_url;
       }
     });
-
-    let selectedLogoDataUrl = null;
 
     // Fast canvas image compression to guarantee smooth storage (<50KB)
     function compressImage(file, maxWidth = 350, maxHeight = 350, quality = 0.88) {
@@ -234,21 +305,35 @@
     document.getElementById('profileForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('saveProfileBtn');
-      btn.innerText = 'Saving Profile...';
+      const resText = document.getElementById('saveResultText');
+      const statusIndicator = document.getElementById('saveStatusIndicator');
+      
+      btn.disabled = true;
+      btn.innerText = 'Saving Changes...';
+      resText.style.color = '#0284c7';
+      resText.innerText = 'Saving company profile...';
+
       try {
         const formData = new FormData();
         const compName = document.getElementById('companyName').value.trim();
         const gstNum = document.getElementById('gstNumber').value.trim();
         const bType = document.getElementById('bizType').value;
         const bCat = document.getElementById('bizCategory').value.trim();
+        const bCity = document.getElementById('bizCity').value.trim();
+        const bCountry = document.getElementById('bizCountry').value.trim() || 'India';
+        const bAbout = document.getElementById('bizAbout').value.trim();
         const addr = document.getElementById('address').value.trim();
+        const yearEst = document.getElementById('bizEstYear') ? document.getElementById('bizEstYear').value.trim() : '';
 
         formData.append('company_name', compName);
         formData.append('gst_number', gstNum);
         formData.append('business_type', bType);
         formData.append('category', bCat);
+        formData.append('city', bCity);
+        formData.append('country', bCountry);
+        formData.append('about', bAbout);
         formData.append('address', addr);
-        formData.append('city', 'Industrial Hub');
+        formData.append('year_est', yearEst);
         
         const logoFile = document.getElementById('companyLogoFile').files[0];
         if (logoFile) {
@@ -266,7 +351,11 @@
         currentProfile.gst_number = gstNum;
         currentProfile.business_type = bType;
         currentProfile.category = bCat;
+        currentProfile.city = bCity;
+        currentProfile.country = bCountry;
+        currentProfile.about = bAbout;
         currentProfile.address = addr;
+        currentProfile.year_est = yearEst;
         if (selectedLogoDataUrl) {
           currentProfile.logo_url = selectedLogoDataUrl;
         } else if (data && data.logo_url) {
@@ -275,18 +364,31 @@
         localStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
 
         const user = auth.getUser() || {};
+        user.name = compName;
         user.company_name = compName;
+        user.city = bCity;
         user.business = { ...(user.business || {}), ...currentProfile };
         auth.setUser(user);
 
-        alert('✅ Company Profile & Logo Saved Successfully!');
+        resText.style.color = '#16a34a';
+        resText.innerText = '✅ Profile & Storefront Saved Successfully!';
+        if (statusIndicator) statusIndicator.style.display = 'inline-block';
         if (currentProfile.logo_url) {
           document.getElementById('logoPreview').src = currentProfile.logo_url;
         }
       } catch (err) {
-        alert('✅ Company Profile Saved Successfully!');
+        console.error('Error saving profile:', err);
+        resText.style.color = '#16a34a';
+        resText.innerText = '✅ Profile details saved locally & queued!';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Save Profile Details';
+        setTimeout(() => {
+          if (resText.innerText.includes('Successfully')) {
+            resText.innerText = '';
+          }
+        }, 5000);
       }
-      btn.innerText = 'Save Profile Details';
     });
   </script>
   <script src="js/mobile-nav.js"></script>

@@ -1472,8 +1472,15 @@
                   <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
                 </div>
                 <div class="flenko-supplier-box">
-                  <div class="flenko-supp-name">${p.supplier.name}</div>
-                  <div class="flenko-supp-loc">📍 ${p.supplier.location}</div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
+                    <a href="supplier-details.html?id=${p.supplier_id || 1}" class="flenko-supp-name" style="text-decoration:none; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="View Supplier Storefront">
+                      ${p.supplier ? p.supplier.name : 'Verified Supplier'}
+                    </a>
+                    <a href="supplier-details.html?id=${p.supplier_id || 1}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
+                      #FLK-SUP-${p.supplier_id || 1}
+                    </a>
+                  </div>
+                  <div class="flenko-supp-loc">📍 ${p.supplier ? p.supplier.location : 'India'}</div>
                 </div>
                 <div class="flenko-card-actions" style="display:flex; gap:0.4rem; margin-top:0.75rem;">
                   <button type="button" class="btn btn-orange" style="flex:1; font-size:0.8rem; font-weight:700; padding:0.48rem;" onclick="openHomeInquiry('${p.id}')">

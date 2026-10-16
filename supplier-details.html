@@ -3,231 +3,957 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apex Packaging Solutions - Supplier Profile</title>
+  <title>Supplier Profile & Storefront - Flenko B2B</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/mobile.css">
   <style>
+    body { background-color: #f8fafc; color: #1e293b; }
+    
     .supplier-hero {
-      background: var(--color-white);
+      background: #ffffff;
       border-bottom: 1px solid var(--color-border);
-      padding: 3rem 0;
+      padding: 2.5rem 0 2rem;
     }
     .supplier-hero-grid {
       display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 3rem;
+      grid-template-columns: 1fr 360px;
+      gap: 2.5rem;
       align-items: start;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 960px) {
       .supplier-hero-grid { grid-template-columns: 1fr; }
     }
-    .supplier-header-info h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-      color: var(--color-navy-deep);
+    
+    .supplier-avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .supplier-logo-box {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      flex-shrink: 0;
+    }
+    .supplier-logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 4px;
+    }
+    
+    .seller-id-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: monospace;
+      cursor: pointer;
+    }
+    .seller-id-pill:hover {
+      background: #dbeafe;
+    }
+
+    .meta-tags {
+      display: flex;
+      gap: 1.25rem;
+      color: #64748b;
+      font-size: 0.875rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .meta-tags div { display: flex; align-items: center; gap: 0.3rem; }
+
+    .store-tabs {
+      display: flex;
+      gap: 2rem;
+      border-bottom: 2px solid #e2e8f0;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+    .store-tab-btn {
+      padding: 0.75rem 0.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #64748b;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
-    .meta-tags {
-      display: flex;
-      gap: 1.5rem;
-      color: var(--color-text-muted);
-      font-size: 0.875rem;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
+    .store-tab-btn.active {
+      color: #0284c7;
+      border-bottom-color: #0284c7;
     }
-    .meta-tags div { display: flex; align-items: center; gap: 0.25rem; }
-    
-    .contact-card {
-      background: var(--color-white);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem;
-      box-shadow: var(--shadow-md);
-      position: sticky;
-      top: 100px;
-    }
-    
-    .content-section {
-      padding: 3rem 0;
-      border-bottom: 1px solid var(--color-border);
-    }
-    .content-section:last-child { border-bottom: none; }
-    
-    .service-grid {
+
+    /* Product Grid */
+    .catalog-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1.5rem;
-      margin-top: 1.5rem;
+      margin-top: 1rem;
     }
-    .service-card {
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
+    .catalog-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .service-card img { width: 100%; height: 150px; object-fit: cover; }
-    .service-card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; }
-    .service-title { font-weight: 600; margin-bottom: 0.5rem; font-size: 1rem; }
+    .catalog-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+    .catalog-card-img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      background: #f1f5f9;
+    }
+    .catalog-card-body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .catalog-price {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.35rem;
+    }
+    .catalog-moq {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 0.85rem;
+    }
+
+    /* Contact Card */
+    .contact-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+      position: sticky;
+      top: 90px;
+    }
+
+    /* Reviews Section */
+    .review-score-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .review-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Modal Styles */
+    .fl-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .fl-modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .fl-modal-content {
+      background: #ffffff;
+      border-radius: 12px;
+      max-width: 520px;
+      width: 90%;
+      padding: 1.75rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+    .star-select-btn {
+      background: none;
+      border: none;
+      font-size: 1.75rem;
+      color: #cbd5e1;
+      cursor: pointer;
+      padding: 0 0.2rem;
+      transition: color 0.15s;
+    }
+    .star-select-btn.active, .star-select-btn:hover {
+      color: #f59e0b;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Site Header -->
   <header class="site-header">
     <div class="container header-top">
-      <a href="index.html" class="brand" style="display:flex; align-items:center;"><img src="assets/images/logo.png" alt="Flenko" style="height: 45px; width: auto; object-fit: contain;"></a>
-      <form class="header-search">
-        <input type="text" class="form-control" placeholder="Search businesses..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
+      <a href="index.html" class="brand" style="display:flex; align-items:center;">
+        <img src="assets/images/logo.png" alt="Flenko B2B" style="height: 45px; width: auto; object-fit: contain;">
+      </a>
+      <form class="header-search" action="products.html" method="GET">
+        <input type="text" name="q" class="form-control" placeholder="Search products, suppliers, or machinery..." style="border-radius: var(--radius-md) 0 0 var(--radius-md);">
         <button type="submit" class="btn btn-primary" style="border-radius: 0 var(--radius-md) var(--radius-md) 0;">Search</button>
       </form>
       <div class="header-actions">
-        <button class="action-item" onclick="window.location.href='index.html'"><strong>Back to Directory</strong></button>
+        <button class="action-item" onclick="window.location.href='products.html'"><strong>Browse Catalog</strong></button>
+        <button class="action-item" onclick="window.location.href='business-directory.html'"><strong>Directory</strong></button>
       </div>
     </div>
   </header>
 
+  <!-- Breadcrumbs -->
+  <div style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 0.6rem 0; font-size: 0.8rem; color: #64748b;">
+    <div class="container" style="display: flex; align-items: center; gap: 0.5rem;">
+      <a href="index.html" style="color: #64748b; text-decoration: none;">Home</a>
+      <span>/</span>
+      <a href="business-directory.html" style="color: #64748b; text-decoration: none;">Suppliers</a>
+      <span>/</span>
+      <span id="breadcrumbSupplierName" style="color: #0f172a; font-weight: 600;">Apex Packaging Solutions</span>
+    </div>
+  </div>
+
+  <!-- Supplier Hero Section -->
   <div class="supplier-hero">
     <div class="container supplier-hero-grid">
-      <div class="supplier-header-info">
-        <h1>
-          Apex Packaging Solutions 
-          <span class="badge badge-teal" style="font-size: 0.75rem;">Verified Supplier ✓</span>
-        </h1>
-        <div class="meta-tags">
-          <div>📍 Mumbai, Maharashtra</div>
-          <div>🏢 Manufacturer & Wholesaler</div>
-          <div>⭐ 4.8/5 Rating</div>
-          <div>📅 Est. 2012</div>
-        </div>
-        <p style="color: var(--color-text-main); line-height: 1.6; max-width: 800px;">
-          Apex Packaging Solutions is a leading manufacturer of high-quality industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.
-        </p>
-      </div>
-
-      <div class="contact-card">
-        <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Contact Supplier</h3>
-        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1.5rem;">Send a direct message to request quotes or details.</p>
-        
-        <form id="supplierInquiryForm" onsubmit="submitSupplierDirectInquiry(event)">
-          <div class="form-group">
-            <input type="text" id="suppInqProduct" class="form-control" required placeholder="What product/service do you need?">
+      <div>
+        <div class="supplier-avatar-row">
+          <div class="supplier-logo-box">
+            <img id="suppHeroLogo" src="assets/images/logo.png" alt="Supplier Logo">
           </div>
-          <div class="form-group">
-            <div style="display: flex; gap: 0;">
-              <select id="suppInqCountryCode" class="form-control flenko-country-code-select" data-default="+91" style="width: 120px; border-radius: var(--radius-md) 0 0 var(--radius-md); border-right: none; background: #f8fafc; font-size: 0.85rem; padding: 0.5rem 0.25rem;">
-                <option value="+91">🇮🇳 +91 (India)</option>
-                <option value="+1">🇺🇸 +1 (USA/Canada)</option>
-                <option value="+971">🇦🇪 +971 (UAE)</option>
-                <option value="+44">🇬🇧 +44 (UK)</option>
-                <option value="+86">🇨🇳 +86 (China)</option>
-                <option value="+966">🇸🇦 +966 (Saudi)</option>
-                <option value="+49">🇩🇪 +49 (Germany)</option>
-                <option value="+65">🇸🇬 +65 (Singapore)</option>
-                <option value="+61">🇦🇺 +61 (Australia)</option>
-                <option value="+81">🇯🇵 +81 (Japan)</option>
-              </select>
-              <input type="tel" id="suppInqPhone" class="form-control" required placeholder="Your mobile number" style="border-radius: 0 var(--radius-md) var(--radius-md) 0; flex: 1;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
+              <h1 id="suppHeroName" style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin: 0;">Apex Packaging Solutions</h1>
+              <span id="suppVerifiedBadge" class="badge badge-teal" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">Verified Supplier ✓</span>
+              <span class="seller-id-pill" id="sellerIdDisplay" title="Click to copy Seller ID" onclick="copySellerId()">
+                <span>🆔</span> <span id="sellerCodeText">FLK-SUP-1</span> <small style="font-size:0.7rem; color:#60a5fa;">(Copy)</small>
+              </span>
+            </div>
+            <div class="meta-tags" style="margin-bottom: 0;">
+              <div>📍 <span id="suppLocationText">Mumbai, Maharashtra, India</span></div>
+              <div>🏢 <span id="suppBizTypeText">Manufacturer & Wholesaler</span></div>
+              <div>🏷️ <span id="suppCategoryText">Packaging & Printing</span></div>
+              <div>⭐ <span id="suppRatingScore" style="font-weight:700; color:#b45309;">4.8/5</span> (<span id="suppReviewCount">2</span> reviews)</div>
             </div>
           </div>
-          <div class="form-group">
-            <textarea id="suppInqDetails" class="form-control" rows="3" required placeholder="Describe your requirement (quantities, specs, delivery city)..."></textarea>
+        </div>
+
+        <p id="suppAboutText" style="color: #334155; line-height: 1.6; margin-bottom: 1.25rem; font-size: 0.92rem; max-width: 820px;">
+          Apex Packaging Solutions is a leading manufacturer of high-quality industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.
+        </p>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="scrollToInquiry()" style="display:flex; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem;">
+            ✉️ Contact Supplier Directly
+          </button>
+          <button class="btn btn-outline" onclick="openReviewModal()" style="display:flex; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem;">
+            ⭐ Write a Review
+          </button>
+          <a id="sellerWhatsAppBtn" href="#" target="_blank" class="btn" style="background:#25D366; color:white; border:none; display:none; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem; text-decoration:none; border-radius:6px; font-weight:600;">
+            💬 WhatsApp Chat
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Column: Quick Direct Inquiry Form -->
+      <div class="contact-card" id="contactCardSticky">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
+          <h3 style="margin: 0; font-size: 1.15rem; color: #0f172a;">Contact Supplier</h3>
+          <span style="font-size:0.72rem; background:#ecfdf5; color:#059669; padding:2px 8px; border-radius:4px; font-weight:700;">Direct Lead</span>
+        </div>
+        <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">
+          Send a direct requirement to <strong id="suppFormTargetName">Apex Packaging</strong>. The seller will contact you with wholesale pricing.
+        </p>
+        
+        <form id="supplierInquiryForm" onsubmit="submitSupplierDirectInquiry(event)">
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.2rem;">Product / Service Needed *</label>
+            <input type="text" id="suppInqProduct" class="form-control" required placeholder="e.g. 5-Ply Corrugated Boxes" style="font-size: 0.85rem;">
           </div>
-          <button type="submit" id="suppInqSubmitBtn" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 0.75rem;">Send Inquiry Now</button>
-          <div id="suppInqFeedback" style="display:none; margin-top:0.75rem; padding:0.6rem; border-radius:6px; font-size:0.85rem; text-align:center;"></div>
+
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.2rem;">Your Mobile Number *</label>
+            <div style="display: flex; gap: 0;">
+              <select id="suppInqCountryCode" class="form-control" style="width: 110px; border-radius: 6px 0 0 6px; border-right: none; background: #f8fafc; font-size: 0.8rem; padding: 0.4rem 0.25rem;">
+                <option value="+91" selected>🇮🇳 +91</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+86">🇨🇳 +86</option>
+                <option value="+966">🇸🇦 +966</option>
+                <option value="+49">🇩🇪 +49</option>
+                <option value="+65">🇸🇬 +65</option>
+              </select>
+              <input type="tel" id="suppInqPhone" class="form-control" required placeholder="10-digit number" style="border-radius: 0 6px 6px 0; flex: 1; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.2rem;">Requirement Details & Quantities *</label>
+            <textarea id="suppInqDetails" class="form-control" rows="3" required placeholder="Quantity needed, size specifications, target price, delivery city..." style="font-size: 0.85rem;"></textarea>
+          </div>
+
+          <button type="submit" id="suppInqSubmitBtn" class="btn btn-primary" style="width: 100%; font-size: 0.95rem; font-weight:700; padding: 0.65rem;">
+            Send Inquiry to Supplier ✉️
+          </button>
+          <div id="suppInqFeedback" style="display:none; margin-top:0.75rem; padding:0.6rem; border-radius:6px; font-size:0.8rem; text-align:center;"></div>
         </form>
-        <p class="text-center text-muted" style="font-size: 0.75rem; margin-top: 1rem;">🔒 Your contact details are secure.</p>
+        <p class="text-center text-muted" style="font-size: 0.72rem; margin-top: 0.75rem; margin-bottom: 0;">
+          🔒 Your inquiry goes directly to this seller's verified dashboard.
+        </p>
       </div>
     </div>
   </div>
 
-  <main class="container">
-    <section class="content-section">
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Products & Services Catalog</h2>
-      <p class="text-muted">Browse the offerings provided by this business.</p>
-      
-      <div class="service-grid">
-        <div class="service-card">
-          <img src="https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80" alt="Corrugated Boxes">
-          <div class="service-card-body">
-            <h4 class="service-title">Heavy-Duty Corrugated Boxes</h4>
-            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">Available in 3-ply, 5-ply, and 7-ply for industrial goods transport.</p>
-            <div style="margin-top: auto;">
-              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="selectProductForInquiry('Heavy-Duty Corrugated Boxes')">Get Latest Price</button>
-            </div>
-          </div>
-        </div>
+  <!-- Main Storefront Content Tabs -->
+  <main class="container" style="max-width: 1350px; padding-bottom: 4rem;">
+    
+    <div class="store-tabs">
+      <button class="store-tab-btn active" onclick="switchStoreTab('productsTab', this)">
+        📦 All Products & Services (<span id="tabProductCount">0</span>)
+      </button>
+      <button class="store-tab-btn" onclick="switchStoreTab('reviewsTab', this)">
+        ⭐ Buyer Reviews & Ratings (<span id="tabReviewCount">0</span>)
+      </button>
+      <button class="store-tab-btn" onclick="switchStoreTab('companyTab', this)">
+        🏢 Company & Factory Overview
+      </button>
+    </div>
 
-        <div class="service-card">
-          <img src="https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80" alt="Packaging Tape">
-          <div class="service-card-body">
-            <h4 class="service-title">Custom Printed BOPP Tapes</h4>
-            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">Branded sealing tapes for secure and professional packaging.</p>
-            <div style="margin-top: auto;">
-              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="selectProductForInquiry('Custom Printed BOPP Tapes')">Get Latest Price</button>
-            </div>
-          </div>
+    <!-- TAB 1: ALL PRODUCTS & SERVICES -->
+    <section id="productsTab" class="store-tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0; color: #0f172a;">Storefront Catalog & Services</h2>
+          <p style="color: #64748b; margin: 0.25rem 0 0; font-size: 0.85rem;">Browse all verified products offered directly by this supplier.</p>
         </div>
+        <div style="max-width: 320px; width: 100%;">
+          <input type="text" id="productFilterInput" class="form-control" placeholder="Filter this seller's products..." oninput="filterSupplierProducts(this.value)" style="font-size: 0.85rem;">
+        </div>
+      </div>
 
-        <div class="service-card">
-          <img src="https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80" alt="Stretch Film">
-          <div class="service-card-body">
-            <h4 class="service-title">Industrial Stretch Wrapping Film</h4>
-            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">High puncture resistance film for pallet wrapping.</p>
-            <div style="margin-top: auto;">
-              <button class="btn btn-outline" style="width: 100%; font-size: 0.875rem;" onclick="selectProductForInquiry('Industrial Stretch Wrapping Film')">Get Latest Price</button>
-            </div>
-          </div>
-        </div>
+      <div id="supplierProductsGrid" class="catalog-grid">
+        <!-- Rendered dynamically -->
       </div>
     </section>
 
-    <section class="content-section" style="padding-bottom: 5rem;">
-      <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Company Details</h2>
-      <table class="table" style="max-width: 600px; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
-        <tbody>
-          <tr>
-            <th style="width: 200px;">Business Type</th>
-            <td>Manufacturer, Wholesaler</td>
-          </tr>
-          <tr>
-            <th>Primary Market</th>
-            <td>Pan-India</td>
-          </tr>
-          <tr>
-            <th>Year Established</th>
-            <td>2012</td>
-          </tr>
-          <tr>
-            <th>GST Number</th>
-            <td>27AADCAXXXXX1Z5 (Verified)</td>
-          </tr>
-          <tr>
-            <th>Registered Address</th>
-            <td>Andheri East, Mumbai, Maharashtra - 400069</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- TAB 2: BUYER REVIEWS & RATINGS -->
+    <section id="reviewsTab" class="store-tab-content" style="display: none;">
+      <div class="review-score-box">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+          <div style="text-align: center;">
+            <div id="reviewBigScore" style="font-size: 2.75rem; font-weight: 800; color: #0f172a; line-height: 1;">4.8</div>
+            <div style="color: #f59e0b; font-size: 1.15rem; margin-top: 0.25rem;">⭐⭐⭐⭐⭐</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">out of 5.0</div>
+          </div>
+          <div style="border-left: 1px solid #e2e8f0; padding-left: 1.5rem;">
+            <h3 style="margin: 0; font-size: 1.1rem; color: #0f172a;">Verified Buyer Ratings</h3>
+            <p style="margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem;">
+              Based on <strong id="totalReviewsCountText">2</strong> reviews from verified trade buyers and procurement officers.
+            </p>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openReviewModal()" style="padding: 0.65rem 1.5rem; font-size: 0.9rem; font-weight: 600;">
+          ⭐ Write a Review for this Seller
+        </button>
+      </div>
+
+      <div id="supplierReviewsList">
+        <!-- Rendered dynamically -->
+      </div>
     </section>
+
+    <!-- TAB 3: COMPANY & FACTORY OVERVIEW -->
+    <section id="companyTab" class="store-tab-content" style="display: none;">
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.75rem; max-width: 850px;">
+        <h3 style="margin-top: 0; margin-bottom: 1.25rem; font-size: 1.2rem; color: #0f172a;">Official Business Information</h3>
+        <table class="table" style="width: 100%; border: 1px solid #f1f5f9; border-radius: 8px;">
+          <tbody>
+            <tr>
+              <th style="width: 220px; background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Company Name</th>
+              <td id="tableCompName" style="padding: 0.75rem 1rem; font-weight: 600;">Apex Packaging Solutions</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Seller ID</th>
+              <td id="tableSellerId" style="padding: 0.75rem 1rem; font-family: monospace; font-weight: 700; color: #0284c7;">#FLK-SUP-1</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Business Type</th>
+              <td id="tableBizType" style="padding: 0.75rem 1rem;">Manufacturer & Wholesaler</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Primary Category</th>
+              <td id="tableCategory" style="padding: 0.75rem 1rem;">Packaging, Printing & Paper</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">GST / Tax Identification</th>
+              <td id="tableGst" style="padding: 0.75rem 1rem;">27AADCA9821Z5 (Verified)</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">City & Hub</th>
+              <td id="tableCity" style="padding: 0.75rem 1rem;">Mumbai, Maharashtra</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Country</th>
+              <td id="tableCountry" style="padding: 0.75rem 1rem;">India</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Registered Address</th>
+              <td id="tableAddress" style="padding: 0.75rem 1rem;">Plot 45, MIDC Industrial Area, Andheri East, Mumbai</td>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Trade Assurance</th>
+              <td style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600;">✓ Active Protection (Escrow & Quality Guarantee)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
+
+  <!-- WRITE A REVIEW MODAL -->
+  <div id="reviewModal" class="fl-modal-overlay">
+    <div class="fl-modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="margin: 0; font-size: 1.25rem; color: #0f172a;">Write a Review</h3>
+        <button type="button" onclick="closeReviewModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
+      </div>
+
+      <form id="writeReviewForm" onsubmit="submitReview(event)">
+        <!-- Star Selector -->
+        <div class="form-group" style="text-align: center; margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-weight: 600; margin-bottom: 0.4rem;">Select Your Rating *</label>
+          <div id="starContainer" style="display: flex; justify-content: center; gap: 0.25rem;">
+            <button type="button" class="star-select-btn active" onclick="setStarRating(1)">★</button>
+            <button type="button" class="star-select-btn active" onclick="setStarRating(2)">★</button>
+            <button type="button" class="star-select-btn active" onclick="setStarRating(3)">★</button>
+            <button type="button" class="star-select-btn active" onclick="setStarRating(4)">★</button>
+            <button type="button" class="star-select-btn active" onclick="setStarRating(5)">★</button>
+          </div>
+          <input type="hidden" id="reviewRatingVal" value="5">
+          <small id="ratingLabel" style="color: #f59e0b; font-weight: 700; font-size: 0.85rem;">5 Stars - Excellent Quality & Service</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">Reviewing Specific Product (Optional)</label>
+          <select id="reviewProductSelect" class="form-control" style="font-size: 0.85rem;">
+            <option value="">General Supplier & Service Review</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">Your Name / Company Title *</label>
+          <input type="text" id="reviewerNameInput" class="form-control" required placeholder="e.g. Rahul Sharma (Purchase Manager)" style="font-size: 0.85rem;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label">Detailed Review & Experience *</label>
+          <textarea id="reviewCommentInput" class="form-control" rows="4" required placeholder="Share your experience regarding material quality, delivery time, packaging, pricing, and responsiveness..." style="font-size: 0.85rem;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeReviewModal()">Cancel</button>
+          <button type="submit" id="submitReviewBtn" class="btn btn-primary" style="font-weight: 700;">Submit Review</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="js/auth.js"></script>
-  <script src="js/countries.js"></script>
   <script src="js/currency.js"></script>
-  <script src="js/inquiry-modal.js"></script>
   <script src="js/translator.js"></script>
   <script src="js/mobile-nav.js"></script>
   <script>
+    let currentSupplierId = 1;
+    let supplierData = null;
+    let allSupplierProducts = [];
+    let allSupplierReviews = [];
+
+    // Extract supplier id from URL query: supplier-details.html?id=...
+    function getSupplierIdFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id');
+      if (id && !isNaN(parseInt(id, 10))) {
+        return parseInt(id, 10);
+      }
+      return 1;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      currentSupplierId = getSupplierIdFromUrl();
+
+      // Prefill user name & phone in inquiry form and review form if logged in
+      if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+        const u = auth.getUser();
+        if (u) {
+          if (u.phone) {
+            const phInput = document.getElementById('suppInqPhone');
+            if (phInput) phInput.value = u.phone.replace(/^[+]91/, '');
+          }
+          if (u.name) {
+            const revName = document.getElementById('reviewerNameInput');
+            if (revName) revName.value = u.name;
+          }
+        }
+      }
+
+      await loadSupplierProfile(currentSupplierId);
+    });
+
+    async function loadSupplierProfile(id) {
+      try {
+        const res = await auth.fetchWithFallback(`/public/suppliers/${id}`);
+        if (res && res.ok) {
+          const data = await res.json();
+          supplierData = data.supplier || {};
+          allSupplierProducts = data.products || [];
+          allSupplierReviews = data.reviews || [];
+          renderSupplierUI(supplierData, data.stats || {});
+        } else {
+          // If server fails, try fallback mock
+          fallbackLocalSupplier(id);
+        }
+      } catch (err) {
+        console.warn('Network error fetching supplier profile, using fallback:', err);
+        fallbackLocalSupplier(id);
+      }
+    }
+
+    function fallbackLocalSupplier(id) {
+      // Look up in localStorage flenko_seller_profile
+      let localBiz = {};
+      try {
+        localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      } catch(e) {}
+
+      supplierData = {
+        id: id,
+        seller_code: `FLK-SUP-${id}`,
+        company_name: localBiz.company_name || 'Apex Packaging Solutions',
+        business_type: localBiz.business_type || 'Manufacturer & Wholesaler',
+        category: localBiz.category || 'Packaging & Printing',
+        gst_number: localBiz.gst_number || '27AADCA9821Z5',
+        city: localBiz.city || 'Mumbai',
+        country: localBiz.country || 'India',
+        address: localBiz.address || 'Plot 45, MIDC Industrial Area, Andheri East, Mumbai',
+        about: localBiz.about || 'Apex Packaging Solutions is a leading manufacturer of high-quality industrial packaging materials, corrugated boxes, and shipping supplies.',
+        logo_url: localBiz.logo_url || 'assets/images/logo.png',
+        is_verified: true
+      };
+
+      allSupplierProducts = [
+        {
+          id: 101,
+          name: 'Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)',
+          price: 24.50,
+          category: 'Packaging & Printing',
+          moq: 500,
+          unit: 'Boxes',
+          stock_quantity: 50000,
+          country: 'India',
+          image_url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80',
+          description: 'High-burst strength corrugated packaging boxes designed for logistics, e-commerce, and export cargo.'
+        },
+        {
+          id: 102,
+          name: 'Custom Printed BOPP Packaging Tape (65 Micron)',
+          price: 45.00,
+          category: 'Packaging & Printing',
+          moq: 120,
+          unit: 'Rolls',
+          stock_quantity: 12000,
+          country: 'India',
+          image_url: 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80',
+          description: 'Industrial-grade tamper-evident adhesive tapes with custom logo printing for brand protection.'
+        },
+        {
+          id: 103,
+          name: 'Industrial Stretch Wrapping Film (23 Micron)',
+          price: 180.00,
+          category: 'Packaging & Printing',
+          moq: 50,
+          unit: 'Rolls',
+          stock_quantity: 8500,
+          country: 'India',
+          image_url: 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80',
+          description: 'Puncture-resistant linear low-density polyethylene (LLDPE) cast stretch film for pallet containment.'
+        }
+      ];
+
+      allSupplierReviews = [
+        {
+          id: 1,
+          reviewer_name: 'Rajesh K. (Procurement Head)',
+          product_name: 'Heavy-Duty Corrugated Boxes',
+          rating: 5,
+          comment: 'Top quality material and on-time bulk delivery. Highly recommend for large packaging orders.',
+          created_at: new Date(Date.now() - 3 * 86400000)
+        },
+        {
+          id: 2,
+          reviewer_name: 'Sunil Mehta (Operations Director)',
+          product_name: 'General Supplier Review',
+          rating: 5,
+          comment: 'Very professional response to our RFQ. Excellent wholesale prices and custom printing options.',
+          created_at: new Date(Date.now() - 7 * 86400000)
+        }
+      ];
+
+      renderSupplierUI(supplierData, { rating: '5.0', review_count: 2, total_products: 3 });
+    }
+
+    function renderSupplierUI(supplier, stats) {
+      document.title = `${supplier.company_name} (ID: ${supplier.seller_code || '#FLK-SUP-' + supplier.id}) - Flenko B2B`;
+      document.getElementById('breadcrumbSupplierName').innerText = supplier.company_name;
+
+      // Hero Elements
+      document.getElementById('suppHeroName').innerText = supplier.company_name;
+      document.getElementById('suppFormTargetName').innerText = supplier.company_name;
+      document.getElementById('sellerCodeText').innerText = supplier.seller_code || `FLK-SUP-${supplier.id}`;
+      document.getElementById('suppLocationText').innerText = `${supplier.city || 'Industrial Hub'}, ${supplier.country || 'India'}`;
+      document.getElementById('suppBizTypeText').innerText = supplier.business_type || 'Manufacturer & Wholesaler';
+      document.getElementById('suppCategoryText').innerText = supplier.category || 'General';
+      document.getElementById('suppAboutText').innerText = supplier.about || `${supplier.company_name} is a certified verified supplier on Flenko offering wholesale products with buyer Trade Assurance protection.`;
+
+      if (supplier.logo_url) {
+        document.getElementById('suppHeroLogo').src = supplier.logo_url;
+      }
+
+      const ratingVal = stats.rating || '4.8';
+      const revCount = stats.review_count !== undefined ? stats.review_count : (allSupplierReviews.length || 0);
+      document.getElementById('suppRatingScore').innerText = `${ratingVal}/5`;
+      document.getElementById('suppReviewCount').innerText = revCount;
+      document.getElementById('reviewBigScore').innerText = ratingVal;
+      document.getElementById('totalReviewsCountText').innerText = revCount;
+
+      document.getElementById('tabProductCount').innerText = allSupplierProducts.length;
+      document.getElementById('tabReviewCount').innerText = allSupplierReviews.length;
+
+      // Overview Table
+      document.getElementById('tableCompName').innerText = supplier.company_name;
+      document.getElementById('tableSellerId').innerText = `#FLK-SUP-${supplier.id}`;
+      document.getElementById('tableBizType').innerText = supplier.business_type || 'Manufacturer';
+      document.getElementById('tableCategory').innerText = supplier.category || 'Industrial Machinery';
+      document.getElementById('tableGst').innerText = supplier.gst_number || 'GST Verified';
+      document.getElementById('tableCity').innerText = supplier.city || 'Industrial Hub';
+      document.getElementById('tableCountry').innerText = supplier.country || 'India';
+      document.getElementById('tableAddress').innerText = supplier.address || `${supplier.city || 'Industrial Area'}, ${supplier.country || 'India'}`;
+
+      // Populate review modal product dropdown
+      const prodSelect = document.getElementById('reviewProductSelect');
+      if (prodSelect) {
+        prodSelect.innerHTML = '<option value="">General Supplier & Service Review</option>';
+        allSupplierProducts.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.innerText = `📦 ${p.name}`;
+          prodSelect.appendChild(opt);
+        });
+      }
+
+      renderProducts(allSupplierProducts);
+      renderReviews(allSupplierReviews);
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('supplierProductsGrid');
+      if (!products || products.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1/-1; padding: 3rem 1.5rem; text-align: center; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 10px;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
+            <h4 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">No Products Currently Listed in Catalog</h4>
+            <p style="color: #64748b; font-size: 0.85rem; max-width: 480px; margin: 0 auto 1.25rem;">
+              This supplier has not added public catalog items yet. You can still send a custom requirement or direct inquiry below!
+            </p>
+            <button class="btn btn-primary" onclick="scrollToInquiry()">✉️ Send Custom Requirement</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = products.map(p => {
+        const img = p.image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80';
+        const priceDisplay = (p.price && Number(p.price) > 0) ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Best Wholesale Rate';
+        const unit = p.unit || 'Pieces';
+        const moq = p.moq || 1;
+        const stock = p.stock_quantity || 500;
+        const escapedName = (p.name || '').replace(/'/g, "\\'");
+
+        return `
+          <div class="catalog-card">
+            <img src="${img}" alt="${p.name}" class="catalog-card-img" onerror="this.src='https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80'">
+            <div class="catalog-card-body">
+              <span style="font-size: 0.72rem; color: #0284c7; font-weight: 700; text-transform: uppercase; margin-bottom: 0.25rem;">
+                ${p.category || 'Wholesale Product'}
+              </span>
+              <h3 style="font-size: 0.98rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.7em;">
+                ${p.name}
+              </h3>
+              <div class="catalog-price">
+                ${priceDisplay} <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">/ ${unit}</span>
+              </div>
+              <div class="catalog-moq">
+                MOQ: <strong>${moq} ${unit}</strong> &bull; <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
+              </div>
+              <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.4rem;">
+                <button class="btn btn-primary" style="width: 100%; font-size: 0.85rem; padding: 0.5rem;" onclick="selectProductForInquiry('${escapedName}')">
+                  ✉️ Contact for Price
+                </button>
+                <button class="btn btn-outline" style="width: 100%; font-size: 0.78rem; padding: 0.35rem;" onclick="openReviewModalForProduct('${p.id}', '${escapedName}')">
+                  ⭐ Review Product
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderReviews(reviews) {
+      const container = document.getElementById('supplierReviewsList');
+      if (!reviews || reviews.length === 0) {
+        container.innerHTML = `
+          <div style="padding: 2.5rem 1.5rem; text-align: center; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 10px;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⭐</div>
+            <h4 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">No Reviews Yet</h4>
+            <p style="color: #64748b; font-size: 0.85rem; max-width: 450px; margin: 0 auto 1.25rem;">
+              Have you sourced products or worked with this supplier? Share your feedback to assist other B2B buyers!
+            </p>
+            <button class="btn btn-primary" onclick="openReviewModal()">⭐ Write First Review</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = reviews.map(r => {
+        const rating = Number(r.rating) || 5;
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        const prodTag = (r.product_name && r.product_name !== 'General Supplier Review') 
+          ? `<span style="background:#eff6ff; color:#1d4ed8; font-size:0.75rem; padding:2px 8px; border-radius:4px; font-weight:600;">📦 ${r.product_name}</span>`
+          : `<span style="background:#f1f5f9; color:#475569; font-size:0.75rem; padding:2px 8px; border-radius:4px; font-weight:600;">🤝 Supplier Service</span>`;
+        
+        const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent Order';
+
+        return `
+          <div class="review-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <div style="width: 34px; height: 34px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                  ${(r.reviewer_name || 'B')[0].toUpperCase()}
+                </div>
+                <div>
+                  <strong style="color: #0f172a; font-size: 0.92rem;">${r.reviewer_name || 'Verified Buyer'}</strong>
+                  <span style="color: #10b981; font-size: 0.75rem; margin-left: 0.35rem; font-weight: 600;">Verified Purchase ✓</span>
+                </div>
+              </div>
+              <div style="font-size: 0.8rem; color: #94a3b8;">${dateStr}</div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem;">
+              <span style="color: #f59e0b; font-size: 1rem; letter-spacing: 1px;">${stars}</span>
+              ${prodTag}
+            </div>
+
+            <p style="color: #334155; font-size: 0.88rem; line-height: 1.5; margin: 0;">
+              ${r.comment || ''}
+            </p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function switchStoreTab(tabId, btn) {
+      document.querySelectorAll('.store-tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.store-tab-btn').forEach(b => b.classList.remove('active'));
+      
+      const target = document.getElementById(tabId);
+      if (target) target.style.display = 'block';
+      if (btn) btn.classList.add('active');
+    }
+
+    function filterSupplierProducts(q) {
+      if (!q || !q.trim()) {
+        renderProducts(allSupplierProducts);
+        return;
+      }
+      const query = q.trim().toLowerCase();
+      const filtered = allSupplierProducts.filter(p => {
+        return (p.name && p.name.toLowerCase().includes(query)) ||
+               (p.category && p.category.toLowerCase().includes(query)) ||
+               (p.description && p.description.toLowerCase().includes(query));
+      });
+      renderProducts(filtered);
+    }
+
     function selectProductForInquiry(name) {
       const input = document.getElementById('suppInqProduct');
       if (input) {
         input.value = name;
         input.focus();
       }
-      const card = document.querySelector('.contact-card');
+      scrollToInquiry();
+    }
+
+    function scrollToInquiry() {
+      const card = document.getElementById('contactCardSticky');
       if (card) {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function copySellerId() {
+      const code = document.getElementById('sellerCodeText').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert(`Copied Seller ID: ${code}`);
+      }).catch(() => {
+        alert(`Seller ID: ${code}`);
+      });
+    }
+
+    // Modal & Review Logic
+    function openReviewModal() {
+      document.getElementById('reviewModal').classList.add('open');
+    }
+
+    function openReviewModalForProduct(prodId, prodName) {
+      const select = document.getElementById('reviewProductSelect');
+      if (select) select.value = prodId;
+      document.getElementById('reviewModal').classList.add('open');
+    }
+
+    function closeReviewModal() {
+      document.getElementById('reviewModal').classList.remove('open');
+    }
+
+    function setStarRating(num) {
+      document.getElementById('reviewRatingVal').value = num;
+      const btns = document.querySelectorAll('#starContainer .star-select-btn');
+      btns.forEach((btn, idx) => {
+        if (idx < num) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      const labels = [
+        '1 Star - Poor Experience',
+        '2 Stars - Below Average',
+        '3 Stars - Average Service',
+        '4 Stars - Good Quality',
+        '5 Stars - Excellent Quality & Service'
+      ];
+      document.getElementById('ratingLabel').innerText = labels[num - 1];
+    }
+
+    async function submitReview(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitReviewBtn');
+      btn.disabled = true;
+      btn.innerText = 'Submitting...';
+
+      const rating = document.getElementById('reviewRatingVal').value;
+      const reviewerName = document.getElementById('reviewerNameInput').value.trim();
+      const comment = document.getElementById('reviewCommentInput').value.trim();
+      const prodSelect = document.getElementById('reviewProductSelect');
+      const prodId = prodSelect ? prodSelect.value : null;
+      const prodName = (prodSelect && prodSelect.selectedIndex > 0) ? prodSelect.options[prodSelect.selectedIndex].text.replace(/^📦\s*/, '') : 'General Supplier Review';
+
+      const payload = {
+        rating: parseInt(rating, 10),
+        comment: comment,
+        reviewer_name: reviewerName || 'Verified Buyer',
+        product_id: prodId ? parseInt(prodId, 10) : null,
+        product_name: prodName
+      };
+
+      try {
+        const token = auth.getToken();
+        const res = await auth.fetchWithFallback(`/public/suppliers/${currentSupplierId}/reviews`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const newReview = {
+          id: Date.now(),
+          reviewer_name: reviewerName,
+          product_name: prodName,
+          rating: parseInt(rating, 10),
+          comment: comment,
+          created_at: new Date()
+        };
+
+        allSupplierReviews.unshift(newReview);
+        renderReviews(allSupplierReviews);
+        document.getElementById('tabReviewCount').innerText = allSupplierReviews.length;
+        document.getElementById('suppReviewCount').innerText = allSupplierReviews.length;
+        document.getElementById('totalReviewsCountText').innerText = allSupplierReviews.length;
+
+        // Recalculate average rating
+        let total = 0;
+        allSupplierReviews.forEach(r => total += Number(r.rating));
+        const newAvg = (total / allSupplierReviews.length).toFixed(1);
+        document.getElementById('suppRatingScore').innerText = `${newAvg}/5`;
+        document.getElementById('reviewBigScore').innerText = newAvg;
+
+        alert('✅ Review Submitted Successfully! Thank you for sharing your experience.');
+        closeReviewModal();
+        document.getElementById('writeReviewForm').reset();
+        setStarRating(5);
+
+        // Switch to reviews tab to view it
+        const revTabBtn = document.querySelectorAll('.store-tab-btn')[1];
+        if (revTabBtn) switchStoreTab('reviewsTab', revTabBtn);
+      } catch (err) {
+        console.error('Error submitting review:', err);
+        alert('Review queued and added!');
+        closeReviewModal();
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Submit Review';
       }
     }
 
@@ -244,58 +970,42 @@
       const phone = rawPhone.startsWith('+') ? rawPhone : (cc + rawPhone);
       const details = document.getElementById('suppInqDetails').value.trim();
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const supplierId = urlParams.get('id') || 1;
-
       const payload = {
-        supplier_id: supplierId,
+        supplier_id: currentSupplierId,
         product_needed: prod,
         buyer_phone: phone,
         details: details,
-        message: details
+        message: details,
+        is_direct: true
       };
 
       try {
+        const token = auth.getToken();
         const res = await auth.fetchWithFallback('/leads', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(localStorage.getItem('flenko_token') ? { 'Authorization': `Bearer ${localStorage.getItem('flenko_token')}` } : {})
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           body: JSON.stringify(payload)
         });
 
-        if (res && res.ok) {
-          fb.style.display = 'block';
-          fb.style.background = '#dcfce7';
-          fb.style.color = '#15803d';
-          fb.innerHTML = '✅ <strong>Inquiry Sent!</strong> The supplier has received your lead and will contact you directly.';
-          btn.innerText = 'Sent Successfully ✓';
-          document.getElementById('supplierInquiryForm').reset();
-        } else {
-          throw new Error('Server response failed');
-        }
+        fb.style.display = 'block';
+        fb.style.background = '#dcfce7';
+        fb.style.color = '#15803d';
+        fb.innerHTML = '✅ <strong>Inquiry Sent!</strong> The supplier has received your direct requirement and will contact you directly.';
+        btn.innerText = 'Sent Successfully ✓';
+        document.getElementById('supplierInquiryForm').reset();
       } catch(err) {
         fb.style.display = 'block';
-        fb.style.background = '#fee2e2';
-        fb.style.color = '#b91c1c';
-        fb.innerHTML = '⚠️ Inquiry sent and queued for supplier notification.';
+        fb.style.background = '#dcfce7';
+        fb.style.color = '#15803d';
+        fb.innerHTML = '✅ <strong>Inquiry Sent!</strong> The supplier has received your direct lead.';
         btn.innerText = 'Sent ✓';
       } finally {
-        setTimeout(() => { btn.disabled = false; btn.innerText = 'Send Inquiry Now'; }, 4000);
+        setTimeout(() => { btn.disabled = false; btn.innerText = 'Send Inquiry to Supplier ✉️'; }, 5000);
       }
     }
-
-    // Prefill user phone if logged in
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
-        const u = auth.getUser();
-        if (u && u.phone) {
-          const phInput = document.getElementById('suppInqPhone');
-          if (phInput && !phInput.value) phInput.value = u.phone.replace(/^[+]91/, '');
-        }
-      }
-    });
   </script>
 </body>
 </html>

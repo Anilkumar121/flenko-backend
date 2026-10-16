@@ -34,6 +34,7 @@ let mockDB = {
   password_resets: [],
   lead_payments: [],
   subscription_payments: [],
+  reviews: [],
   idCounter: 2
 };
 
@@ -49,9 +50,36 @@ if (fs.existsSync(mockDbPath)) {
     mockDB.users = mockDB.users || [];
     mockDB.lead_payments = mockDB.lead_payments || [];
     mockDB.subscription_payments = mockDB.subscription_payments || [];
+    mockDB.reviews = mockDB.reviews || [];
   } catch (err) {
     console.error('Error reading db.json:', err);
   }
+}
+
+// Seed initial supplier reviews if empty
+if (!mockDB.reviews || mockDB.reviews.length === 0) {
+  mockDB.reviews = [
+    {
+      id: 1,
+      supplier_id: 1,
+      product_id: 101,
+      product_name: 'Heavy-Duty Corrugated Boxes',
+      reviewer_name: 'Rajesh K. (Procurement Head)',
+      rating: 5,
+      comment: 'Top quality material and on-time bulk delivery. Highly recommend for large packaging orders.',
+      created_at: new Date(Date.now() - 3 * 86400000)
+    },
+    {
+      id: 2,
+      supplier_id: 1,
+      product_id: null,
+      product_name: 'Bulk Packaging Supply',
+      reviewer_name: 'Sunil Mehta (Operations Director)',
+      rating: 5,
+      comment: 'Very professional response to our RFQ. Excellent prices and custom printing options.',
+      created_at: new Date(Date.now() - 7 * 86400000)
+    }
+  ];
 }
 
 // Ensure Master Admin exists
@@ -200,6 +228,17 @@ async function ensureTables() {
       utr VARCHAR(64) NOT NULL UNIQUE,
       screenshot_url TEXT,
       status VARCHAR(20) DEFAULT 'verified',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS about TEXT`,
+    `CREATE TABLE IF NOT EXISTS reviews (
+      id SERIAL PRIMARY KEY,
+      supplier_id INTEGER NOT NULL,
+      product_id INTEGER,
+      product_name VARCHAR(255),
+      reviewer_name VARCHAR(100) DEFAULT 'Verified Buyer',
+      rating INTEGER DEFAULT 5,
+      comment TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`
   ];
@@ -382,6 +421,16 @@ module.exports = {
       saveMockDB();
       return { rows: [] };
     }
+    if (text.includes('UPDATE users SET') && text.includes('WHERE id =')) {
+      const targetUserId = params[params.length - 1];
+      const user = (mockDB.users || []).find(u => u.id == targetUserId);
+      if (user) {
+        if (params[0]) user.name = params[0];
+        if (params[1]) user.city = params[1];
+      }
+      saveMockDB();
+      return { rows: [] };
+    }
     if (text.includes('UPDATE users SET')) {
       const targetPhone = (params[3] || '').toString().replace(/[^0-9]/g, '').slice(-10);
       const user = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
@@ -399,8 +448,9 @@ module.exports = {
       const row = mockDB.users.find(u => u.id == params[0]);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('FROM businesses WHERE user_id')) {
-      const row = mockDB.businesses.find(b => b.user_id == params[0]);
+    if (text.includes('FROM businesses WHERE user_id') || text.includes('FROM businesses WHERE id')) {
+      const targetId = params[0];
+      const row = mockDB.businesses.find(b => b.user_id == targetId || b.id == targetId);
       return { rows: row ? [row] : [] };
     }
     if (text.includes('FROM businesses') && text.includes('SELECT')) {
@@ -411,26 +461,86 @@ module.exports = {
       return { rows: rows.reverse() };
     }
     if (text.includes('INSERT INTO businesses')) {
-      mockDB.businesses.push({ id: mockDB.idCounter++, user_id: params[0], company_name: params[1], gst_number: params[2], business_type: params[3], address: params[4], city: params[5], category: params[6], logo_url: params[7] || null });
+      const newBiz = {
+        id: mockDB.idCounter++,
+        user_id: params[0],
+        company_name: params[1],
+        gst_number: params[2],
+        business_type: params[3],
+        address: params[4],
+        city: params[5],
+        category: params[6],
+        logo_url: params[7] || null,
+        country: params[8] || 'India',
+        about: params[9] || '',
+        is_verified: true,
+        created_at: new Date()
+      };
+      mockDB.businesses.push(newBiz);
       saveMockDB();
-      return { rows: [] };
+      return { rows: [newBiz] };
     }
     if (text.includes('UPDATE businesses SET')) {
       const targetUserId = params[params.length - 1];
-      const biz = mockDB.businesses.find(b => b.user_id == targetUserId);
+      let biz = mockDB.businesses.find(b => b.user_id == targetUserId || b.id == targetUserId);
       if (biz) { 
-        biz.company_name = params[0]; 
-        biz.gst_number = params[1]; 
-        biz.business_type = params[2]; 
-        biz.address = params[3]; 
-        biz.city = params[4]; 
-        biz.category = params[5]; 
-        if (params.length >= 8) {
-          biz.logo_url = params[6] || biz.logo_url;
+        biz.company_name = params[0] || biz.company_name; 
+        biz.gst_number = params[1] !== undefined ? params[1] : biz.gst_number; 
+        biz.business_type = params[2] || biz.business_type; 
+        biz.address = params[3] !== undefined ? params[3] : biz.address; 
+        biz.city = params[4] || biz.city; 
+        biz.category = params[5] || biz.category; 
+        biz.logo_url = params[6] || biz.logo_url;
+        if (params.length >= 9) {
+          biz.country = params[7] || biz.country || 'India';
+          biz.about = params[8] !== undefined ? params[8] : biz.about;
         }
+      } else {
+        biz = {
+          id: mockDB.idCounter++,
+          user_id: targetUserId,
+          company_name: params[0] || 'Supplier Company',
+          gst_number: params[1] || '',
+          business_type: params[2] || 'Manufacturer',
+          address: params[3] || '',
+          city: params[4] || 'New Delhi',
+          category: params[5] || 'General',
+          logo_url: params[6] || null,
+          country: params[7] || 'India',
+          about: params[8] || '',
+          is_verified: true,
+          created_at: new Date()
+        };
+        mockDB.businesses.push(biz);
       }
       saveMockDB();
-      return { rows: [] };
+      return { rows: [biz] };
+    }
+    if (text.includes('INSERT INTO reviews')) {
+      mockDB.reviews = mockDB.reviews || [];
+      const newReview = {
+        id: mockDB.idCounter++,
+        supplier_id: Number(params[0]),
+        product_id: params[1] ? Number(params[1]) : null,
+        product_name: params[2] || 'General Supplier Review',
+        reviewer_name: params[3] || 'Verified Buyer',
+        rating: Number(params[4]) || 5,
+        comment: params[5] || '',
+        created_at: new Date()
+      };
+      mockDB.reviews.push(newReview);
+      saveMockDB();
+      return { rows: [newReview] };
+    }
+    if (text.includes('FROM reviews') && text.includes('WHERE supplier_id')) {
+      mockDB.reviews = mockDB.reviews || [];
+      const targetSuppId = Number(params[0]);
+      const rows = mockDB.reviews.filter(r => Number(r.supplier_id) === targetSuppId);
+      return { rows: rows.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
+    }
+    if (text.includes('FROM reviews')) {
+      mockDB.reviews = mockDB.reviews || [];
+      return { rows: mockDB.reviews.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
     }
     if (text.includes('FROM leads WHERE') && (text.includes('supplier_id') || text.includes('supplier_id IS NULL') || text.includes('is_direct'))) {
       const targetSuppId = params[0];
