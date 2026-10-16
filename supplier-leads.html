@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lead Manager (IndiaMART Style CRM) - Flenko Seller Panel</title>
+  <title>Lead Manager & CRM - Flenko Seller Panel</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
@@ -31,7 +31,7 @@
       background: #eff6ff; color: var(--color-blue-primary); border-left-color: var(--color-blue-primary); font-weight: 700;
     }
     
-    /* IndiaMART-Style CRM Layout */
+    /* Flenko B2B Lead Manager CRM Layout */
     .crm-wrapper {
       display: flex;
       flex-direction: column;
@@ -149,7 +149,7 @@
       overflow-y: auto;
     }
 
-    /* IndiaMART Info Cards */
+    /* Lead Info Cards */
     .im-info-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
@@ -257,11 +257,166 @@
       color: #0f172a;
     }
 
+    /* Mobile CRM Specifics */
+    .mobile-crm-back-btn {
+      display: none;
+    }
+    .seller-mobile-subnav {
+      display: none;
+    }
+
     @media (max-width: 900px) {
-      .im-panel-layout { grid-template-columns: 1fr; height: auto; }
-      .im-sidebar { display: none; }
-      .crm-container { grid-template-columns: 1fr; height: auto; }
-      .crm-list { max-height: 350px; }
+      .im-panel-layout {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        padding: 0.5rem 0.5rem 2rem !important;
+      }
+      .im-sidebar {
+        display: none !important;
+      }
+      .seller-mobile-subnav {
+        display: flex !important;
+        gap: 0.4rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem 0.75rem 0.75rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        scrollbar-width: none;
+      }
+      .seller-mobile-subnav::-webkit-scrollbar {
+        display: none;
+      }
+      .seller-mobile-subnav a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+      .seller-mobile-subnav a.active {
+        background: #0F4C9B;
+        color: #ffffff;
+        border-color: #0F4C9B;
+        box-shadow: 0 2px 6px rgba(15, 76, 155, 0.25);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .crm-wrapper {
+        padding: 0 !important;
+      }
+      .crm-top-bar {
+        padding: 0.6rem 0.5rem !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+      }
+      .lead-tabs {
+        width: 100% !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        display: flex !important;
+        gap: 0.4rem !important;
+        padding-bottom: 4px !important;
+        scrollbar-width: none !important;
+      }
+      .lead-tabs::-webkit-scrollbar {
+        display: none !important;
+      }
+      .lead-tab-btn {
+        flex-shrink: 0 !important;
+        padding: 0.45rem 0.85rem !important;
+        font-size: 0.78rem !important;
+      }
+
+      .crm-container {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        min-height: 70vh !important;
+        border-radius: 8px !important;
+      }
+
+      /* Native Mobile Screen Switching: List vs Detail */
+      .crm-list {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-height: none !important;
+        border-right: none !important;
+        min-height: 400px !important;
+      }
+      .crm-details {
+        display: none !important;
+        width: 100% !important;
+      }
+
+      /* Detail View Active */
+      .crm-container.mobile-detail-open .crm-list {
+        display: none !important;
+      }
+      .crm-container.mobile-detail-open .crm-details {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        min-height: 80vh !important;
+      }
+
+      .mobile-crm-back-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        background: #eff6ff !important;
+        border: 1.5px solid #bfdbfe !important;
+        color: #0F4C9B !important;
+        font-weight: 700 !important;
+        font-size: 0.85rem !important;
+        padding: 0.45rem 1rem !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        margin-bottom: 0.75rem !important;
+        width: fit-content !important;
+      }
+      .mobile-crm-back-btn:active {
+        background: #dbeafe !important;
+      }
+
+      .crm-details-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+        padding: 0.85rem 1rem !important;
+      }
+      .crm-actions-bar {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+      }
+      .crm-actions-bar .btn-whatsapp,
+      .crm-actions-bar .btn-call,
+      .crm-actions-bar .btn-quote,
+      .crm-actions-bar select {
+        width: 100% !important;
+        justify-content: center !important;
+        text-align: center !important;
+      }
+
+      .im-specs-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.6rem !important;
+      }
     }
   </style>
 </head>
@@ -273,7 +428,7 @@
           <img src="assets/images/logo.png" alt="Flenko" style="height: 48px; width: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast;">
         </a>
         <span style="background: #eff6ff; color: #0F4C9B; font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; border: 1px solid #bfdbfe;">
-          SELLER PANEL &bull; INDIA-MART CRM
+          SELLER PANEL &bull; FLENKO CRM
         </span>
       </div>
       <div style="display: flex; align-items: center; gap: 1rem;">
@@ -282,6 +437,15 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Seller Sub Navigation Bar -->
+  <div class="seller-mobile-subnav">
+    <a href="supplier-dashboard.html">📊 Dashboard</a>
+    <a href="supplier-leads.html" class="active">✉️ Leads CRM</a>
+    <a href="supplier-products.html">📋 Products</a>
+    <a href="supplier-quotes.html">🧾 RFQs</a>
+    <a href="supplier-profile.html">💼 Profile</a>
+  </div>
 
   <main class="im-panel-layout">
     <aside class="im-sidebar">
@@ -351,7 +515,7 @@
     </div>
   </main>
 
-  <!-- IndiaMART-style Quotation Modal -->
+  <!-- Official Quotation Modal -->
   <div id="leadQuoteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); z-index: 9999; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box;">
     <div style="background: #ffffff; width: 100%; max-width: 480px; border-radius: 10px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
       <div style="padding: 1rem 1.25rem; background: #0F4C9B; color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
@@ -558,7 +722,7 @@
         applyFiltersAndRender();
 
         if (allLeads.length > 0) {
-          openLead(allLeads[0].id);
+          openLead(allLeads[0].id, false);
         }
       } catch (e) {
         document.getElementById('leadList').innerHTML = `<div style="padding: 1.5rem; text-align: center; color: red;">Error loading leads: ${e.message}</div>`;
@@ -653,7 +817,7 @@
         }
 
         return `
-          <div class="lead-card ${isSelected ? 'active' : ''}" onclick="openLead(${lead.id})">
+          <div class="lead-card ${isSelected ? 'active' : ''}" onclick="openLead(${lead.id}, true)">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
               <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">⏰ ${dateStr}</span>
               ${badgeHtml}
@@ -694,9 +858,23 @@
       return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
     }
 
-    function openLead(id) {
+    function closeMobileDetails() {
+      const container = document.querySelector('.crm-container');
+      if (container) {
+        container.classList.remove('mobile-detail-open');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function openLead(id, fromUserClick = false) {
       selectedLeadId = id;
       renderLeadList();
+
+      const container = document.querySelector('.crm-container');
+      if (container && fromUserClick && window.innerWidth <= 768) {
+        container.classList.add('mobile-detail-open');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
 
       const lead = allLeads.find(l => l.id === id);
       if (!lead) return;
@@ -859,8 +1037,11 @@
 
       detailsEl.innerHTML = `
         <div class="crm-details-header">
+          <button type="button" class="mobile-crm-back-btn" onclick="closeMobileDetails()">
+            ← Back to All Leads
+          </button>
           <div>
-            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; flex-wrap:wrap;">
               ${badgeTop}
               <span style="font-size:0.8rem; color:#64748b;">Received: ${new Date(lead.created_at || Date.now()).toLocaleString('en-IN')}</span>
             </div>
@@ -870,7 +1051,7 @@
           </div>
 
           <!-- Quick Action Bar -->
-          <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+          <div class="crm-actions-bar" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
             ${topActionsHtml}
             <select class="form-control" style="width: 135px; font-weight: 700; font-size: 0.8rem; border-color: #0F4C9B;" onchange="updateLeadStatus(${lead.id}, this.value)">
               <option value="New" ${lead.status==='New'?'selected':''}>🔵 New Lead</option>
@@ -883,7 +1064,7 @@
         </div>
 
         <div class="crm-content-area">
-          <!-- Requirement Overview Card (IndiaMART Style) -->
+          <!-- Requirement Overview Card -->
           <div class="im-info-card">
             <div class="im-card-title">📦 Order Requirement Details</div>
             <div class="im-specs-grid">

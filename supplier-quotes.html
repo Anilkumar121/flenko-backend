@@ -20,6 +20,61 @@
     .rfq-list { padding: 1.5rem; }
     .rfq-item { border: 1px solid var(--color-border); padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; }
     .rfq-title { font-size: 1.125rem; color: var(--color-blue-primary); font-weight: 600; margin-bottom: 0.5rem; }
+
+    .seller-mobile-subnav {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .im-panel-layout {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+        padding: 0.75rem 0.75rem 2.5rem !important;
+      }
+      .im-sidebar {
+        display: none !important;
+      }
+      .seller-mobile-subnav {
+        display: flex !important;
+        gap: 0.4rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem 0.75rem 0.75rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        scrollbar-width: none;
+      }
+      .seller-mobile-subnav::-webkit-scrollbar {
+        display: none;
+      }
+      .seller-mobile-subnav a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+      .seller-mobile-subnav a.active {
+        background: #0F4C9B;
+        color: #ffffff;
+        border-color: #0F4C9B;
+        box-shadow: 0 2px 6px rgba(15, 76, 155, 0.25);
+      }
+      .rfq-list {
+        padding: 0.75rem !important;
+      }
+      .rfq-item {
+        padding: 1rem !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -31,6 +86,15 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Seller Sub Navigation Bar -->
+  <div class="seller-mobile-subnav">
+    <a href="supplier-dashboard.html">📊 Dashboard</a>
+    <a href="supplier-leads.html">✉️ Leads CRM</a>
+    <a href="supplier-products.html">📋 Products</a>
+    <a href="supplier-quotes.html" class="active">🧾 RFQs</a>
+    <a href="supplier-profile.html">💼 Profile</a>
+  </div>
 
   <main class="im-panel-layout">
     <aside class="im-sidebar">

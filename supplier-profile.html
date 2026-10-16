@@ -39,6 +39,77 @@
       font-weight: 700; font-size: 1.125rem; color: var(--color-navy-deep);
     }
     .panel-card-body { padding: 1.5rem; }
+
+    .seller-mobile-subnav {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .im-panel-layout {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+        padding: 0.75rem 0.75rem 2.5rem !important;
+      }
+      .im-sidebar {
+        display: none !important;
+      }
+      .seller-mobile-subnav {
+        display: flex !important;
+        gap: 0.4rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem 0.75rem 0.75rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        scrollbar-width: none;
+      }
+      .seller-mobile-subnav::-webkit-scrollbar {
+        display: none;
+      }
+      .seller-mobile-subnav a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+      .seller-mobile-subnav a.active {
+        background: #0F4C9B;
+        color: #ffffff;
+        border-color: #0F4C9B;
+        box-shadow: 0 2px 6px rgba(15, 76, 155, 0.25);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .im-form-row {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+      }
+      .panel-card-body {
+        padding: 1rem 0.75rem !important;
+      }
+      .logo-upload-box {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+      }
+      .im-submit-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      .im-submit-row button {
+        width: 100% !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -50,6 +121,15 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Seller Sub Navigation Bar -->
+  <div class="seller-mobile-subnav">
+    <a href="supplier-dashboard.html">📊 Dashboard</a>
+    <a href="supplier-leads.html">✉️ Leads CRM</a>
+    <a href="supplier-products.html">📋 Products</a>
+    <a href="supplier-quotes.html">🧾 RFQs</a>
+    <a href="supplier-profile.html" class="active">💼 Profile</a>
+  </div>
 
   <main class="im-panel-layout">
     <aside class="im-sidebar">
@@ -88,7 +168,7 @@
         <div class="panel-card-body">
           <form id="profileForm">
             <!-- Company Logo Upload -->
-            <div class="form-group" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px dashed #cbd5e1;">
+            <div class="form-group logo-upload-box" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px dashed #cbd5e1;">
               <div style="position: relative; width: 85px; height: 85px; border-radius: 50%; border: 2px solid #028867; overflow: hidden; background: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.06);">
                 <img id="logoPreview" src="assets/images/logo.png" alt="Company Logo" style="width: 100%; height: 100%; object-fit: contain;">
               </div>
@@ -104,7 +184,7 @@
               <input type="text" id="companyName" class="form-control" required placeholder="e.g. Apex Packaging Solutions">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="im-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               <div class="form-group">
                 <label class="form-label">Business Type *</label>
                 <select id="bizType" class="form-control">
@@ -141,7 +221,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="im-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               <div class="form-group">
                 <label class="form-label">City / Industrial Hub *</label>
                 <input type="text" id="bizCity" class="form-control" required placeholder="e.g. Mumbai, Surat, Delhi, Ahmedabad">
@@ -152,7 +232,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="im-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               <div class="form-group">
                 <label class="form-label">GST / Tax Identification Number</label>
                 <input type="text" id="gstNumber" class="form-control" placeholder="e.g. 27AADCA1234Z1 (Optional)">
@@ -173,7 +253,7 @@
               <textarea id="address" class="form-control" rows="2" placeholder="Shop/Plot No, Industrial Estate, Street, Landmark..."></textarea>
             </div>
 
-            <div style="display:flex; align-items:center; gap:1rem;">
+            <div class="im-submit-row" style="display:flex; align-items:center; gap:1rem;">
               <button type="submit" id="saveProfileBtn" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 0.95rem; font-weight:700;">Save Profile Details</button>
               <span id="saveResultText" style="font-size:0.85rem; font-weight:600;"></span>
             </div>

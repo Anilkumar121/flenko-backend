@@ -101,6 +101,80 @@
     
     .progress-bar-bg { background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 0.5rem; }
     .progress-bar-fill { background: var(--color-teal); height: 100%; width: 40%; }
+
+    .seller-mobile-subnav {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .im-panel-layout {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+        padding: 0.75rem 0.75rem 2.5rem !important;
+      }
+      .im-sidebar {
+        display: none !important;
+      }
+      .seller-mobile-subnav {
+        display: flex !important;
+        gap: 0.4rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem 0.75rem 0.75rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        scrollbar-width: none;
+      }
+      .seller-mobile-subnav::-webkit-scrollbar {
+        display: none;
+      }
+      .seller-mobile-subnav a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+      .seller-mobile-subnav a.active {
+        background: #0F4C9B;
+        color: #ffffff;
+        border-color: #0F4C9B;
+        box-shadow: 0 2px 6px rgba(15, 76, 155, 0.25);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .im-stat-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.5rem !important;
+      }
+      .im-stat-box {
+        padding: 0.65rem 0.35rem !important;
+      }
+      .im-stat-box h2 {
+        font-size: 1.35rem !important;
+      }
+      .im-stat-box p {
+        font-size: 0.68rem !important;
+      }
+      .lead-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+      }
+      .lead-item .btn {
+        width: 100% !important;
+        text-align: center !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -114,6 +188,16 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Seller Sub Navigation Bar -->
+  <div class="seller-mobile-subnav">
+    <a href="supplier-dashboard.html" class="active">📊 Dashboard</a>
+    <a href="supplier-leads.html">✉️ Leads CRM</a>
+    <a href="supplier-products.html">📋 Products</a>
+    <a href="supplier-quotes.html">🧾 RFQs</a>
+    <a href="supplier-profile.html">💼 Profile</a>
+    <a href="site.html" id="mobileSubnavWebsiteLink" target="_blank" style="display:none; color: #0F4C9B; font-weight: 700;">🌐 My Store ↗</a>
+  </div>
 
   <main class="im-panel-layout">
     <aside class="im-sidebar">
@@ -410,11 +494,18 @@
             sideLink.href = previewUrl;
             sideLink.style.display = 'block';
           }
+          const mobLink = document.getElementById('mobileSubnavWebsiteLink');
+          if (mobLink) {
+            mobLink.href = previewUrl;
+            mobLink.style.display = 'inline-flex';
+          }
         } else {
           const inact = document.getElementById('websiteInactiveView');
           const act = document.getElementById('websiteActiveView');
           if (act) act.style.display = 'none';
           if (inact) inact.style.display = 'flex';
+          const mobLink = document.getElementById('mobileSubnavWebsiteLink');
+          if (mobLink) mobLink.style.display = 'none';
         }
       }
 

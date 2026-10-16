@@ -630,16 +630,40 @@ html, body {
    10. MOBILE CRM, SUPPLIER DIRECTORY, PRICING & CHECKOUT
    ========================================================================== */
 @media (max-width: 768px) {
+  .im-panel-layout {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    padding: 0.75rem 0.5rem 3rem !important;
+  }
+
+  .im-sidebar {
+    display: none !important;
+  }
+
   .crm-container {
+    display: block !important;
     grid-template-columns: 1fr !important;
     height: auto !important;
     min-height: 520px !important;
   }
 
   .crm-list {
-    max-height: 280px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-height: none !important;
     border-right: none !important;
-    border-bottom: 2px solid #e2e8f0 !important;
+  }
+
+  .crm-container.mobile-detail-open .crm-list {
+    display: none !important;
+  }
+
+  .crm-container.mobile-detail-open .crm-details {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-height: 80vh !important;
   }
 
   .crm-chat-area {

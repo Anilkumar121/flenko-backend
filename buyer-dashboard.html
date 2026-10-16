@@ -27,8 +27,64 @@
       max-width: 1350px;
       margin: 0 auto;
     }
+    .buyer-mobile-subnav {
+      display: none;
+    }
+
     @media (max-width: 900px) {
       .im-panel-layout { grid-template-columns: 1fr; padding: 1rem; }
+    }
+
+    @media (max-width: 768px) {
+      .im-panel-layout {
+        display: block !important;
+        padding: 0.75rem 0.5rem 3rem !important;
+      }
+      .im-sidebar {
+        display: none !important;
+      }
+      .buyer-mobile-subnav {
+        display: flex !important;
+        gap: 0.4rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem 0.75rem 0.75rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        scrollbar-width: none;
+      }
+      .buyer-mobile-subnav::-webkit-scrollbar {
+        display: none;
+      }
+      .buyer-mobile-subnav button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .buyer-mobile-subnav button.active {
+        background: #0F4C9B;
+        color: #ffffff;
+        border-color: #0F4C9B;
+        box-shadow: 0 2px 6px rgba(15, 76, 155, 0.25);
+      }
+      .panel-card {
+        padding: 1.15rem 0.85rem !important;
+        margin-bottom: 1rem !important;
+      }
+      .rfq-form-row {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+      }
     }
     .im-sidebar {
       background: var(--color-white);
@@ -116,6 +172,14 @@
     </div>
   </header>
 
+  <!-- Mobile Buyer Sub Navigation Bar -->
+  <div class="buyer-mobile-subnav">
+    <button type="button" class="active" id="mobileTabRfq" onclick="switchView('rfq');">📝 Post Requirement</button>
+    <button type="button" id="mobileTabInq" onclick="switchView('inquiries');">✉️ Inquiries</button>
+    <button type="button" onclick="window.location.href='products.html'">🔍 Products</button>
+    <button type="button" onclick="window.location.href='business-directory.html'">🏢 Suppliers</button>
+  </div>
+
   <main class="im-panel-layout">
     <aside class="im-sidebar">
       <nav class="im-menu">
@@ -143,7 +207,7 @@
             <input type="text" id="rfqProduct" class="form-control" placeholder="e.g. Website Development, 5-Ply Corrugated Boxes, Aluminum Fabrication" required>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="rfq-form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div class="form-group" style="margin-bottom:0;">
               <label class="form-label">Quantity Required <span style="color:red;">*</span></label>
               <input type="number" id="rfqQty" class="form-control" min="1" placeholder="e.g. 500" required>
@@ -244,8 +308,13 @@
     function switchView(tab) {
       activeTab = tab;
       const menuLinks = document.querySelectorAll('.im-menu a');
-      menuLinks[0].classList.toggle('active', tab === 'rfq');
-      menuLinks[1].classList.toggle('active', tab === 'inquiries');
+      if (menuLinks[0]) menuLinks[0].classList.toggle('active', tab === 'rfq');
+      if (menuLinks[1]) menuLinks[1].classList.toggle('active', tab === 'inquiries');
+
+      const mobRfq = document.getElementById('mobileTabRfq');
+      const mobInq = document.getElementById('mobileTabInq');
+      if (mobRfq) mobRfq.classList.toggle('active', tab === 'rfq');
+      if (mobInq) mobInq.classList.toggle('active', tab === 'inquiries');
 
       document.getElementById('postSection').style.display = tab === 'rfq' ? 'block' : 'none';
       document.getElementById('listSection').style.display = tab === 'rfq' ? 'block' : 'none';
