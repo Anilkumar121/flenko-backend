@@ -339,39 +339,30 @@
           
           let result = null;
           try { result = await response.json(); } catch(e) {}
-          // Client backup lead sync
-          try {
-            const isDirectLead = !!(s_id && s_id !== 0 && s_id !== '0');
-            const leadItem = {
-              id: (result && result.lead_id) || Date.now(),
-              supplier_id: s_id,
-              product_needed: `${prodName} (Qty: ${qtyVal} ${unitVal})`,
-              buyer_phone: fullPhone,
-              details: `Destination: ${cityVal} (${countryVal}).\n\nRequirements: ${detailsVal}`,
-              is_direct: isDirectLead,
-              is_paid: isDirectLead,
-              locked: !isDirectLead,
-              status: 'New',
-              created_at: new Date().toISOString()
-            };
-            const list = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
-            list.unshift(leadItem);
-            localStorage.setItem('flenko_broadcast_leads', JSON.stringify(list.slice(0, 50)));
-          } catch(e) {}
+
+          // Only use client local backup if server request failed
+          if (!result || !result.success) {
+            try {
+              const isDirectLead = !!(s_id && s_id !== 0 && s_id !== '0');
+              const leadItem = {
+                id: (result && result.lead_id) || Date.now(),
+                supplier_id: s_id,
+                product_needed: `${prodName} (Qty: ${qtyVal} ${unitVal})`,
+                buyer_phone: fullPhone,
+                details: `Destination: ${cityVal} (${countryVal}).\n\nRequirements: ${detailsVal}`,
+                is_direct: isDirectLead,
+                is_paid: isDirectLead,
+                locked: !isDirectLead,
+                status: 'New',
+                created_at: new Date().toISOString()
+              };
+              const list = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+              list.unshift(leadItem);
+              localStorage.setItem('flenko_broadcast_leads', JSON.stringify(list.slice(0, 50)));
+            } catch(e) {}
+          }
 
           if (result && result.success) {
-            if (token && typeof auth.postBuyerRfq === 'function') {
-              try {
-                await auth.postBuyerRfq({
-                  product: prodName,
-                  category: 'Wholesale Requirement',
-                  quantity: qtyVal,
-                  unit: unitVal,
-                  description: `Destination: ${cityVal} (${countryVal}). Notes: ${detailsVal}`
-                });
-              } catch(err){}
-            }
-
             msg.innerHTML = '✅ <strong>RFQ successfully broadcast!</strong> Verified suppliers will send you competitive quotes shortly.';
             msg.style.color = '#028867';
             setTimeout(() => { 

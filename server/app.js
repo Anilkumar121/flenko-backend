@@ -297,6 +297,14 @@ function classifyCategory(name = '', category = '') {
   return 'General B2B';
 }
 
+// Helper: Clean and normalize product title for deduplication
+function cleanProductTitle(str) {
+  return (str || '')
+    .replace(/\s*\(qty:.*?\)/gi, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const rawAdmin = process.env.ADMIN_PHONE || '8368074009';
 const ADMIN_PHONES = rawAdmin.split(',').map(p => p.replace(/[^0-9]/g, '').slice(-10)).filter(Boolean);
@@ -1669,9 +1677,11 @@ app.get('/api/leads', authMiddleware, async (req, res) => {
       // Never filter out direct inquiries sent to this seller! Only skip self-created RFQs
       if (!isLeadDirect && userPhone && bPhone10 && userPhone === bPhone10) continue;
       
+      const phoneOrId = bPhone10 || `id_${lead.id}`;
+      const cleanProd = cleanProductTitle(lead.product_needed) || 'product';
       const dedupeKey = isLeadDirect 
-        ? `direct_${lead.id}` 
-        : `market_${(lead.product_needed || '').trim().toLowerCase()}_${bPhone10}`;
+        ? `direct_${lead.supplier_id || userId}_${cleanProd}_${phoneOrId}` 
+        : `market_${cleanProd}_${phoneOrId}`;
 
       if (!seen.has(dedupeKey)) {
         seen.add(dedupeKey);
@@ -1961,6 +1971,39 @@ const handleLeadSubmission = async (req, res) => {
       } catch (pe) {
         console.warn('Error resolving supplier_id from product:', pe.message);
       }
+    }
+
+    // Anti-duplication check: prevent rapid resubmissions / double-clicks within 45 seconds
+    const normProd = cleanProductTitle(effectiveProduct);
+    try {
+      const recentCheck = await db.query(
+        'SELECT id, supplier_id, is_direct, product_needed, buyer_phone, created_at FROM leads ORDER BY id DESC LIMIT 20'
+      );
+      const nowMs = Date.now();
+      const existingDup = (recentCheck.rows || []).find(row => {
+        const rowPhone10 = (row.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+        if (cleanPhone10 && rowPhone10 && rowPhone10 !== cleanPhone10) return false;
+        if (cleanProductTitle(row.product_needed) !== normProd) return false;
+        const rowDirect = !!(row.is_direct === true || row.is_direct === 'true');
+        const wantDirect = !!directSupplierId;
+        if (rowDirect !== wantDirect) return false;
+        if (wantDirect && parseInt(row.supplier_id) !== directSupplierId) return false;
+        const timeDiff = nowMs - new Date(row.created_at || nowMs).getTime();
+        return timeDiff < 45000; // within 45 seconds
+      });
+
+      if (existingDup) {
+        return res.json({
+          success: true,
+          message: directSupplierId ? 'Direct product inquiry sent directly to supplier' : 'Inquiry broadcasted as Buy Lead to verified suppliers',
+          is_direct: !!directSupplierId,
+          supplier_id: directSupplierId,
+          lead_id: existingDup.id,
+          duplicate_suppressed: true
+        });
+      }
+    } catch (dupErr) {
+      console.warn('Duplication check warning:', dupErr.message);
     }
 
     // 1. DIRECT PRODUCT INQUIRY: specifically to this supplier (from product page or seller profile or seller website)
@@ -2382,11 +2425,27 @@ app.post('/api/buyer/rfqs', authMiddleware, async (req, res) => {
     // Also broadcast into leads table as a Market BuyLead (is_direct = false)
     try {
       const buyerPhone = req.user.phone || '';
-      const rfqLeadDetails = details || `Qty: ${qty || 'Bulk'} | Target: ${target_price || 'Best Market Rate'}`;
-      await db.query(
-        'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
-        [null, req.user.id, product, buyerPhone, rfqLeadDetails, false]
+      const bPhone10 = buyerPhone.replace(/[^0-9]/g, '').slice(-10);
+      const normProd = cleanProductTitle(product);
+      
+      const recentCheck = await db.query(
+        'SELECT id, product_needed, buyer_phone, created_at FROM leads WHERE is_direct = false ORDER BY id DESC LIMIT 20'
       );
+      const nowMs = Date.now();
+      const alreadyInLeads = (recentCheck.rows || []).some(row => {
+        const rowPhone10 = (row.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+        if (bPhone10 && rowPhone10 && rowPhone10 !== bPhone10) return false;
+        if (cleanProductTitle(row.product_needed) !== normProd) return false;
+        return (nowMs - new Date(row.created_at || nowMs).getTime()) < 120000; // 2 minutes
+      });
+
+      if (!alreadyInLeads) {
+        const rfqLeadDetails = details || `Qty: ${qty || 'Bulk'} | Target: ${target_price || 'Best Market Rate'}`;
+        await db.query(
+          'INSERT INTO leads (supplier_id, buyer_id, product_needed, buyer_phone, details, is_direct) VALUES ($1, $2, $3, $4, $5, $6)',
+          [null, req.user.id, product, buyerPhone, rfqLeadDetails, false]
+        );
+      }
     } catch(e) {}
 
     res.json({ success: true, rfq: newRfq.rows[0] });
@@ -2641,7 +2700,20 @@ app.get('/api/admin/leads', adminMiddleware, async (req, res) => {
       };
     });
 
-    let filtered = processedLeads;
+    // Deduplicate leads in admin view
+    const seenAdminKeys = new Set();
+    const uniqueProcessedLeads = [];
+    for (const l of processedLeads) {
+      const bPhone10 = (l.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10) || `id_${l.id}`;
+      const cleanProd = cleanProductTitle(l.product_needed) || 'product';
+      const dedupKey = l.is_direct ? `dir_${l.supplier_id}_${cleanProd}_${bPhone10}` : `buy_${cleanProd}_${bPhone10}`;
+      if (!seenAdminKeys.has(dedupKey)) {
+        seenAdminKeys.add(dedupKey);
+        uniqueProcessedLeads.push(l);
+      }
+    }
+
+    let filtered = uniqueProcessedLeads;
     if (typeFilter === 'direct') {
       filtered = filtered.filter(l => l.is_direct);
     } else if (typeFilter === 'buy' || typeFilter === 'buy_lead' || typeFilter === 'rfq') {
@@ -2660,9 +2732,9 @@ app.get('/api/admin/leads', adminMiddleware, async (req, res) => {
 
     res.json({
       success: true,
-      total: processedLeads.length,
-      direct_count: processedLeads.filter(l => l.is_direct).length,
-      buy_leads_count: processedLeads.filter(l => !l.is_direct).length,
+      total: uniqueProcessedLeads.length,
+      direct_count: uniqueProcessedLeads.filter(l => l.is_direct).length,
+      buy_leads_count: uniqueProcessedLeads.filter(l => !l.is_direct).length,
       leads: filtered
     });
   } catch (error) {

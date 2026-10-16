@@ -666,7 +666,7 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('FROM leads') && (text.includes('u_buyer') || text.includes('ORDER BY l.id DESC') || text.includes('SELECT l.*') || text.includes('SELECT * FROM leads ORDER BY id DESC'))) {
+    if (text.includes('FROM leads') && (text.includes('u_buyer') || text.includes('ORDER BY l.id DESC') || text.includes('SELECT l.*') || text.includes('ORDER BY id DESC'))) {
       mockDB.leads = mockDB.leads || [];
       mockDB.users = mockDB.users || [];
       mockDB.businesses = mockDB.businesses || [];

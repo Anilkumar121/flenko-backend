@@ -469,21 +469,47 @@
       const user = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
       const currentUserId = user ? (user.id || user.userId) : null;
 
+      function cleanProdKey(str) {
+        return (str || '').replace(/\s*\(qty:.*?\)/gi, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+
       // Merge local broadcast leads fallback if available
       try {
         const localBroadcast = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
         if (localBroadcast.length > 0) {
+          const seenKeys = new Set(allLeads.map(l => {
+            const p10 = (l.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+            return `${cleanProdKey(l.product_needed)}_${p10}`;
+          }));
           const seenIds = new Set(allLeads.map(l => String(l.id)));
+
           localBroadcast.forEach(lbl => {
             if (seenIds.has(String(lbl.id))) return;
+            const lblPhone10 = (lbl.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+            const lblKey = `${cleanProdKey(lbl.product_needed)}_${lblPhone10}`;
+            if (lblPhone10 && seenKeys.has(lblKey)) return;
             // Never show another supplier's direct inquiry to this seller!
             if (lbl.is_direct && lbl.supplier_id && currentUserId && String(lbl.supplier_id) !== String(currentUserId)) {
               return;
             }
+            if (lblPhone10) seenKeys.add(lblKey);
+            seenIds.add(String(lbl.id));
             allLeads.unshift(lbl);
           });
         }
       } catch(e) {}
+
+      // Final client-side deduplication to guarantee zero duplicate lead cards
+      const dedupSet = new Set();
+      allLeads = allLeads.filter(lead => {
+        const p10 = (lead.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10) || `id_${lead.id}`;
+        const pKey = cleanProdKey(lead.product_needed) || 'product';
+        const isDir = !!(lead.is_direct === true || lead.is_direct === 'true');
+        const key = `${isDir ? 'dir' : 'mkt'}_${pKey}_${p10}`;
+        if (dedupSet.has(key)) return false;
+        dedupSet.add(key);
+        return true;
+      });
 
       window.currentDashboardLeads = allLeads;
 

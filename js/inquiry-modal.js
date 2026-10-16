@@ -265,24 +265,26 @@
       
       const refId = '#INQ-' + Math.floor(100000 + Math.random() * 900000);
 
-      // Save locally to broadcast leads for instant seller CRM reflection
-      try {
-        const leadItem = {
-          id: (resData && resData.lead_id) || Date.now(),
-          supplier_id: parseInt(supplierId) || (resData && resData.supplier_id) || 1,
-          product_needed: productName,
-          buyer_phone: buyerPhone,
-          details: `Buyer: ${buyerName} | Qty: ${quantity} ${unit} | Target Price: ${targetPrice || 'Negotiable'} | Notes: ${message}`,
-          is_direct: true,
-          is_paid: true,
-          locked: false,
-          status: 'New',
-          created_at: new Date().toISOString()
-        };
-        const bList = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
-        bList.unshift(leadItem);
-        localStorage.setItem('flenko_broadcast_leads', JSON.stringify(bList.slice(0, 50)));
-      } catch(e) {}
+      // Save locally to broadcast leads ONLY if offline or server failed
+      if (!resOk) {
+        try {
+          const leadItem = {
+            id: (resData && resData.lead_id) || Date.now(),
+            supplier_id: parseInt(supplierId) || (resData && resData.supplier_id) || 1,
+            product_needed: productName,
+            buyer_phone: buyerPhone,
+            details: `Buyer: ${buyerName} | Qty: ${quantity} ${unit} | Target Price: ${targetPrice || 'Negotiable'} | Notes: ${message}`,
+            is_direct: true,
+            is_paid: true,
+            locked: false,
+            status: 'New',
+            created_at: new Date().toISOString()
+          };
+          const bList = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+          bList.unshift(leadItem);
+          localStorage.setItem('flenko_broadcast_leads', JSON.stringify(bList.slice(0, 50)));
+        } catch(e) {}
+      }
       
       // Save locally to buyer inquiries cache
       try {
