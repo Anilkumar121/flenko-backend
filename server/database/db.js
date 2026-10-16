@@ -477,6 +477,63 @@ module.exports = {
       }
       return { rows: [] };
     }
+    if (text.includes('DELETE FROM leads WHERE id = $1')) {
+      mockDB.leads = mockDB.leads || [];
+      const idx = mockDB.leads.findIndex(l => l.id == params[0]);
+      if (idx !== -1) {
+        const deleted = mockDB.leads.splice(idx, 1);
+        if (mockDB.lead_payments) {
+          mockDB.lead_payments = mockDB.lead_payments.filter(lp => lp.lead_id != params[0]);
+        }
+        saveMockDB();
+        return { rows: deleted };
+      }
+      return { rows: [] };
+    }
+    if (text.includes('FROM leads') && (text.includes('u_buyer') || text.includes('ORDER BY l.id DESC') || text.includes('SELECT l.*') || text.includes('SELECT * FROM leads ORDER BY id DESC'))) {
+      mockDB.leads = mockDB.leads || [];
+      mockDB.users = mockDB.users || [];
+      mockDB.businesses = mockDB.businesses || [];
+      const userMap = {};
+      (mockDB.users || []).forEach(u => { userMap[u.id] = u; });
+      const bizMap = {};
+      (mockDB.businesses || []).forEach(b => { bizMap[b.user_id] = b; });
+
+      const sorted = (mockDB.leads || []).slice().sort((a,b) => (b.id || 0) - (a.id || 0));
+      const enriched = sorted.map(l => {
+        const buyer = userMap[l.buyer_id] || {};
+        const sup = userMap[l.supplier_id] || {};
+        const biz = bizMap[l.supplier_id] || {};
+        return {
+          ...l,
+          buyer_name: buyer.name || 'Buyer',
+          buyer_phone: l.buyer_phone || buyer.phone || 'N/A',
+          buyer_email: buyer.email || '',
+          buyer_city: buyer.city || '',
+          supplier_name: biz.company_name || sup.name || (l.supplier_id ? ('Supplier #' + l.supplier_id) : ''),
+          supplier_phone: sup.phone || '',
+          supplier_email: sup.email || ''
+        };
+      });
+      return { rows: enriched };
+    }
+    if (text.includes('FROM leads WHERE supplier_id = $1 OR buyer_id = $1')) {
+      const uId = params[0];
+      const rows = (mockDB.leads || []).filter(l => l.supplier_id == uId || l.buyer_id == uId);
+      return { rows: rows.slice().reverse() };
+    }
+    if (text.includes('SELECT COUNT(*) as cnt FROM leads WHERE is_direct = true')) {
+      const cnt = (mockDB.leads || []).filter(l => l.is_direct === true || l.is_direct === 'true').length;
+      return { rows: [{ cnt }] };
+    }
+    if (text.includes('SELECT COUNT(*) as cnt FROM leads WHERE is_direct = false OR supplier_id IS NULL')) {
+      const cnt = (mockDB.leads || []).filter(l => !l.is_direct || l.is_direct === false || l.is_direct === 'false' || !l.supplier_id).length;
+      return { rows: [{ cnt }] };
+    }
+    if (text.includes('SELECT COUNT(*) as cnt FROM leads')) {
+      const cnt = (mockDB.leads || []).length;
+      return { rows: [{ cnt }] };
+    }
     if (text.includes('INSERT INTO lead_payments')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       const rec = { id: mockDB.idCounter++, lead_id: params[0], supplier_id: params[1], amount: params[2], utr: params[3], screenshot_url: params[4], payer_phone: params[5], status: params[6] || 'verified', created_at: new Date() };

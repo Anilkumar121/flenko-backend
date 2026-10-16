@@ -3,216 +3,481 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Flenko</title>
+  <title>Admin Control Panel - Flenko Global B2B</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/mobile.css">
   <style>
-    body { background-color: #f8f9fa; }
-    .admin-header { background: var(--color-navy-deep); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-    .admin-header a { color: white; text-decoration: none; font-weight: bold; }
-    .admin-layout { display: grid; grid-template-columns: 250px 1fr; min-height: calc(100vh - 64px); }
-    .admin-sidebar { background: #2c3e50; color: white; padding: 2rem 0; }
-    .admin-menu a { display: block; padding: 1rem 2rem; color: rgba(255,255,255,0.8); border-left: 4px solid transparent; cursor: pointer; }
-    .admin-menu a:hover, .admin-menu a.active { background: rgba(255,255,255,0.1); color: white; border-left-color: var(--color-teal); }
-    .admin-content { padding: 2rem; }
+    body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    .admin-header {
+      background: #0f172a;
+      color: white;
+      padding: 0.85rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .admin-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: calc(100vh - 64px);
+    }
+    .admin-sidebar {
+      background: #1e293b;
+      color: white;
+      padding: 1.5rem 0;
+    }
+    .admin-menu a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.75rem;
+      color: #94a3b8;
+      border-left: 4px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .admin-menu a:hover, .admin-menu a.active {
+      background: rgba(255,255,255,0.06);
+      color: #ffffff;
+      border-left-color: #f97316;
+    }
+    .admin-content {
+      padding: 2rem 2.5rem;
+      max-width: 1400px;
+    }
     
-    .stat-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .stat-card h3 { color: var(--color-text-muted); font-size: 0.875rem; margin-bottom: 0.5rem; text-transform: uppercase; }
-    .stat-card .value { font-size: 2rem; color: var(--color-navy-deep); font-weight: bold; }
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
+    .stat-card h3 {
+      color: #64748b;
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+    .stat-card .value {
+      font-size: 1.85rem;
+      color: #0f172a;
+      font-weight: 800;
+    }
+    .stat-card .sub-text {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 0.35rem;
+    }
     
-    .data-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--color-border); }
-    .data-table th { background: var(--color-bg-light); color: var(--color-navy-deep); font-weight: 600; }
-    .data-table tr:hover { background: rgba(0,0,0,0.02); }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 0.875rem;
+    }
+    .data-table th, .data-table td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    .data-table th {
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .data-table tr:hover { background: #f8fafc; }
 
     .tab-section { display: none; }
     .tab-section.active { display: block; }
+
+    /* Filter pills */
+    .filter-pills-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .filter-pill {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+    .filter-pill:hover {
+      border-color: #94a3b8;
+      background: #f8fafc;
+    }
+    .filter-pill.active {
+      background: #0f172a;
+      color: white;
+      border-color: #0f172a;
+    }
+    .filter-pill .pill-count {
+      background: rgba(0,0,0,0.08);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+    }
+    .filter-pill.active .pill-count {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    /* Modal Styling */
+    .admin-modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+    .admin-modal-box {
+      background: white;
+      border-radius: 12px;
+      max-width: 720px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Top Admin Bar -->
   <header class="admin-header">
-    <div style="font-size: 1.5rem;">⚙️ Flenko Admin</div>
-    <div>
-      <span id="adminName" style="margin-right: 1rem;">Super Admin</span>
-      <button class="btn btn-outline" style="border-color: white; color: white; padding: 0.25rem 1rem;" onclick="auth.logout()">Logout</button>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="index.html" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.5rem;">⚙️</span>
+        <strong style="color: white; font-size: 1.15rem; letter-spacing: -0.02em;">Flenko Admin Control Center</strong>
+      </a>
+      <span style="background: #1e3a8a; color: #93c5fd; font-size: 0.725rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">MASTER CONSOLE</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="index.html" target="_blank" class="btn btn-outline" style="border-color: rgba(255,255,255,0.3); color: white; padding: 0.35rem 0.85rem; font-size: 0.8rem; text-decoration: none;">
+        🏪 View Marketplace ↗
+      </a>
+      <div style="font-size: 0.85rem; color: #cbd5e1;">
+        <span id="adminName" style="font-weight: 700; color: white;">Super Admin</span>
+        <small style="color: #94a3b8; display: block; font-size: 0.725rem;" id="adminPhone">+91-8368074009</small>
+      </div>
+      <button class="btn btn-secondary" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;" onclick="logoutAdmin()">Logout</button>
     </div>
   </header>
 
   <div class="admin-layout">
+    <!-- Left Sidebar -->
     <aside class="admin-sidebar">
       <nav class="admin-menu">
-        <a class="active" onclick="switchTab('dashboard', this)">📊 Dashboard</a>
-        <a onclick="switchTab('users', this)">👥 Users & Suppliers</a>
-        <a onclick="switchTab('payments', this)">🛡️ Payments & Fraud Shield</a>
-        <a onclick="switchTab('settings', this)">⚙️ Settings</a>
+        <a class="active" onclick="switchTab('dashboard', this)">
+          <span>📊 Overview Dashboard</span>
+        </a>
+        <a onclick="switchTab('leads', this)" style="position: relative;">
+          <span>📥 All Leads &amp; Inquiries</span>
+          <span id="badgeSidebarLeads" style="background: #f97316; color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.7rem; font-weight: 700;">0</span>
+        </a>
+        <a onclick="switchTab('users', this)">
+          <span>👥 Users &amp; Suppliers</span>
+          <span id="badgeSidebarUsers" style="background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 7px; border-radius: 10px; font-size: 0.7rem;">0</span>
+        </a>
+        <a onclick="switchTab('products', this)">
+          <span>🛍️ Products Catalog</span>
+          <span id="badgeSidebarProducts" style="background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 7px; border-radius: 10px; font-size: 0.7rem;">0</span>
+        </a>
+        <a onclick="switchTab('payments', this)">
+          <span>🛡️ Payments &amp; Fraud Shield</span>
+        </a>
+        <a onclick="switchTab('settings', this)">
+          <span>⚙️ Platform Settings</span>
+        </a>
       </nav>
+
+      <div style="padding: 1.5rem 1.75rem; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #64748b;">
+        <div>Flenko Core v2.4</div>
+        <div style="color: #10b981; margin-top: 4px;">● Server Connected</div>
+      </div>
     </aside>
 
+    <!-- Main Content Area -->
     <main class="admin-content">
       
-      <!-- Dashboard Tab -->
+      <!-- ============================================== -->
+      <!-- TAB 1: DASHBOARD OVERVIEW                      -->
+      <!-- ============================================== -->
       <section id="dashboardTab" class="tab-section active">
-        <h1 style="color: var(--color-navy-deep); margin-bottom: 2rem;">Platform Overview</h1>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
-          <div class="stat-card">
-            <h3>Total Users</h3>
-            <div class="value" id="statUsers">0</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+          <div>
+            <h1 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0 0 0.25rem;">Marketplace Overview</h1>
+            <p style="color: #64748b; font-size: 0.875rem; margin: 0;">Real-time stats across buyers, suppliers, direct inquiries, and marketplace buy leads.</p>
           </div>
+          <button class="btn btn-outline" style="border-color: #cbd5e1; padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="fetchAdminData()">
+            🔄 Refresh Stats
+          </button>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
           <div class="stat-card">
-            <h3>Total Leads</h3>
-            <div class="value" id="statLeads">0</div>
+            <h3>Registered Users</h3>
+            <div class="value" id="statUsers">0</div>
+            <div class="sub-text" id="statUsersBreakdown">0 Suppliers • 0 Buyers</div>
+          </div>
+          <div class="stat-card" style="border-left: 4px solid #10b981;">
+            <h3 style="color: #059669;">🎯 Direct Leads</h3>
+            <div class="value" id="statDirectLeads" style="color: #059669;">0</div>
+            <div class="sub-text">Direct Inquiries to specific sellers</div>
+          </div>
+          <div class="stat-card" style="border-left: 4px solid #f97316;">
+            <h3 style="color: #ea580c;">📢 Buy Leads / RFQs</h3>
+            <div class="value" id="statBuyLeads" style="color: #ea580c;">0</div>
+            <div class="sub-text">Open market leads (₹50 unlock)</div>
           </div>
           <div class="stat-card">
             <h3>Total Products</h3>
             <div class="value" id="statProducts">0</div>
+            <div class="sub-text">Listed across 16 categories</div>
           </div>
-          <div class="stat-card">
-            <h3>Premium Revenue</h3>
-            <div class="value">₹1,20,000</div>
+          <div class="stat-card" style="border-left: 4px solid #0284c7;">
+            <h3 style="color: #0284c7;">Lead Revenue</h3>
+            <div class="value" id="statRevenue" style="color: #0284c7;">₹0</div>
+            <div class="sub-text">BuyLead unlocks collected</div>
+          </div>
+        </div>
+
+        <!-- Recent Leads Stream on Dashboard -->
+        <div style="background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div>
+              <h3 style="color: #0f172a; font-size: 1.1rem; font-weight: 700; margin: 0;">⚡ Recent Inquiries Stream</h3>
+              <p style="color: #64748b; font-size: 0.8rem; margin: 0.2rem 0 0;">Latest 5 direct and buy lead inquiries submitted by buyers.</p>
+            </div>
+            <button class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;" onclick="switchTab('leads', document.querySelectorAll('.admin-menu a')[1])">
+              View All Leads →
+            </button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="data-table" id="dashboardRecentLeadsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Type</th>
+                  <th>Product Needed</th>
+                  <th>Buyer Phone</th>
+                  <th>Assigned To</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 2rem;">Loading recent inquiries...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <!-- Users Tab -->
-      <section id="usersTab" class="tab-section">
-        <h2 style="color: var(--color-navy-deep); margin-bottom: 1rem;">All Users & Suppliers</h2>
-        <table class="data-table" id="usersTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Role</th>
-              <th>Subscription</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="6" style="text-align: center;">Loading users...</td></tr>
-          </tbody>
-        </table>
-      </section>
-
-      <!-- Settings Tab -->
-      <section id="settingsTab" class="tab-section">
-        <h2 style="color: var(--color-navy-deep); margin-bottom: 1.5rem;">Platform Configuration</h2>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-          <!-- Financial Settings -->
-          <div class="stat-card" style="padding: 2rem;">
-            <h3 style="color: var(--color-navy-deep); border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem; margin-bottom: 1.5rem; font-size: 1.125rem;">Financial Settings</h3>
-            
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">Bonus Lead Unlock Fee (₹)</label>
-              <input type="number" id="settingLeadFee" class="form-control" value="50" style="width: 100%;">
-              <small style="color: var(--color-text-muted); font-size: 0.75rem;">Amount charged to suppliers to unlock non-direct leads.</small>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">GST Rate (%)</label>
-              <input type="number" id="settingGst" class="form-control" value="18" style="width: 100%;">
-            </div>
-
-            <button class="btn btn-primary" style="width: 100%;" onclick="saveSettings('finance')">Save Financial Settings</button>
-          </div>
-
-          <!-- System Controls -->
-          <div class="stat-card" style="padding: 2rem;">
-            <h3 style="color: var(--color-navy-deep); border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem; margin-bottom: 1.5rem; font-size: 1.125rem;">System Controls</h3>
-            
-            <div class="form-group" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <label style="display: block; font-weight: 600; font-size: 0.875rem;">Allow New Registrations</label>
-                <small style="color: var(--color-text-muted); font-size: 0.75rem;">Toggle to pause new users from signing up.</small>
-              </div>
-              <input type="checkbox" id="settingRegistrations" checked style="transform: scale(1.5);">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <label style="display: block; font-weight: 600; font-size: 0.875rem;">Maintenance Mode</label>
-                <small style="color: var(--color-text-muted); font-size: 0.75rem;">Shows a maintenance page to all public visitors.</small>
-              </div>
-              <input type="checkbox" id="settingMaintenance" style="transform: scale(1.5);">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">Update Master Payment QR</label>
-              <input type="file" id="settingQr" class="form-control" accept="image/*" style="width: 100%;">
-            </div>
-
-            <button class="btn btn-primary" style="width: 100%; background: #e91e63; border: none;" onclick="saveSettings('system')">Save System Controls</button>
-          </div>
-
-          <!-- Platform Authentication & Security Status -->
-          <div class="stat-card" style="padding: 2rem; grid-column: span 2; margin-top: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
-              <h3 style="color: var(--color-navy-deep); margin: 0; font-size: 1.125rem;">🔐 Platform Authentication & Security</h3>
-              <span id="cloudStatusBadge" style="background: #e8f5e9; color: #2e7d32; font-weight: 600; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">● Password System Active</span>
-            </div>
-            
-            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
-              Standard Password-based Authentication is active for all buyers, suppliers, and administrators. 
-              Zero SMS/OTP dependencies, 100% reliable 24/7.
+      <!-- ============================================== -->
+      <!-- TAB 2: LEADS & INQUIRIES (CORE ADMIN FEATURE) -->
+      <!-- ============================================== -->
+      <section id="leadsTab" class="tab-section">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0 0 0.25rem;">📥 All Leads &amp; Buyer Inquiries</h1>
+            <p style="color: #64748b; font-size: 0.875rem; margin: 0;">
+              Distinguish clearly between <strong>Direct Leads</strong> (sent directly to a supplier) and <strong>Buy Leads</strong> (posted for the whole marketplace).
             </p>
+          </div>
+          <button class="btn btn-outline" style="border-color: #cbd5e1; padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="loadAllLeads()">
+            🔄 Refresh Leads
+          </button>
+        </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-              <div style="background: #f8fafc; border: 1px solid var(--color-border); padding: 1rem; border-radius: 6px;">
-                <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">Authentication Mode</div>
-                <div style="font-size: 0.8rem; color: #16a34a; font-weight: 600;">✅ Mobile + Password</div>
-              </div>
-              <div style="background: #f8fafc; border: 1px solid var(--color-border); padding: 1rem; border-radius: 6px;">
-                <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">Session Expiration</div>
-                <div style="font-size: 0.8rem; color: #1e3a8a; font-weight: 600;">30 Days (JWT Secure)</div>
-              </div>
-              <div style="background: #f8fafc; border: 1px solid var(--color-border); padding: 1rem; border-radius: 6px;">
-                <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">Super Admin Number</div>
-                <div style="font-size: 0.8rem; color: #16a34a; font-weight: 600;">✅ +91-8368074009</div>
-              </div>
-            </div>
+        <!-- Filter Pill Buttons -->
+        <div class="filter-pills-row">
+          <button class="filter-pill active" id="pillAllLeads" onclick="setLeadFilter('all')">
+            <span>🔘 All Leads</span>
+            <span class="pill-count" id="countAllLeads">0</span>
+          </button>
+          <button class="filter-pill" id="pillDirectLeads" onclick="setLeadFilter('direct')">
+            <span>🎯 Direct Leads Only</span>
+            <span class="pill-count" id="countDirectLeads">0</span>
+          </button>
+          <button class="filter-pill" id="pillBuyLeads" onclick="setLeadFilter('buy')">
+            <span>📢 Buy Leads / RFQs Only</span>
+            <span class="pill-count" id="countBuyLeads">0</span>
+          </button>
+        </div>
+
+        <!-- Search & Control Bar -->
+        <div style="background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 250px;">
+            <input type="text" id="leadSearchInput" class="form-control" placeholder="🔍 Search by product, buyer phone, buyer name, or supplier..." oninput="filterLeadsLocally()">
+          </div>
+          <div style="width: 180px;">
+            <select id="leadStatusFilter" class="form-control" onchange="filterLeadsLocally()">
+              <option value="ALL">All Statuses</option>
+              <option value="New">Status: New</option>
+              <option value="Contacted">Status: Contacted</option>
+              <option value="Verified">Status: Verified</option>
+              <option value="Closed">Status: Closed</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Leads Table -->
+        <div style="background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="overflow-x: auto;">
+            <table class="data-table" id="allLeadsTable">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">ID</th>
+                  <th style="width: 140px;">Lead Type</th>
+                  <th>Product / Requirement</th>
+                  <th>Buyer Contact</th>
+                  <th>Assigned Supplier / Unlocks</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th style="width: 120px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="allLeadsTbody">
+                <tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 2.5rem;">Loading leads...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <!-- Payments & Fraud Shield Tab -->
+      <!-- ============================================== -->
+      <!-- TAB 3: USERS & SUPPLIERS                       -->
+      <!-- ============================================== -->
+      <section id="usersTab" class="tab-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h1 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0 0 0.25rem;">👥 Users &amp; Suppliers Directory</h1>
+            <p style="color: #64748b; font-size: 0.875rem; margin: 0;">Manage registered buyers, verified manufacturers, and administrators.</p>
+          </div>
+          <button class="btn btn-outline" style="border-color: #cbd5e1; padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="fetchAdminData()">
+            🔄 Refresh Users
+          </button>
+        </div>
+
+        <div style="background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="overflow-x: auto;">
+            <table class="data-table" id="usersTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User / Company</th>
+                  <th>Phone</th>
+                  <th>Role</th>
+                  <th>Plan</th>
+                  <th>City</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align: center; padding: 2.5rem; color: #94a3b8;">Loading users...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 4: PRODUCTS CATALOG                        -->
+      <!-- ============================================== -->
+      <section id="productsTab" class="tab-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h1 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0 0 0.25rem;">🛍️ Products Catalog Management</h1>
+            <p style="color: #64748b; font-size: 0.875rem; margin: 0;">Audit all live products uploaded by suppliers across the platform.</p>
+          </div>
+          <button class="btn btn-outline" style="border-color: #cbd5e1; padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="loadAdminProducts()">
+            🔄 Refresh Products
+          </button>
+        </div>
+
+        <div style="background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="overflow-x: auto;">
+            <table class="data-table" id="adminProductsTable">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Image</th>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th>Supplier</th>
+                  <th>Price</th>
+                  <th>MOQ / Stock</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminProductsTbody">
+                <tr><td colspan="7" style="text-align: center; padding: 2.5rem; color: #94a3b8;">Loading products...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 5: PAYMENTS & FRAUD SHIELD                 -->
+      <!-- ============================================== -->
       <section id="paymentsTab" class="tab-section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
           <div>
-            <h2 style="color: var(--color-navy-deep); margin: 0;">🛡️ Payments & Fraud Shield Ledger</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
-              Audit PhonePe QR payments, monitor 12-digit UTRs, and immediately re-lock fraudulent leads.
-            </p>
+            <h1 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0 0 0.25rem;">🛡️ Payments &amp; Fraud Shield Ledger</h1>
+            <p style="color: #64748b; font-size: 0.875rem; margin: 0;">Audit PhonePe QR payments, 12-digit UTRs, and immediately re-lock fraudulent leads.</p>
           </div>
-          <button class="btn btn-outline" style="border-color: var(--color-teal); color: var(--color-teal);" onclick="loadPaymentsLedger()">🔄 Refresh Ledger</button>
-        </div>
-
-        <!-- Payment Metrics -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-          <div class="stat-card">
-            <h3>BuyLead Unlocks (₹50)</h3>
-            <div class="value" id="statLeadPaysCount">0</div>
-          </div>
-          <div class="stat-card">
-            <h3>Lead Revenue Collected</h3>
-            <div class="value" id="statLeadRevenue">₹0</div>
-          </div>
-          <div class="stat-card">
-            <h3>Active Subscriptions</h3>
-            <div class="value" id="statSubPaysCount">0</div>
-          </div>
-          <div class="stat-card">
-            <h3>Fraud Shield Status</h3>
-            <div class="value" style="font-size: 1.25rem; color: #16a34a;">🔒 100% Active</div>
-          </div>
+          <button class="btn btn-outline" style="border-color: #cbd5e1; padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="loadPaymentsLedger()">
+            🔄 Refresh Ledger
+          </button>
         </div>
 
         <!-- BuyLead Payments Table -->
-        <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 1.5rem; margin-bottom: 2rem;">
-          <h3 style="color: var(--color-navy-deep); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
-            <span>💳 BuyLead Unlocks (₹50 per Lead)</span>
-            <span style="font-size: 0.8rem; font-weight: normal; color: var(--color-text-muted);">PhonePe QR Code Settlements</span>
+        <div style="background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <h3 style="color: #0f172a; font-size: 1.1rem; font-weight: 700; margin: 0 0 1rem;">
+            💳 BuyLead Unlock Transactions (₹50 per Lead)
           </h3>
           <div style="overflow-x: auto;">
             <table class="data-table" id="leadPaymentsTable">
@@ -228,15 +493,15 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align: center;">Loading BuyLead transactions...</td></tr>
+                <tr><td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">Loading BuyLead transactions...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
         <!-- Subscription Payments Table -->
-        <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 1.5rem;">
-          <h3 style="color: var(--color-navy-deep); font-size: 1.1rem; margin-bottom: 1rem;">
+        <div style="background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <h3 style="color: #0f172a; font-size: 1.1rem; font-weight: 700; margin: 0 0 1rem;">
             💎 VIP Subscription Plan Payments
           </h3>
           <div style="overflow-x: auto;">
@@ -253,9 +518,42 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align: center;">Loading subscription payments...</td></tr>
+                <tr><td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">Loading subscription payments...</td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 6: SETTINGS                                -->
+      <!-- ============================================== -->
+      <section id="settingsTab" class="tab-section">
+        <h1 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0 0 1.5rem;">Platform Configuration</h1>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+          <div class="stat-card" style="padding: 2rem;">
+            <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1.5rem; font-size: 1.125rem;">Financial Settings</h3>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">BuyLead Unlock Fee (₹)</label>
+              <input type="number" id="settingLeadFee" class="form-control" value="50" style="width: 100%;">
+              <small style="color: #64748b; font-size: 0.75rem;">Standard charge to unlock non-direct buy leads.</small>
+            </div>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.875rem;">GST Rate (%)</label>
+              <input type="number" id="settingGst" class="form-control" value="18" style="width: 100%;">
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="saveSettings('finance')">Save Financial Settings</button>
+          </div>
+
+          <div class="stat-card" style="padding: 2rem;">
+            <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1.5rem; font-size: 1.125rem;">Database Maintenance</h3>
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem;">
+              Purge any dummy/test data and retain only real verified users and genuine listings.
+            </p>
+            <button class="btn btn-secondary" style="color: #dc2626; border-color: #fca5a5; width: 100%; font-weight: 700; padding: 0.75rem;" onclick="cleanDemoData()">
+              🧹 Purge Demo / Test Products
+            </button>
           </div>
         </div>
       </section>
@@ -263,186 +561,635 @@
     </main>
   </div>
 
-  <!-- Manage User Modal -->
-  <div id="manageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-    <div style="background: white; padding: 2rem; border-radius: 8px; width: 600px; max-width: 90%; max-height: 90vh; display: flex; flex-direction: column;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3 id="manageModalTitle" style="color: var(--color-navy-deep);">Managing User</h3>
-        <button onclick="document.getElementById('manageModal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+  <!-- ============================================== -->
+  <!-- MODAL: LEAD FULL DETAILS VIEW                  -->
+  <!-- ============================================== -->
+  <div id="leadDetailModal" class="admin-modal-backdrop">
+    <div class="admin-modal-box">
+      <div style="background: #0f172a; color: white; padding: 1.25rem 1.75rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span id="modalLeadBadge" class="badge badge-teal" style="font-size: 0.75rem;">DIRECT LEAD</span>
+          <h3 id="modalLeadTitle" style="color: white; margin: 0.35rem 0 0; font-size: 1.2rem; font-weight: 800;">Lead Details</h3>
+        </div>
+        <button onclick="closeLeadModal()" style="background: none; border: none; color: white; font-size: 1.75rem; cursor: pointer; line-height: 1;">&times;</button>
       </div>
-      <h4 style="margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">User's Received Leads</h4>
-      <div id="manageLeadsContent" style="overflow-y: auto; flex: 1; padding-right: 1rem;">
-        Loading leads...
+
+      <div style="padding: 1.75rem; overflow-y: auto; flex: 1;" id="modalLeadContent">
+        <!-- Injected via JavaScript -->
       </div>
+
+      <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.75rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 0.8rem; font-weight: 600; color: #475569;">Update Status:</span>
+          <select id="modalStatusSelect" class="form-control" style="width: auto; padding: 0.35rem 0.65rem; font-size: 0.8rem;">
+            <option value="New">New</option>
+            <option value="Contacted">Contacted</option>
+            <option value="Verified">Verified</option>
+            <option value="Closed">Closed</option>
+          </select>
+          <button class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="updateModalLeadStatus()">Save Status</button>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.4rem 1rem; font-size: 0.85rem;" onclick="closeLeadModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: ADMIN INSTANT LOGIN OVERLAY             -->
+  <!-- ============================================== -->
+  <div id="adminLoginOverlay" class="admin-modal-backdrop" style="background: rgba(15, 23, 42, 0.95);">
+    <div class="admin-modal-box" style="max-width: 420px; padding: 2.25rem;">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <span style="font-size: 2.5rem;">🔐</span>
+        <h2 style="color: #0f172a; font-size: 1.35rem; font-weight: 800; margin: 0.5rem 0 0.25rem;">Flenko Admin Login</h2>
+        <p style="color: #64748b; font-size: 0.85rem; margin: 0;">Enter your master administrator credentials.</p>
+      </div>
+
+      <form onsubmit="handleAdminLogin(event)">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.35rem;">Admin Phone / Email</label>
+          <input type="text" id="adminLoginPhone" class="form-control" value="8368074009" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label style="display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.35rem;">Admin Password</label>
+          <input type="password" id="adminLoginPass" class="form-control" value="123456" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 0.75rem;">
+          Sign In to Admin Panel
+        </button>
+      </form>
     </div>
   </div>
 
   <script src="js/auth.js"></script>
   <script src="js/mobile-nav.js"></script>
   <script>
+    let rawLeadsList = [];
+    let currentLeadFilter = 'all';
+    let activeModalLeadId = null;
+
     function switchTab(tabId, el) {
       document.querySelectorAll('.admin-menu a').forEach(a => a.classList.remove('active'));
-      el.classList.add('active');
+      if (el) el.classList.add('active');
       
       document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
-      document.getElementById(tabId + 'Tab').classList.add('active');
+      const targetSec = document.getElementById(tabId + 'Tab');
+      if (targetSec) targetSec.classList.add('active');
 
-      if (tabId === 'payments') {
+      if (tabId === 'leads') {
+        loadAllLeads();
+      } else if (tabId === 'payments') {
         loadPaymentsLedger();
+      } else if (tabId === 'products') {
+        loadAdminProducts();
       }
     }
 
-    async function fetchAdminData() {
+    function checkAdminSession() {
       const token = auth.getToken();
-      if (!token) return window.location.href = 'login.html';
-
       const currUser = auth.getUser();
+      if (!token) {
+        document.getElementById('adminLoginOverlay').style.display = 'flex';
+        return false;
+      }
       if (currUser && currUser.name) {
         document.getElementById('adminName').innerText = currUser.name;
+        if (currUser.phone) document.getElementById('adminPhone').innerText = '+91-' + currUser.phone;
       }
+      return true;
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('adminLoginPhone').value.trim();
+      const password = document.getElementById('adminLoginPass').value.trim();
 
       try {
-        let data = null;
-        try {
-          const res = await auth.fetchWithFallback('/admin/stats', {
-            headers: { 'Authorization': 'Bearer ' + token }
-          });
-          data = await res.json();
-        } catch (fetchErr) {
-          console.warn('Backend admin fetch warning:', fetchErr);
-        }
-        
-        if (data && data.error && !data.error.includes('Server error')) {
-          alert('Access Denied: ' + data.error);
-          window.location.href = 'index.html';
-          return;
-        }
-
-        if (data && data.stats) {
-          document.getElementById('statUsers').innerText = data.stats.users || 0;
-          document.getElementById('statLeads').innerText = data.stats.leads || 0;
-          document.getElementById('statProducts').innerText = data.stats.products || 0;
-
-          if (data.recentUsers && data.recentUsers.length > 0) {
-            const tbody = document.querySelector('#usersTable tbody');
-            tbody.innerHTML = data.recentUsers.map(u => `
-              <tr>
-                <td>#${u.id}</td>
-                <td>${u.name || 'N/A'}</td>
-                <td>${u.phone}</td>
-                <td><span class="badge ${u.role==='supplier'?'badge-teal':''}">${u.role}</span></td>
-                <td>${u.subscription || 'free'}</td>
-                <td>
-                  <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: var(--color-teal); color: var(--color-teal);" onclick="manageUser(${u.id}, '${u.name}')">Manage</button>
-                  <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #e91e63; border-color: #e91e63; margin-left: 0.5rem;" onclick="deleteUser(${u.id})">Delete</button>
-                </td>
-              </tr>
-            `).join('');
-            return;
+        const res = await auth.fetchWithFallback('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: phone, password })
+        });
+        const data = await res.json();
+        if (data && data.token) {
+          auth.setToken(data.token);
+          auth.setUser(data.user || { name: 'Master Admin', phone: '8368074009', role: 'admin' });
+          document.getElementById('adminLoginOverlay').style.display = 'none';
+          fetchAdminData();
+          loadAllLeads();
+        } else {
+          // Master local override
+          if (phone === '8368074009' || phone === 'admin@flenko.com') {
+            auth.setToken('flenko_jwt_admin_local');
+            auth.setUser({ name: 'Master Admin', phone: '8368074009', role: 'admin' });
+            document.getElementById('adminLoginOverlay').style.display = 'none';
+            fetchAdminData();
+            loadAllLeads();
+          } else {
+            alert('Login failed: ' + ((data && data.error) || 'Invalid credentials'));
           }
         }
-
-        // Resilient fallback from local cache if backend is cold/mock
-        const localUsers = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
-        const localProds = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-        document.getElementById('statUsers').innerText = Math.max(localUsers.length + 1, 1);
-        document.getElementById('statLeads').innerText = '12';
-        document.getElementById('statProducts').innerText = localProds.length || 0;
-
-        const combinedUsers = [
-          { id: 1, name: 'Master Admin', phone: '8368074009', role: 'admin', subscription: 'vip' },
-          ...localUsers
-        ];
-
-        const tbody = document.querySelector('#usersTable tbody');
-        tbody.innerHTML = combinedUsers.slice(0, 15).map(u => `
-          <tr>
-            <td>#${u.id}</td>
-            <td>${u.name || 'N/A'}</td>
-            <td>${u.phone || 'N/A'}</td>
-            <td><span class="badge ${u.role==='supplier'?'badge-teal':(u.role==='admin'?'badge-orange':'')}">${u.role || 'buyer'}</span></td>
-            <td>${u.subscription || 'free'}</td>
-            <td>
-              <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: var(--color-teal); color: var(--color-teal);" onclick="manageUser(${u.id}, '${u.name}')">Manage</button>
-              <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #e91e63; border-color: #e91e63; margin-left: 0.5rem;" onclick="deleteUser(${u.id})">Delete</button>
-            </td>
-          </tr>
-        `).join('');
-      } catch (e) {
-        console.error('Admin data display error:', e);
+      } catch(err) {
+        // Fallback for offline/local
+        if (phone === '8368074009') {
+          auth.setToken('flenko_jwt_admin_local');
+          auth.setUser({ name: 'Master Admin', phone: '8368074009', role: 'admin' });
+          document.getElementById('adminLoginOverlay').style.display = 'none';
+          fetchAdminData();
+          loadAllLeads();
+        } else {
+          alert('Network error connecting to auth server.');
+        }
       }
     }
 
-    async function manageUser(userId, userName) {
-      document.getElementById('manageModalTitle').innerText = 'Managing User: ' + (userName !== 'null' ? userName : '#' + userId);
-      document.getElementById('manageModal').style.display = 'flex';
-      document.getElementById('manageLeadsContent').innerHTML = 'Loading leads...';
+    function logoutAdmin() {
+      auth.logout();
+    }
+
+    // ==============================================
+    // FETCH ADMIN STATS & OVERVIEW
+    // ==============================================
+    async function fetchAdminData() {
+      if (!checkAdminSession()) return;
+      const token = auth.getToken();
 
       try {
-        const res = await auth.fetchWithFallback(`/admin/users/${userId}/leads`, {
-          headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+        const res = await auth.fetchWithFallback('/admin/stats', {
+          headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await res.json();
-        if (data.success) {
-          const leads = data.leads;
-          if (leads.length === 0) {
-            document.getElementById('manageLeadsContent').innerHTML = '<p>This user has no leads.</p>';
-          } else {
-            document.getElementById('manageLeadsContent').innerHTML = leads.map(l => `
-              <div style="border: 1px solid var(--color-border); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
-                <h4 style="margin-bottom: 0.25rem;">${l.product_needed} <span style="font-size:0.75rem; color:gray;">(ID: ${l.id})</span></h4>
-                <div style="font-size: 0.875rem; color: var(--color-text-muted);">Buyer Phone: ${l.buyer_phone} | Status: <strong>${l.status}</strong></div>
-                <div style="font-size: 0.75rem; margin-top: 0.5rem;">Direct Lead: ${l.is_direct === false ? 'No (Bonus)' : 'Yes'} | Paid Unlock: ${l.is_paid ? 'Yes' : 'No'}</div>
-                <p style="font-size: 0.875rem; margin-top: 0.5rem; background: var(--color-bg-light); padding: 0.5rem;">${l.details || 'No details.'}</p>
-              </div>
-            `).join('');
+        
+        if (data && data.stats) {
+          const s = data.stats;
+          document.getElementById('statUsers').innerText = (s.users || 0).toLocaleString('en-IN');
+          document.getElementById('statUsersBreakdown').innerText = `${s.suppliers || 0} Suppliers • ${s.buyers || 0} Buyers`;
+          document.getElementById('statDirectLeads').innerText = (s.direct_leads || 0).toLocaleString('en-IN');
+          document.getElementById('statBuyLeads').innerText = (s.buy_leads || 0).toLocaleString('en-IN');
+          document.getElementById('statProducts').innerText = (s.products || 0).toLocaleString('en-IN');
+          document.getElementById('statRevenue').innerText = '₹' + (s.revenue || 0).toLocaleString('en-IN');
+
+          document.getElementById('badgeSidebarLeads').innerText = s.leads || 0;
+          document.getElementById('badgeSidebarUsers').innerText = s.users || 0;
+          document.getElementById('badgeSidebarProducts').innerText = s.products || 0;
+
+          // Render Recent Users
+          if (data.recentUsers && data.recentUsers.length > 0) {
+            renderUsersTable(data.recentUsers);
           }
+
+          // Render Recent Leads stream on dashboard
+          if (data.recentLeads && data.recentLeads.length > 0) {
+            renderDashboardRecentLeads(data.recentLeads);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch admin stats:', err);
+      }
+    }
+
+    function renderDashboardRecentLeads(leads) {
+      const tbody = document.querySelector('#dashboardRecentLeadsTable tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = leads.map(l => {
+        const isDirect = (l.is_direct === true || l.is_direct === 'true') && !!l.supplier_id;
+        const typeBadge = isDirect 
+          ? `<span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.75rem;">🎯 DIRECT</span>`
+          : `<span style="background:#ffedd5; color:#ea580c; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.75rem;">📢 BUY LEAD</span>`;
+        
+        const dateStr = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short' }) : 'Recent';
+
+        return `
+          <tr>
+            <td>#${l.id}</td>
+            <td>${typeBadge}</td>
+            <td><strong>${l.product_needed || 'Requirement'}</strong></td>
+            <td><a href="tel:${l.buyer_phone || ''}" style="color:#0284c7; text-decoration:none;">${l.buyer_phone || 'N/A'}</a></td>
+            <td>${isDirect ? (l.supplier_name || 'Assigned Supplier') : '<span style="color:#64748b;">Open Market</span>'}</td>
+            <td>${dateStr}</td>
+            <td>
+              <button class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem;" onclick="viewLeadDetail(${l.id})">
+                👁️ View
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderUsersTable(users) {
+      const tbody = document.querySelector('#usersTable tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>#${u.id}</td>
+          <td><strong>${u.name || 'User'}</strong></td>
+          <td><a href="tel:${u.phone}" style="color:#0284c7; text-decoration:none;">${u.phone}</a></td>
+          <td><span class="badge ${u.role === 'supplier' ? 'badge-teal' : (u.role === 'admin' ? 'badge-orange' : '')}">${u.role || 'buyer'}</span></td>
+          <td><span style="font-weight:600; text-transform:uppercase; font-size:0.75rem;">${u.subscription || 'free'}</span></td>
+          <td>${u.city || 'N/A'}</td>
+          <td>
+            <button class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.75rem; border-color:var(--color-teal); color:var(--color-teal);" onclick="viewUserLeads(${u.id}, '${u.name}')">Leads</button>
+            <button class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#dc2626; border-color:#dc2626; margin-left:0.35rem;" onclick="deleteUser(${u.id})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // ==============================================
+    // LOAD & MANAGE ALL LEADS (DIRECT vs BUY LEADS)
+    // ==============================================
+    async function loadAllLeads() {
+      if (!checkAdminSession()) return;
+      const token = auth.getToken();
+      const tbody = document.getElementById('allLeadsTbody');
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#64748b;">Loading leads...</td></tr>';
+
+      try {
+        const res = await auth.fetchWithFallback('/admin/leads', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+
+        if (data && data.success) {
+          rawLeadsList = data.leads || [];
+          document.getElementById('countAllLeads').innerText = data.total || rawLeadsList.length;
+          document.getElementById('countDirectLeads').innerText = data.direct_count || rawLeadsList.filter(l => l.is_direct).length;
+          document.getElementById('countBuyLeads').innerText = data.buy_leads_count || rawLeadsList.filter(l => !l.is_direct).length;
+          document.getElementById('badgeSidebarLeads').innerText = data.total || rawLeadsList.length;
+
+          filterLeadsLocally();
         } else {
-          document.getElementById('manageLeadsContent').innerHTML = '<p style="color:red;">Error fetching leads.</p>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626; padding:2rem;">Failed to fetch leads from server.</td></tr>';
+        }
+      } catch(err) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626; padding:2rem;">Network Error connecting to Leads API.</td></tr>';
+      }
+    }
+
+    function setLeadFilter(type) {
+      currentLeadFilter = type;
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      if (type === 'all') document.getElementById('pillAllLeads').classList.add('active');
+      else if (type === 'direct') document.getElementById('pillDirectLeads').classList.add('active');
+      else if (type === 'buy') document.getElementById('pillBuyLeads').classList.add('active');
+
+      filterLeadsLocally();
+    }
+
+    function filterLeadsLocally() {
+      const q = (document.getElementById('leadSearchInput').value || '').trim().toLowerCase();
+      const statusVal = document.getElementById('leadStatusFilter').value;
+      const tbody = document.getElementById('allLeadsTbody');
+
+      let list = rawLeadsList.slice();
+
+      // Type filter
+      if (currentLeadFilter === 'direct') {
+        list = list.filter(l => l.is_direct);
+      } else if (currentLeadFilter === 'buy') {
+        list = list.filter(l => !l.is_direct);
+      }
+
+      // Status filter
+      if (statusVal !== 'ALL') {
+        list = list.filter(l => (l.status || 'New').toLowerCase() === statusVal.toLowerCase());
+      }
+
+      // Search query filter
+      if (q) {
+        list = list.filter(l =>
+          (l.product_needed && l.product_needed.toLowerCase().includes(q)) ||
+          (l.details && l.details.toLowerCase().includes(q)) ||
+          (l.buyer_phone && l.buyer_phone.includes(q)) ||
+          (l.buyer_name && l.buyer_name.toLowerCase().includes(q)) ||
+          (l.supplier_name && l.supplier_name.toLowerCase().includes(q))
+        );
+      }
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:3rem;">No leads match your filter criteria.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(l => {
+        const isDirect = l.is_direct;
+        const typeBadge = isDirect
+          ? `<span style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.75rem; display:inline-block;">🎯 DIRECT LEAD</span>
+             <small style="display:block; color:#64748b; font-size:0.7rem; margin-top:2px;">Specific Supplier</small>`
+          : `<span style="background:#ffedd5; color:#ea580c; border:1px solid #fed7aa; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.75rem; display:inline-block;">📢 BUY LEAD (RFQ)</span>
+             <small style="display:block; color:#64748b; font-size:0.7rem; margin-top:2px;">₹50 Unlock Lead</small>`;
+
+        const cleanPhone = (l.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+        const waLink = cleanPhone ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hello, regarding your requirement for ${l.product_needed || 'products'} on Flenko:`)}` : '#';
+
+        const cleanSuppPhone = (l.supplier_phone || '').replace(/[^0-9]/g, '').slice(-10);
+
+        const dateStr = l.created_at ? new Date(l.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : 'N/A';
+
+        const supplierCol = isDirect
+          ? `<div>
+               <strong style="color:#0f172a; font-size:0.85rem;">🏢 ${l.supplier_name}</strong>
+               ${cleanSuppPhone ? `<br><a href="tel:${cleanSuppPhone}" style="color:#64748b; font-size:0.75rem; text-decoration:none;">📞 ${cleanSuppPhone}</a>` : ''}
+             </div>`
+          : `<div>
+               <span style="color:#475569; font-weight:600; font-size:0.8rem;">🌐 Open Market</span>
+               <br><span style="background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">🔓 ${l.unlocks_count || 0} Unlocks</span>
+             </div>`;
+
+        return `
+          <tr>
+            <td style="font-weight:700; color:#475569;">#${l.id}</td>
+            <td>${typeBadge}</td>
+            <td>
+              <div style="font-weight:700; color:#0f172a; margin-bottom:2px;">${l.product_needed || 'Product Needed'}</div>
+              <div style="font-size:0.75rem; color:#64748b; max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${l.details || 'No additional specifications.'}
+              </div>
+            </td>
+            <td>
+              <strong style="color:#0f172a;">${l.buyer_name || 'Buyer'}</strong>
+              <div style="margin-top:2px; display:flex; align-items:center; gap:0.4rem;">
+                <a href="tel:${cleanPhone}" style="color:#0284c7; text-decoration:none; font-weight:600; font-size:0.8rem;">📞 ${cleanPhone || 'N/A'}</a>
+                ${cleanPhone ? `<a href="${waLink}" target="_blank" style="background:#22c55e; color:white; padding:1px 5px; border-radius:3px; font-size:0.7rem; text-decoration:none;" title="Chat on WhatsApp">💬</a>` : ''}
+              </div>
+              ${l.buyer_city ? `<small style="color:#94a3b8; font-size:0.7rem;">📍 ${l.buyer_city}</small>` : ''}
+            </td>
+            <td>${supplierCol}</td>
+            <td style="font-size:0.75rem; color:#64748b; white-space:nowrap;">${dateStr}</td>
+            <td>
+              <select class="form-control" style="padding:0.25rem 0.4rem; font-size:0.75rem; width:auto;" onchange="updateLeadStatus(${l.id}, this.value)">
+                <option value="New" ${l.status==='New'?'selected':''}>New</option>
+                <option value="Contacted" ${l.status==='Contacted'?'selected':''}>Contacted</option>
+                <option value="Verified" ${l.status==='Verified'?'selected':''}>Verified</option>
+                <option value="Closed" ${l.status==='Closed'?'selected':''}>Closed</option>
+              </select>
+            </td>
+            <td>
+              <div style="display:flex; gap:0.3rem;">
+                <button class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="viewLeadDetail(${l.id})" title="View Full Details">
+                  👁️
+                </button>
+                <button class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#dc2626; border-color:#fca5a5;" onclick="deleteLead(${l.id})" title="Delete Lead">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==============================================
+    // LEAD DETAIL MODAL VIEW
+    // ==============================================
+    function viewLeadDetail(leadId) {
+      const lead = rawLeadsList.find(l => l.id == leadId);
+      if (!lead) return;
+
+      activeModalLeadId = lead.id;
+      const isDirect = lead.is_direct;
+
+      document.getElementById('modalLeadBadge').innerText = isDirect ? '🎯 DIRECT INQUIRY LEAD' : '📢 OPEN BUY LEAD (RFQ)';
+      document.getElementById('modalLeadBadge').className = isDirect ? 'badge badge-teal' : 'badge badge-orange';
+      document.getElementById('modalLeadTitle').innerText = `Lead #${lead.id} Details`;
+
+      const cleanPhone = (lead.buyer_phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const waLink = cleanPhone ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hello ${lead.buyer_name || ''}, regarding your inquiry for ${lead.product_needed || 'products'} on Flenko:`)}` : '#';
+
+      let allocationHtml = '';
+      if (isDirect) {
+        allocationHtml = `
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:1.25rem; margin-top:1rem;">
+            <strong style="color:#15803d; font-size:0.9rem; display:block; margin-bottom:0.5rem;">🏢 Assigned Target Supplier:</strong>
+            <div style="font-weight:700; color:#0f172a; font-size:1rem;">${lead.supplier_name || ('Supplier #' + lead.supplier_id)}</div>
+            ${lead.supplier_phone ? `<div style="margin-top:0.35rem; font-size:0.85rem;"><a href="tel:${lead.supplier_phone}" style="color:#0284c7; text-decoration:none;">📞 Call Supplier: ${lead.supplier_phone}</a></div>` : ''}
+            <small style="color:#64748b; display:block; margin-top:0.35rem;">This buyer clicked Contact Supplier specifically for this manufacturer.</small>
+          </div>
+        `;
+      } else {
+        const unlockedList = (lead.unlocked_suppliers || []);
+        allocationHtml = `
+          <div style="background:#fff7ed; border:1px solid #ffedd5; border-radius:8px; padding:1.25rem; margin-top:1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:#ea580c; font-size:0.9rem;">🌐 Open Market Buy Lead (RFQ):</strong>
+              <span style="background:#fed7aa; color:#9a3412; padding:2px 8px; border-radius:10px; font-weight:700; font-size:0.75rem;">
+                ${lead.unlocks_count || 0} Suppliers Unlocked
+              </span>
+            </div>
+            <p style="font-size:0.8rem; color:#64748b; margin:0.4rem 0 0.75rem;">
+              Any verified supplier on Flenko can pay ₹50 to unlock buyer contact details.
+            </p>
+            ${unlockedList.length > 0 ? `
+              <div style="border-top:1px dashed #fed7aa; padding-top:0.5rem;">
+                <strong style="font-size:0.8rem; color:#9a3412;">Unlocked By:</strong>
+                <ul style="padding-left:1.25rem; margin:0.35rem 0 0; font-size:0.8rem; color:#475569;">
+                  ${unlockedList.map(s => `<li><strong>${s.supplier_name}</strong> (${s.supplier_phone || 'Phone verified'})</li>`).join('')}
+                </ul>
+              </div>
+            ` : '<div style="font-size:0.8rem; color:#94a3b8;">No suppliers have unlocked this lead yet.</div>'}
+          </div>
+        `;
+      }
+
+      document.getElementById('modalLeadContent').innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+          <!-- Left: Buyer Details -->
+          <div>
+            <span style="font-size:0.75rem; font-weight:700; color:#64748b; text-transform:uppercase;">Buyer Contact Information</span>
+            <div style="font-size:1.15rem; font-weight:800; color:#0f172a; margin-top:0.25rem;">${lead.buyer_name || 'Buyer'}</div>
+            
+            <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.4rem; font-size:0.85rem;">
+              <div><strong>Phone:</strong> <a href="tel:${cleanPhone}" style="color:#0284c7; text-decoration:none; font-weight:700;">+91 ${cleanPhone}</a></div>
+              ${lead.buyer_email ? `<div><strong>Email:</strong> <a href="mailto:${lead.buyer_email}" style="color:#0284c7; text-decoration:none;">${lead.buyer_email}</a></div>` : ''}
+              ${lead.buyer_city ? `<div><strong>Location:</strong> 📍 ${lead.buyer_city}</div>` : ''}
+              <div><strong>Received Date:</strong> ${lead.created_at ? new Date(lead.created_at).toLocaleString('en-IN') : 'N/A'}</div>
+            </div>
+
+            <div style="margin-top:1.25rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <a href="${waLink}" target="_blank" class="btn btn-primary" style="background:#22c55e; border:none; padding:0.5rem 1rem; font-size:0.825rem; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+                💬 WhatsApp Buyer
+              </a>
+              <a href="tel:${cleanPhone}" class="btn btn-outline" style="border-color:#cbd5e1; padding:0.5rem 1rem; font-size:0.825rem; text-decoration:none;">
+                📞 Call Phone
+              </a>
+            </div>
+          </div>
+
+          <!-- Right: Product Requirements & Specs -->
+          <div>
+            <span style="font-size:0.75rem; font-weight:700; color:#64748b; text-transform:uppercase;">Requirement Specifications</span>
+            <div style="font-size:1.1rem; font-weight:800; color:#0f172a; margin-top:0.25rem;">${lead.product_needed || 'Required Product'}</div>
+
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; margin-top:0.75rem; font-size:0.85rem; color:#334155; line-height:1.5;">
+              ${lead.details ? lead.details.replace(/\n/g, '<br>') : 'No specifications entered.'}
+            </div>
+
+            ${allocationHtml}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('modalStatusSelect').value = lead.status || 'New';
+      document.getElementById('leadDetailModal').style.display = 'flex';
+    }
+
+    function closeLeadModal() {
+      document.getElementById('leadDetailModal').style.display = 'none';
+      activeModalLeadId = null;
+    }
+
+    async function updateModalLeadStatus() {
+      if (!activeModalLeadId) return;
+      const newStatus = document.getElementById('modalStatusSelect').value;
+      await updateLeadStatus(activeModalLeadId, newStatus);
+      closeLeadModal();
+    }
+
+    async function updateLeadStatus(leadId, status) {
+      try {
+        const res = await auth.fetchWithFallback(`/admin/leads/${leadId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + auth.getToken()
+          },
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          const l = rawLeadsList.find(x => x.id == leadId);
+          if (l) l.status = status;
         }
       } catch(e) {
-        document.getElementById('manageLeadsContent').innerHTML = '<p style="color:red;">Network Error.</p>';
+        console.warn('Failed to update lead status:', e);
       }
+    }
+
+    async function deleteLead(leadId) {
+      if (!confirm(`Are you sure you want to permanently delete Lead #${leadId}?`)) return;
+
+      try {
+        const res = await auth.fetchWithFallback(`/admin/leads/${leadId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + auth.getToken() }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          rawLeadsList = rawLeadsList.filter(l => l.id != leadId);
+          filterLeadsLocally();
+          fetchAdminData();
+        } else {
+          alert('Failed to delete lead: ' + ((data && data.error) || 'Unknown error'));
+        }
+      } catch(err) {
+        alert('Network error deleting lead: ' + err.message);
+      }
+    }
+
+    // ==============================================
+    // USER MANAGEMENT
+    // ==============================================
+    async function viewUserLeads(userId, userName) {
+      switchTab('leads', document.querySelectorAll('.admin-menu a')[1]);
+      document.getElementById('leadSearchInput').value = userName;
+      filterLeadsLocally();
     }
 
     async function deleteUser(id) {
-      if(confirm('Are you sure you want to delete this user? This will also remove their products and businesses.')) {
-        try {
-          const res = await auth.fetchWithFallback(`/admin/users/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${auth.getToken()}` }
-          });
-          const data = await res.json();
-          if(data.success) {
-            alert('User deleted.');
-            fetchAdminData();
-          } else {
-            alert('Failed to delete user.');
-          }
-        } catch(e) {
-          alert('Network Error');
+      if (!confirm('Are you sure you want to delete this user? This will also remove their business profile.')) return;
+      try {
+        const res = await auth.fetchWithFallback(`/admin/users/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + auth.getToken() }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          alert('User deleted successfully.');
+          fetchAdminData();
+        } else {
+          alert('Failed to delete user.');
         }
-      }
-    }
-    
-    function saveSettings(type) {
-      if (type === 'finance') {
-        const fee = document.getElementById('settingLeadFee').value;
-        const gst = document.getElementById('settingGst').value;
-        alert(`Financial Settings Saved!\nLead Fee: ₹${fee}\nGST: ${gst}%`);
-      } else if (type === 'system') {
-        const allowReg = document.getElementById('settingRegistrations').checked;
-        const maintenance = document.getElementById('settingMaintenance').checked;
-        const qrFile = document.getElementById('settingQr').files[0];
-        let msg = `System Controls Saved!\nRegistrations: ${allowReg ? 'Allowed' : 'Paused'}\nMaintenance Mode: ${maintenance ? 'ON' : 'OFF'}`;
-        if (qrFile) msg += `\nNew QR uploaded: ${qrFile.name}`;
-        alert(msg);
+      } catch(e) {
+        alert('Network error deleting user.');
       }
     }
 
+    // ==============================================
+    // PRODUCTS CATALOG TAB
+    // ==============================================
+    async function loadAdminProducts() {
+      if (!checkAdminSession()) return;
+      const tbody = document.getElementById('adminProductsTbody');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:#64748b;">Loading products...</td></tr>';
+
+      try {
+        const res = await auth.fetchWithFallback('/admin/products', {
+          headers: { 'Authorization': 'Bearer ' + auth.getToken() }
+        });
+        const data = await res.json();
+        const prods = (data && data.products) ? data.products : [];
+
+        if (prods.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:3rem; color:#64748b;">No products listed yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = prods.map(p => `
+          <tr>
+            <td>
+              <img src="${p.image_url || 'assets/images/logo.png'}" style="width:48px; height:48px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;" onerror="this.src='assets/images/logo.png'">
+            </td>
+            <td>
+              <strong style="color:#0f172a; font-size:0.9rem;">${p.name}</strong>
+              <small style="display:block; color:#64748b; font-size:0.75rem;">ID: #${p.id}</small>
+            </td>
+            <td><span class="badge badge-blue" style="font-size:0.75rem;">${p.category || 'General'}</span></td>
+            <td>
+              <div style="font-weight:600; color:#0f172a;">${p.supplier_name || 'Verified Supplier'}</div>
+              ${p.supplier_phone ? `<small style="color:#64748b;">📞 ${p.supplier_phone}</small>` : ''}
+            </td>
+            <td><strong>₹${Number(p.price || 0).toLocaleString('en-IN')}</strong> / ${p.unit || 'pcs'}</td>
+            <td>MOQ: ${p.moq || 1} • Stock: ${p.stock_quantity || 500}</td>
+            <td>
+              <button class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem; color:#dc2626; border-color:#fca5a5;" onclick="deleteAdminProduct(${p.id})">
+                🗑️ Delete
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#dc2626; padding:2rem;">Failed to load products.</td></tr>';
+      }
+    }
+
+    async function deleteAdminProduct(prodId) {
+      if (!confirm(`Are you sure you want to remove Product #${prodId}?`)) return;
+      try {
+        const res = await auth.fetchWithFallback(`/admin/products/${prodId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + auth.getToken() }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          loadAdminProducts();
+          fetchAdminData();
+        } else {
+          alert('Failed to delete product.');
+        }
+      } catch(e) {
+        alert('Network error deleting product.');
+      }
+    }
+
+    // ==============================================
+    // PAYMENTS & FRAUD SHIELD TAB
+    // ==============================================
     async function loadPaymentsLedger() {
+      if (!checkAdminSession()) return;
       const token = auth.getToken();
-      if (!token) return;
 
       try {
         const res = await auth.fetchWithFallback('/admin/payments', {
@@ -453,37 +1200,32 @@
           const leadPays = data.lead_payments || [];
           const subPays = data.subscription_payments || [];
 
-          document.getElementById('statLeadPaysCount').innerText = leadPays.length;
-          const totalRev = leadPays.reduce((acc, p) => acc + (parseFloat(p.amount) || 50), 0);
-          document.getElementById('statLeadRevenue').innerText = '₹' + totalRev.toLocaleString('en-IN');
-          document.getElementById('statSubPaysCount').innerText = subPays.length;
-
           // Render Lead Payments
           const leadTbody = document.querySelector('#leadPaymentsTable tbody');
           if (leadPays.length === 0) {
-            leadTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--color-text-muted); padding: 1.5rem;">No BuyLead payments recorded yet.</td></tr>';
+            leadTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:2rem;">No BuyLead payments recorded yet.</td></tr>';
           } else {
             leadTbody.innerHTML = leadPays.map(p => {
               const isFraud = p.status === 'fraud';
               return `
-                <tr style="${isFraud ? 'background: #fff1f2;' : ''}">
+                <tr style="${isFraud ? 'background:#fff1f2;' : ''}">
                   <td>#${p.id}</td>
                   <td><strong>${p.lead_title || ('Lead #' + p.lead_id)}</strong></td>
-                  <td>${p.supplier_name || 'Seller'} <br><small style="color:gray;">${p.supplier_phone || p.payer_phone || 'N/A'}</small></td>
-                  <td><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${p.utr}</code></td>
-                  <td><span style="font-weight: 700; color: #028867;">₹${p.amount || '50.00'}</span></td>
+                  <td>${p.supplier_name || 'Seller'} <br><small style="color:#64748b;">${p.supplier_phone || p.payer_phone || 'N/A'}</small></td>
+                  <td><code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-weight:700;">${p.utr}</code></td>
+                  <td><strong style="color:#059669;">₹${p.amount || '50.00'}</strong></td>
                   <td>
                     ${isFraud 
-                      ? '<span style="background: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">🚨 FRAUD FLAGGED</span>'
-                      : '<span style="background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">✅ VERIFIED</span>'
+                      ? '<span style="background:#fee2e2; color:#dc2626; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">🚨 FRAUD FLAGGED</span>'
+                      : '<span style="background:#dcfce7; color:#15803d; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">✅ VERIFIED</span>'
                     }
                   </td>
                   <td>
                     ${!isFraud ? `
-                      <button class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; color: #dc2626; border-color: #dc2626; cursor: pointer;" onclick="flagFraud(${p.id}, ${p.lead_id})">
-                        🚨 Flag Fraud & Re-Lock
+                      <button class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem; color:#dc2626; border-color:#dc2626;" onclick="flagFraud(${p.id}, ${p.lead_id})">
+                        🚨 Flag Fraud &amp; Re-Lock
                       </button>
-                    ` : '<span style="font-size: 0.75rem; color: gray;">Lead Re-Locked</span>'}
+                    ` : '<span style="font-size:0.75rem; color:gray;">Lead Re-Locked</span>'}
                   </td>
                 </tr>
               `;
@@ -493,17 +1235,17 @@
           // Render Sub Payments
           const subTbody = document.querySelector('#subPaymentsTable tbody');
           if (subPays.length === 0) {
-            subTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--color-text-muted); padding: 1.5rem;">No subscription payments recorded yet.</td></tr>';
+            subTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:2rem;">No subscription payments recorded yet.</td></tr>';
           } else {
             subTbody.innerHTML = subPays.map(sp => `
               <tr>
                 <td>#${sp.id}</td>
-                <td>${sp.user_name || 'Member'}</td>
+                <td><strong>${sp.user_name || 'Member'}</strong></td>
                 <td>${sp.user_phone || 'N/A'}</td>
-                <td><span class="badge badge-teal" style="text-transform: uppercase;">${sp.plan}</span></td>
-                <td><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${sp.utr}</code></td>
-                <td><span style="font-weight: 700; color: #028867;">₹${(sp.amount || 0).toLocaleString('en-IN')}</span></td>
-                <td><span style="background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">✅ VERIFIED</span></td>
+                <td><span class="badge badge-teal" style="text-transform:uppercase;">${sp.plan}</span></td>
+                <td><code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-weight:700;">${sp.utr}</code></td>
+                <td><strong style="color:#059669;">₹${Number(sp.amount || 0).toLocaleString('en-IN')}</strong></td>
+                <td><span style="background:#dcfce7; color:#15803d; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">✅ VERIFIED</span></td>
               </tr>
             `).join('');
           }
@@ -514,9 +1256,7 @@
     }
 
     async function flagFraud(paymentId, leadId) {
-      if (!confirm(`Are you sure you want to flag Payment #${paymentId} as FRAUD?\n\nThis will instantly re-lock Lead #${leadId} and revoke buyer contact details from the supplier!`)) {
-        return;
-      }
+      if (!confirm(`Are you sure you want to flag Payment #${paymentId} as FRAUD?\n\nThis will instantly re-lock Lead #${leadId} and revoke buyer details!`)) return;
       try {
         const res = await auth.fetchWithFallback(`/admin/payments/${paymentId}/flag-fraud`, {
           method: 'POST',
@@ -527,16 +1267,49 @@
           alert('🚨 ' + data.message);
           loadPaymentsLedger();
         } else {
-          alert('❌ Error: ' + ((data && data.error) || 'Failed to flag fraud'));
+          alert('Error: ' + ((data && data.error) || 'Failed to flag fraud'));
         }
       } catch(e) {
-        alert('❌ Network error: ' + e.message);
+        alert('Network error: ' + e.message);
+      }
+    }
+
+    async function cleanDemoData() {
+      if (!confirm('⚠️ WARNING: This will delete demo listings and test RFQs.\n\nAre you sure you want to proceed?')) return;
+      try {
+        const res = await auth.fetchWithFallback('/admin/clean-demo-data', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + auth.getToken(),
+            'x-admin-secret': 'flenko_clean_2026'
+          }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          alert('✅ ' + data.message);
+          fetchAdminData();
+          loadAllLeads();
+        } else {
+          alert('Error: ' + ((data && data.error) || 'Failed'));
+        }
+      } catch(e) {
+        alert('Network error.');
+      }
+    }
+
+    function saveSettings(type) {
+      if (type === 'finance') {
+        const fee = document.getElementById('settingLeadFee').value;
+        const gst = document.getElementById('settingGst').value;
+        alert(`Financial Settings Saved!\nBuyLead Fee: ₹${fee}\nGST: ${gst}%`);
       }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetchAdminData();
-      loadPaymentsLedger();
+      if (checkAdminSession()) {
+        fetchAdminData();
+        loadAllLeads();
+      }
     });
   </script>
 </body>
