@@ -1321,7 +1321,7 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         subdomain: business.subdomain || (targetUserId === 1 ? 'apexpackaging' : null),
         website_enabled: business.website_enabled !== false && (business.subdomain || targetUserId === 1),
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
-        website_url: business.subdomain ? `https://${business.subdomain}.flenko.com` : (targetUserId === 1 ? 'https://apexpackaging.flenko.com' : null),
+        website_url: business.subdomain ? `https://flenko.com/site.html?store=${business.subdomain}` : (targetUserId === 1 ? 'https://flenko.com/site.html?store=apexpackaging' : null),
         member_since: business.created_at || (user ? user.created_at : new Date('2022-01-01')),
         contact: {
           phone: user ? user.phone : null,
@@ -1475,7 +1475,7 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
         subdomain: business.subdomain || `flk${targetUserId}`,
         website_enabled: business.website_enabled !== false,
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
-        website_url: `https://${business.subdomain || `flk${targetUserId}`}.flenko.com`,
+        website_url: `https://flenko.com/site.html?store=${business.subdomain || `flk${targetUserId}`}`,
         contact: {
           phone: user ? user.phone : null,
           email: user ? user.email : null
@@ -1534,15 +1534,17 @@ app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
       await db.query("UPDATE users SET subscription = 'premium' WHERE id = $1 AND (subscription IS NULL OR subscription = 'free')", [userId]);
     } catch(uErr) {}
 
-    const website_url = `https://${subdomain}.flenko.com`;
+    const website_url = `https://flenko.com/site.html?store=${subdomain}`;
     const preview_url = `site.html?store=${subdomain}`;
+    const site_route_url = `https://flenko.com/site/${subdomain}`;
 
     res.json({
       success: true,
-      message: '🎉 Congratulations! Your Branded Website & Subdomain is Live!',
+      message: '🎉 Congratulations! Your Branded Store Website is Live!',
       subdomain,
       website_url,
       preview_url,
+      site_route_url,
       is_paid_trusted: true
     });
   } catch (err) {
@@ -1952,7 +1954,7 @@ const handleLeadSubmission = async (req, res) => {
   const leadSource = source || (subdomain ? 'seller_website' : 'flenko_direct');
   let leadDetails = rawDetails;
   if ((leadSource === 'seller_website' || subdomain) && !leadDetails.includes('Website Lead')) {
-    const subText = subdomain ? `${subdomain}.flenko.com` : 'Seller Website';
+    const subText = subdomain ? `Store: ${subdomain}` : 'Seller Website';
     leadDetails = `[🌐 Website Lead: ${subText}] ${rawDetails}`;
   }
 

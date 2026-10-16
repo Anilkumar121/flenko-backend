@@ -172,9 +172,9 @@
 
             <!-- Domain Display Box -->
             <div style="background: white; border: 1.5px dashed #3b82f6; border-radius: 8px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;">Custom Subdomain:</span>
-                <span id="dashSubdomainDisplay" style="font-family: monospace; font-size: 1rem; font-weight: 800; color: #0F4C9B;">https://yourcompany.flenko.com</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;">Your Dedicated Website Link:</span>
+                <span id="dashSubdomainDisplay" style="font-family: monospace; font-size: 0.95rem; font-weight: 800; color: #0F4C9B; word-break: break-all;">https://flenko.com/site.html?store=yourcompany</span>
               </div>
               <div style="font-size: 0.78rem; color: #028867; font-weight: 600; display: flex; align-items: center; gap: 0.3rem;">
                 <span>🎯</span> Direct Inquiries flow straight to your Lead Manager (100% Free)
@@ -186,11 +186,11 @@
             <div style="flex: 1; min-width: 280px;">
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
                 <span style="font-size: 1.4rem;">🚀</span>
-                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Get Your Own Branded Website & Subdomain</h3>
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Get Your Own Branded Website</h3>
                 <span class="badge" style="background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px;">Exclusive Feature</span>
               </div>
               <p style="color: #475569; font-size: 0.88rem; line-height: 1.5; margin: 0;">
-                Launch a professional B2B company website (e.g. <strong>xyz.flenko.com</strong>) in 1 click! Displays your full product catalog, factory overview, and client reviews. Inquiries flow directly into your Lead Manager.
+                Launch your dedicated company storefront website link in 1 click! Displays your full product catalog, factory overview, and client reviews. Inquiries flow directly into your Lead Manager.
               </p>
             </div>
             <button type="button" class="btn btn-primary" onclick="openWebsiteModal()" style="background: linear-gradient(135deg, #028867, #0F4C9B); border: none; font-weight: 700; font-size: 0.95rem; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(2,136,103,0.3); display: flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
@@ -382,9 +382,17 @@
           }
         }
 
+        function getStoreWorkingUrl(s) {
+          const origin = window.location.origin;
+          if (origin && !origin.includes('file:') && !origin.includes('null')) {
+            return `${origin}/site.html?store=${encodeURIComponent(s)}`;
+          }
+          return `https://flenko.com/site.html?store=${encodeURIComponent(s)}`;
+        }
+
         if (isWebEnabled && sub) {
-          const liveUrl = `https://${sub}.flenko.com`;
-          const previewUrl = `site.html?store=${sub}`;
+          const liveUrl = getStoreWorkingUrl(sub);
+          const previewUrl = `site.html?store=${encodeURIComponent(sub)}`;
           window.currentWebsiteUrl = liveUrl;
 
           const inact = document.getElementById('websiteInactiveView');
@@ -595,14 +603,14 @@
       <form id="websiteForm" onsubmit="submitGenerateWebsite(event)" style="padding: 1.5rem;">
         <div style="margin-bottom: 1.25rem;">
           <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">
-            Choose Subdomain Handle <span style="color: #ef4444;">*</span>
+            Choose Store Link Handle / Slug <span style="color: #ef4444;">*</span>
           </label>
           <div style="display: flex; align-items: center; border: 1.5px solid #0F4C9B; border-radius: 6px; overflow: hidden; background: #fff;">
-            <input type="text" id="siteSubdomainInput" required class="form-control" placeholder="e.g. xyz" style="border: none; font-size: 1rem; font-weight: 700; color: #0F4C9B; padding: 0.6rem 0.75rem; text-align: right;" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '')">
-            <span style="background: #f1f5f9; padding: 0.6rem 0.85rem; font-size: 0.95rem; font-weight: 700; color: #475569; border-left: 1px solid #cbd5e1;">.flenko.com</span>
+            <span style="background: #f1f5f9; padding: 0.6rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: #475569; border-right: 1px solid #cbd5e1; white-space: nowrap;">flenko.com/site.html?store=</span>
+            <input type="text" id="siteSubdomainInput" required class="form-control" placeholder="xyz" style="border: none; font-size: 0.95rem; font-weight: 700; color: #0F4C9B; padding: 0.6rem 0.75rem;" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, ''); if(typeof window.updateSiteLinkPreview==='function') window.updateSiteLinkPreview(this.value)">
           </div>
           <small style="display: block; font-size: 0.75rem; color: #64748b; margin-top: 0.35rem;">
-            Example: If company is XYZ Pvt Ltd, domain becomes: <strong>https://xyz.flenko.com</strong>
+            Live Website Link: <strong id="siteLinkPreview" style="color: #0F4C9B; word-break: break-all;">https://flenko.com/site.html?store=xyz</strong>
           </small>
         </div>
 
@@ -703,6 +711,22 @@
   </div>
 
   <script>
+    function getStoreWorkingUrl(s) {
+      const origin = window.location.origin;
+      if (origin && !origin.includes('file:') && !origin.includes('null')) {
+        return `${origin}/site.html?store=${encodeURIComponent(s)}`;
+      }
+      return `https://flenko.com/site.html?store=${encodeURIComponent(s)}`;
+    }
+
+    window.updateSiteLinkPreview = function(val) {
+      const previewEl = document.getElementById('siteLinkPreview');
+      if (previewEl) {
+        const clean = (val || 'xyz').trim().toLowerCase().replace(/[^a-z0-9-]/g, '') || 'xyz';
+        previewEl.innerText = getStoreWorkingUrl(clean);
+      }
+    };
+
     window.openWebsiteModal = function() {
       const u = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? (auth.getUser() || {}) : {};
       const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
@@ -711,6 +735,9 @@
       const defaultSubdomain = (biz.subdomain) || compName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
       document.getElementById('siteSubdomainInput').value = defaultSubdomain;
       document.getElementById('siteTaglineInput').value = biz.website_tagline || `Verified Manufacturer & Wholesale Exporter of ${biz.category || 'Quality B2B Products'}`;
+      if (typeof window.updateSiteLinkPreview === 'function') {
+        window.updateSiteLinkPreview(defaultSubdomain);
+      }
       document.getElementById('websiteModal').style.display = 'flex';
     };
 
@@ -722,7 +749,7 @@
       const url = window.currentWebsiteUrl || (document.getElementById('dashSubdomainDisplay') ? document.getElementById('dashSubdomainDisplay').innerText : '');
       if (url) {
         navigator.clipboard.writeText(url);
-        alert('📋 Website URL copied to clipboard:\n' + url);
+        alert('📋 Website Link copied to clipboard:\n' + url);
       }
     };
 
@@ -734,7 +761,7 @@
       const btn = document.getElementById('btnSubmitWebsite');
 
       if (!cleanSub || cleanSub.length < 2) {
-        alert('Please enter a valid subdomain handle (at least 2 letters/numbers).');
+        alert('Please enter a valid store link handle (at least 2 letters/numbers).');
         return;
       }
 
@@ -770,8 +797,9 @@
           }
           auth.setUser(u);
 
+          const liveUrl = getStoreWorkingUrl(data.subdomain || cleanSub);
           closeWebsiteModal();
-          alert(`🎉 Congratulations! Your Branded Website & Subdomain is Live!\n\nOfficial Subdomain: ${data.website_url}\nPreview Store: ${data.preview_url}\n\n🛡️ "Paid Trusted Seller" badge is now active across Flenko!`);
+          alert(`🎉 Congratulations! Your Branded Store Website is Live!\n\nOfficial Website Link:\n${liveUrl}\n\n🛡️ "Paid Trusted Seller" badge is now active across Flenko!`);
           window.location.reload();
         } else {
           alert('❌ Failed to activate website: ' + ((data && data.error) || 'Please try again.'));
