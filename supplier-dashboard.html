@@ -446,7 +446,11 @@
       function syncWebsiteUI(biz, userObj) {
         const b = biz || {};
         const u = userObj || auth.getUser() || {};
-        const isPaid = b.is_paid_trusted === true || b.is_paid_trusted === 'true' || u.is_paid_trusted === true || u.subscription === 'premium' || u.subscription === 'vip';
+        const isPaid = Boolean(
+          b.is_paid_trusted === true || b.is_paid_trusted === 'true' || 
+          u.is_paid_trusted === true ||
+          (u.subscription && u.subscription !== 'free' && u.subscription !== 'basic')
+        );
         const isWebEnabled = b.website_enabled === true || b.website_enabled === 'true';
         const sub = b.subdomain;
 

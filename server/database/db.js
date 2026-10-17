@@ -118,6 +118,7 @@ if (!supBiz) {
     website_enabled: true,
     website_tagline: 'Leading Industrial Packaging & Corrugated Box Manufacturer',
     logo_url: 'assets/images/logo.png',
+    year_est: '2015',
     created_at: new Date('2020-01-15')
   });
 } else {
@@ -181,6 +182,7 @@ async function ensureTables() {
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_enabled BOOLEAN DEFAULT FALSE`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_tagline TEXT`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_theme VARCHAR(50) DEFAULT 'modern'`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS year_est VARCHAR(20)`,
     `CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER,
@@ -520,6 +522,7 @@ module.exports = {
         website_enabled: params[12] || false,
         website_tagline: params[13] || null,
         is_verified: true,
+        year_est: params[10] || params[9] || '',
         created_at: new Date()
       };
       mockDB.businesses.push(newBiz);
@@ -556,6 +559,13 @@ module.exports = {
         if (params.length >= 11) {
           biz.subdomain = params[9] || biz.subdomain;
           if (params[10] !== undefined) biz.is_paid_trusted = params[10];
+        }
+        if (text.includes('year_est')) {
+          const parts = text.split('SET')[1].split('WHERE')[0].split(',');
+          const yIdx = parts.findIndex(p => p.includes('year_est'));
+          if (yIdx !== -1 && params[yIdx] !== undefined) {
+            biz.year_est = params[yIdx];
+          }
         }
       } else {
         biz = {

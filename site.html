@@ -345,8 +345,8 @@
     <div class="site-hero-content">
       <div>
         <div style="margin-bottom: 1.25rem;">
-          <span class="paid-trusted-gold-tag" id="paidTrustedBadge">
-            🛡️ PAID TRUSTED SELLER ✓
+          <span class="paid-trusted-gold-tag" id="paidTrustedBadge" style="display:none;">
+            🏆 PAID VERIFIED SELLER ✓
           </span>
         </div>
         <h1 class="hero-h1" id="heroCompanyTitle">
@@ -453,7 +453,7 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
           <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:1rem; border-radius:8px;">
             <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; font-weight:700;">Establishment</div>
-            <div style="font-size:1.1rem; font-weight:800; color:#0f172a; margin-top:0.25rem;">Est. 2015</div>
+            <div style="font-size:1.1rem; font-weight:800; color:#0f172a; margin-top:0.25rem;" id="statEstablishment">Est. 2015</div>
           </div>
           <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:1rem; border-radius:8px;">
             <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; font-weight:700;">Verification</div>
@@ -469,6 +469,10 @@
           <tr>
             <th style="padding:0.6rem 0; color:#64748b; width:130px;">Business Type</th>
             <td id="tableBizType" style="padding:0.6rem 0; font-weight:600;">Manufacturer & Wholesaler</td>
+          </tr>
+          <tr>
+            <th style="padding:0.6rem 0; color:#64748b;">Year Established</th>
+            <td id="tableEstYear" style="padding:0.6rem 0; font-weight:600;">2015</td>
           </tr>
           <tr>
             <th style="padding:0.6rem 0; color:#64748b;">GST Number</th>
@@ -556,9 +560,9 @@
         <p style="font-size:0.85rem; line-height:1.6; max-width:420px;" id="footerAboutText">
           Certified industrial manufacturing and supply partner backed by Flenko Trade Assurance protection.
         </p>
-        <div style="margin-top:1rem; font-size:0.8rem;">
+        <div id="footerPaidTrustedWrap" style="margin-top:1rem; font-size:0.8rem; display:none;">
           <span class="paid-trusted-gold-tag" style="padding:0.25rem 0.6rem; font-size:0.72rem;">
-            🛡️ Paid Trusted Seller Entity
+            🏆 Paid Verified Seller Entity
           </span>
         </div>
       </div>
@@ -615,6 +619,61 @@
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
           <button type="button" class="btn btn-secondary" onclick="closeProductQuoteModal()">Cancel</button>
           <button type="submit" id="modalQuoteSubmitBtn" class="btn btn-primary" style="font-weight:700;">Submit Inquiry &rarr;</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Write a Review Modal -->
+  <div id="reviewModal" class="site-modal-overlay">
+    <div class="site-modal-content" style="max-width: 500px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.75rem;">
+        <h3 style="margin:0; font-size:1.15rem; color:#0f172a; display:flex; align-items:center; gap:0.5rem;">
+          <span>⭐ Rate & Review Supplier</span>
+        </h3>
+        <button type="button" onclick="closeReviewModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#64748b; line-height:1;" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="writeReviewForm" onsubmit="submitReview(event)">
+        <!-- Star Selection -->
+        <div style="margin-bottom:1.25rem; text-align:center;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; color:#334155; margin-bottom:0.5rem;">Your Overall Rating</label>
+          <div id="starContainer" style="display:flex; justify-content:center; gap:0.5rem; font-size:1.85rem; cursor:pointer;">
+            <span class="star-select-btn active" onclick="setStarRating(1)" data-val="1">★</span>
+            <span class="star-select-btn active" onclick="setStarRating(2)" data-val="2">★</span>
+            <span class="star-select-btn active" onclick="setStarRating(3)" data-val="3">★</span>
+            <span class="star-select-btn active" onclick="setStarRating(4)" data-val="4">★</span>
+            <span class="star-select-btn active" onclick="setStarRating(5)" data-val="5">★</span>
+          </div>
+          <input type="hidden" id="reviewRatingVal" value="5">
+          <div id="ratingLabel" style="font-size:0.8rem; font-weight:700; color:#0284c7; margin-top:0.35rem;">5 Stars - Excellent Quality & Service</div>
+        </div>
+
+        <!-- Select Product (Optional) -->
+        <div class="form-group" style="margin-bottom:0.85rem;">
+          <label class="form-label" style="font-size:0.8rem;">Reviewed Product / Service</label>
+          <select id="reviewProductSelect" class="form-control" style="font-size:0.85rem;">
+            <option value="">General Supplier & Service Review</option>
+          </select>
+        </div>
+
+        <!-- Reviewer Name -->
+        <div class="form-group" style="margin-bottom:0.85rem;">
+          <label class="form-label" style="font-size:0.8rem;">Your Name / Designation *</label>
+          <input type="text" id="reviewerNameInput" class="form-control" required placeholder="e.g. Ramesh Patel (Procurement Head)" style="font-size:0.85rem;">
+        </div>
+
+        <!-- Review Comment -->
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label class="form-label" style="font-size:0.8rem;">Your Feedback / Review Experience *</label>
+          <textarea id="reviewCommentInput" class="form-control" rows="3" required placeholder="Share details about product quality, packaging, delivery timeline, or supplier communication..." style="font-size:0.85rem;"></textarea>
+        </div>
+
+        <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeReviewModal()">Cancel</button>
+          <button type="submit" id="submitReviewBtn" class="btn btn-primary" style="font-weight:700; padding:0.6rem 1.5rem;">
+            Publish Review ⭐
+          </button>
         </div>
       </form>
     </div>
@@ -691,8 +750,13 @@
         address: (isMatchingSubdomain && localSeller.address) ? localSeller.address : 'Plot 45, MIDC Industrial Area, Andheri East, Mumbai - 400069',
         about: (isMatchingSubdomain && localSeller.about) ? localSeller.about : 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
         website_tagline: (isMatchingSubdomain && localSeller.website_tagline) ? localSeller.website_tagline : 'Leading Industrial Packaging, Corrugated Box & Tape Manufacturer',
+        year_est: (isMatchingSubdomain && localSeller.year_est) ? localSeller.year_est : (localSeller.year_est || '2015'),
         subdomain: activeSubdomain || (localSeller.subdomain) || 'apexpackaging',
-        is_paid_trusted: true,
+        is_paid_trusted: Boolean(
+          (localSeller && (localSeller.subscription === 'premium' || localSeller.subscription === 'pro' || localSeller.subscription === 'enterprise' || localSeller.subscription === 'website_combo')) ||
+          (localSeller && localSeller.is_paid_trusted === true)
+        ),
+        subscription: localSeller.subscription || 'free',
         logo_url: (isMatchingSubdomain && localSeller.logo_url) ? localSeller.logo_url : 'assets/images/logo.png'
       };
 
@@ -772,15 +836,31 @@
       document.getElementById('heroCompanyTitle').innerText = supplier.company_name;
       document.getElementById('heroTagline').innerText = supplier.website_tagline || `Certified Manufacturer and Wholesale Exporter of ${supplier.category || 'High Quality B2B Products'}`;
 
-      // Paid Trusted Badge
+      // Paid Verified Badge - Strictly shown ONLY if seller has an active paid membership
+      const isPaidSeller = Boolean(
+        supplier.is_paid_trusted === true ||
+        (supplier.subscription && supplier.subscription !== 'free' && supplier.subscription !== 'basic')
+      );
       const goldBadge = document.getElementById('paidTrustedBadge');
       if (goldBadge) {
-        goldBadge.style.display = supplier.is_paid_trusted ? 'inline-flex' : 'none';
+        goldBadge.style.display = isPaidSeller ? 'inline-flex' : 'none';
+      }
+      const footerBadge = document.getElementById('footerPaidTrustedWrap');
+      if (footerBadge) {
+        footerBadge.style.display = isPaidSeller ? 'block' : 'none';
       }
 
-      // About Section
+      // About Section & Establishment Year
       document.getElementById('aboutCompanyHeader').innerText = supplier.company_name;
       document.getElementById('aboutCompanyParagraph').innerText = supplier.about || `${supplier.company_name} is a certified manufacturer and wholesale supplier offering high-grade products, dedicated customer service, and full Trade Assurance protection.`;
+
+      const estYearVal = supplier.year_est || supplier.establishment_year || '';
+      if (document.getElementById('statEstablishment')) {
+        document.getElementById('statEstablishment').innerText = estYearVal ? `Est. ${estYearVal}` : 'Est. Verified';
+      }
+      if (document.getElementById('tableEstYear')) {
+        document.getElementById('tableEstYear').innerText = estYearVal || 'Verified Entity';
+      }
 
       document.getElementById('tableBizType').innerText = supplier.business_type || 'Manufacturer & Wholesaler';
       document.getElementById('tableGst').innerText = supplier.gst_number || 'Verified Entity';
@@ -833,9 +913,12 @@
               <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
                 MOQ: <strong>${moq} ${unit}</strong> &bull; <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
               </div>
-              <div style="margin-top: auto;">
+              <div style="margin-top: auto; display:flex; flex-direction:column; gap:0.4rem;">
                 <button class="btn btn-primary" style="width: 100%; font-size: 0.85rem; padding: 0.55rem; font-weight: 700;" onclick="openProductQuoteModal('${escapedName}')">
                   Inquire for Best Price ✉️
+                </button>
+                <button class="btn btn-outline" style="width: 100%; font-size: 0.78rem; padding: 0.35rem; border-color:#cbd5e1; color:#475569;" onclick="openReviewModalForProduct(${p.id}, '${escapedName}')">
+                  ⭐ Review Product
                 </button>
               </div>
             </div>
@@ -849,7 +932,8 @@
       if (!reviews || reviews.length === 0) {
         list.innerHTML = `
           <div style="padding: 2.5rem; text-align: center; background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px;">
-            <p style="color: #64748b; margin: 0;">Verified buyer feedback will appear here.</p>
+            <p style="color: #64748b; margin-bottom: 0.75rem;">No buyer reviews yet. Be the first corporate buyer to review this supplier.</p>
+            <button class="btn btn-primary" style="font-size:0.85rem; padding:0.45rem 1rem;" onclick="openReviewModal()">⭐ Write First Review</button>
           </div>
         `;
         return;
@@ -861,7 +945,10 @@
         return `
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-              <strong style="color: #0f172a;">${r.reviewer_name || 'Verified Procurement Partner'}</strong>
+              <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                <strong style="color: #0f172a;">${r.reviewer_name || 'Verified Procurement Partner'}</strong>
+                ${(r.product_name && r.product_name !== 'General Supplier Review') ? `<span style="font-size:0.75rem; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:4px; font-weight:600;">📦 ${r.product_name}</span>` : ''}
+              </div>
               <span style="color: #f59e0b; font-size: 1rem; letter-spacing:1px;">${stars}</span>
             </div>
             <p style="color: #334155; font-size: 0.88rem; line-height: 1.5; margin: 0;">
@@ -1015,6 +1102,137 @@
         setTimeout(() => { btn.disabled = false; btn.innerText = 'Dispatch Direct Inquiry to Factory ✉️'; }, 5000);
       }
     }
+
+    // Client Review Modal & Submission Handlers
+    function openReviewModal(prodId, prodName) {
+      const select = document.getElementById('reviewProductSelect');
+      if (select) {
+        select.innerHTML = '<option value="">General Supplier & Service Review</option>';
+        if (siteProducts && siteProducts.length > 0) {
+          siteProducts.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.text = `📦 ${p.name}`;
+            if (prodId && String(prodId) === String(p.id)) opt.selected = true;
+            select.appendChild(opt);
+          });
+        }
+      }
+
+      const loggedUser = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+      const nameInput = document.getElementById('reviewerNameInput');
+      if (nameInput && !nameInput.value && loggedUser && loggedUser.name) {
+        nameInput.value = loggedUser.name;
+      }
+
+      setStarRating(5);
+      document.getElementById('reviewModal').classList.add('open');
+    }
+
+    function openReviewModalForProduct(prodId, prodName) {
+      openReviewModal(prodId, prodName);
+    }
+
+    function closeReviewModal() {
+      document.getElementById('reviewModal').classList.remove('open');
+    }
+
+    function setStarRating(num) {
+      document.getElementById('reviewRatingVal').value = num;
+      const btns = document.querySelectorAll('#starContainer .star-select-btn');
+      btns.forEach((btn, idx) => {
+        if (idx < num) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      const labels = [
+        '1 Star - Poor Experience',
+        '2 Stars - Below Average',
+        '3 Stars - Average Service',
+        '4 Stars - Good Quality',
+        '5 Stars - Excellent Quality & Service'
+      ];
+      document.getElementById('ratingLabel').innerText = labels[num - 1];
+    }
+
+    async function submitReview(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitReviewBtn');
+      btn.disabled = true;
+      btn.innerText = 'Publishing...';
+
+      const rating = parseInt(document.getElementById('reviewRatingVal').value, 10) || 5;
+      const reviewerName = document.getElementById('reviewerNameInput').value.trim() || 'Verified Procurement Head';
+      const comment = document.getElementById('reviewCommentInput').value.trim();
+      const prodSelect = document.getElementById('reviewProductSelect');
+      const prodId = (prodSelect && prodSelect.value) ? prodSelect.value : null;
+      const prodName = (prodSelect && prodSelect.selectedIndex > 0) ? prodSelect.options[prodSelect.selectedIndex].text.replace(/^📦\s*/, '') : 'General Supplier Review';
+
+      const payload = {
+        rating,
+        comment,
+        reviewer_name: reviewerName,
+        product_id: prodId ? parseInt(prodId, 10) : null,
+        product_name: prodName
+      };
+
+      const targetSuppId = (supplierInfo && (supplierInfo.id || supplierInfo.user_id)) ? (supplierInfo.id || supplierInfo.user_id) : 1;
+
+      try {
+        const token = (typeof auth !== 'undefined' && auth.getToken) ? auth.getToken() : null;
+        await auth.fetchWithFallback(`/public/suppliers/${targetSuppId}/reviews`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const newReview = {
+          id: Date.now(),
+          reviewer_name: reviewerName,
+          product_name: prodName,
+          rating,
+          comment,
+          created_at: new Date()
+        };
+
+        siteReviews.unshift(newReview);
+        renderReviews(siteReviews);
+
+        try {
+          const storedReviews = JSON.parse(localStorage.getItem('flenko_supplier_reviews') || '[]');
+          storedReviews.unshift(newReview);
+          localStorage.setItem('flenko_supplier_reviews', JSON.stringify(storedReviews));
+        } catch(err) {}
+
+        alert('✅ Review Submitted Successfully! Thank you for sharing your experience.');
+        closeReviewModal();
+        document.getElementById('writeReviewForm').reset();
+        setStarRating(5);
+      } catch(err) {
+        console.warn('Network issue submitting review, saved locally:', err);
+        const newReview = {
+          id: Date.now(),
+          reviewer_name: reviewerName,
+          product_name: prodName,
+          rating,
+          comment,
+          created_at: new Date()
+        };
+        siteReviews.unshift(newReview);
+        renderReviews(siteReviews);
+        alert('✅ Review Added Successfully!');
+        closeReviewModal();
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Publish Review ⭐';
+      }
+    }
+
   </script>
 </body>
 </html>

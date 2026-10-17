@@ -1076,7 +1076,8 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
 
 // Route: Create/Update Business Profile (Supports Company Logo Upload, City, Country & About)
 app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (req, res) => {
-  const { company_name, gst_number, business_type, address, city, category, country, about } = req.body;
+  const { company_name, gst_number, business_type, address, city, category, country, about, year_est, establishment_year } = req.body;
+  const finalYearEst = (year_est || establishment_year || '').toString().trim();
   
   // Use production backend host for image URL if on cloud, otherwise request host
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
@@ -1123,8 +1124,8 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
       const effectiveCountry = country || existing.rows[0].country || 'India';
       const effectiveAbout = (about !== undefined) ? about : (existing.rows[0].about || '');
       await db.query(
-        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9 WHERE user_id = $10',
-        [company_name, gst_number, business_type, address, finalCity, category, logo_url, effectiveCountry, effectiveAbout, targetUserId]
+        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10 WHERE user_id = $11',
+        [company_name, gst_number, business_type, address, finalCity, category, logo_url, effectiveCountry, effectiveAbout, finalYearEst, targetUserId]
       );
       updatedBusiness = {
         id: existing.rows[0].id,
@@ -1137,13 +1138,14 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         category,
         logo_url,
         country: effectiveCountry,
-        about: effectiveAbout
+        about: effectiveAbout,
+        year_est: finalYearEst
       };
       res.json({ success: true, message: 'Business updated successfully', business: updatedBusiness, logo_url });
     } else {
       const insRes = await db.query(
-        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-        [targetUserId, company_name, gst_number, business_type, address, finalCity, category, logo_url, finalCountry, finalAbout]
+        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+        [targetUserId, company_name, gst_number, business_type, address, finalCity, category, logo_url, finalCountry, finalAbout, finalYearEst]
       );
       const newId = (insRes.rows && insRes.rows[0]) ? insRes.rows[0].id : targetUserId;
       updatedBusiness = {
@@ -1157,7 +1159,8 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         category,
         logo_url,
         country: finalCountry,
-        about: finalAbout
+        about: finalAbout,
+        year_est: finalYearEst
       };
       res.json({ success: true, message: 'Business created successfully', business: updatedBusiness, logo_url });
     }
@@ -1315,9 +1318,11 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         country: business.country || 'India',
         address: business.address || 'Industrial Estate, India',
         about: business.about || 'Verified B2B Supplier on Flenko with assured quality and trade protection.',
+        year_est: business.year_est || '',
         logo_url: business.logo_url || null,
         is_verified: business.is_verified !== false,
-        is_paid_trusted: (business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free')),
+        is_paid_trusted: Boolean(business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free' && user.subscription !== 'basic')),
+        subscription: user ? (user.subscription || 'free') : 'free',
         subdomain: business.subdomain || (targetUserId === 1 ? 'apexpackaging' : null),
         website_enabled: business.website_enabled !== false && (business.subdomain || targetUserId === 1),
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
@@ -1387,6 +1392,7 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
         website_enabled: true,
         website_tagline: 'Leading Industrial Packaging & Corrugated Box Manufacturer',
         logo_url: 'assets/images/logo.png',
+        year_est: '2015',
         created_at: new Date('2020-01-15')
       };
     }
@@ -1469,9 +1475,11 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
         country: business.country || 'India',
         address: business.address || 'Industrial Estate, India',
         about: business.about || `${business.company_name} is a certified manufacturer and exporter with Trade Assurance.`,
+        year_est: business.year_est || '',
         logo_url: business.logo_url || null,
         is_verified: business.is_verified !== false,
-        is_paid_trusted: (business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free')),
+        is_paid_trusted: Boolean(business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free' && user.subscription !== 'basic')),
+        subscription: user ? (user.subscription || 'free') : 'free',
         subdomain: business.subdomain || `flk${targetUserId}`,
         website_enabled: business.website_enabled !== false,
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
@@ -1889,6 +1897,9 @@ app.post('/api/subscriptions/upgrade', authMiddleware, async (req, res) => {
     } catch(e) {}
 
     await db.query('UPDATE users SET subscription = $1 WHERE id = $2', [plan, req.user.id]);
+    try {
+      await db.query('UPDATE businesses SET is_paid_trusted = true WHERE user_id = $1', [req.user.id]);
+    } catch(e) {}
     const planLabel = plan === 'website_combo' ? 'CUSTOM BUSINESS WEBSITE + VIP' : plan.toUpperCase();
 
     // Alert admin

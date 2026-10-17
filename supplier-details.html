@@ -450,6 +450,10 @@
               <td id="tableBizType" style="padding: 0.75rem 1rem;">Manufacturer & Wholesaler</td>
             </tr>
             <tr>
+              <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Year Established</th>
+              <td id="tableEstYear" style="padding: 0.75rem 1rem; font-weight: 600;">2015</td>
+            </tr>
+            <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Primary Category</th>
               <td id="tableCategory" style="padding: 0.75rem 1rem;">Packaging, Printing & Paper</td>
             </tr>
@@ -688,11 +692,14 @@
         document.getElementById('suppHeroLogo').src = supplier.logo_url;
       }
 
-      // Paid Trusted & Branded Website visibility
-      if (supplier.is_paid_trusted || supplier.subscription === 'premium' || supplier.website_enabled) {
-        const pBadge = document.getElementById('suppPaidTrustedBadge');
-        if (pBadge) pBadge.style.display = 'inline-flex';
-      }
+      // Paid Verified & Branded Website visibility - STRICTLY only for paid membership holders
+      const isPaidSeller = Boolean(
+        supplier.is_paid_trusted === true ||
+        (supplier.subscription && supplier.subscription !== 'free' && supplier.subscription !== 'basic')
+      );
+      const pBadge = document.getElementById('suppPaidTrustedBadge');
+      if (pBadge) pBadge.style.display = isPaidSeller ? 'inline-flex' : 'none';
+
       if (supplier.website_enabled && supplier.subdomain) {
         const webBtn = document.getElementById('suppWebsiteBtn');
         if (webBtn) {
@@ -715,6 +722,13 @@
       document.getElementById('tableCompName').innerText = supplier.company_name;
       document.getElementById('tableSellerId').innerText = `#FLK-SUP-${supplier.id}`;
       document.getElementById('tableBizType').innerText = supplier.business_type || 'Manufacturer';
+
+      const estYearVal = supplier.year_est || supplier.establishment_year || '';
+      const tableEstEl = document.getElementById('tableEstYear');
+      if (tableEstEl) {
+        tableEstEl.innerText = estYearVal || 'Verified Entity';
+      }
+
       document.getElementById('tableCategory').innerText = supplier.category || 'Industrial Machinery';
       document.getElementById('tableGst').innerText = supplier.gst_number || 'GST Verified';
       document.getElementById('tableCity').innerText = supplier.city || 'Industrial Hub';
