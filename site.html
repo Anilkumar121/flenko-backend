@@ -151,6 +151,7 @@
       font-weight: 800;
       line-height: 1.2;
       margin-bottom: 1rem;
+      color: #ffffff !important;
     }
     @media (max-width: 600px) {
       .hero-h1 { font-size: 1.85rem; }
@@ -278,6 +279,39 @@
       padding: 3rem 1.5rem 1.5rem;
       margin-top: 4rem;
     }
+    /* About & Facility Responsive Layout */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .facility-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .facility-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .facility-table th {
+      padding: 0.65rem 0.5rem 0.65rem 0;
+      color: #64748b;
+      font-weight: 600;
+      width: 130px;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .facility-table td {
+      padding: 0.65rem 0;
+      color: #0f172a;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
     .footer-container {
       max-width: 1280px;
       margin: 0 auto;
@@ -285,6 +319,12 @@
       grid-template-columns: 2fr 1fr 1fr;
       gap: 3rem;
       margin-bottom: 2rem;
+    }
+    @media (max-width: 900px) {
+      .site-hero-content { grid-template-columns: 1fr; }
+      .about-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
+      .facility-box { padding: 1.25rem !important; margin-top: 1rem; }
+      .footer-container { grid-template-columns: 1fr !important; gap: 2rem !important; }
     }
     @media (max-width: 768px) {
       .site-top-bar { display: none; }
@@ -296,7 +336,38 @@
       .site-section { padding: 2rem 1rem; }
       .products-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; gap: 0.85rem !important; }
       .product-img-box { height: 140px !important; }
-      .footer-container { grid-template-columns: 1fr; }
+      .footer-container { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 600px) {
+      .hero-h1 { font-size: 1.85rem !important; }
+      .about-grid { grid-template-columns: 1fr !important; }
+      .facility-table, .facility-table tbody, .facility-table tr, .facility-table th, .facility-table td {
+        display: block !important;
+        width: 100% !important;
+      }
+      .facility-table tr {
+        padding: 0.7rem 0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+      }
+      .facility-table tr:last-child {
+        border-bottom: none !important;
+      }
+      .facility-table th {
+        color: #0284c7 !important;
+        font-size: 0.72rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        padding: 0 0 0.2rem 0 !important;
+        width: 100% !important;
+      }
+      .facility-table td {
+        font-size: 0.92rem !important;
+        font-weight: 600 !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+        line-height: 1.4 !important;
+        word-break: break-word !important;
+      }
     }
   </style>
 </head>
@@ -440,7 +511,7 @@
 
   <!-- About Company Section -->
   <section class="site-section" id="about" style="background:#ffffff; border-top:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; border-radius:12px; margin-top:2rem;">
-    <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:3rem; align-items:start;">
+    <div class="about-grid">
       <div>
         <span style="font-size:0.8rem; font-weight:700; color:#0284c7; text-transform:uppercase; letter-spacing:0.5px;">About Our Company</span>
         <h2 style="font-size:1.85rem; font-weight:800; color:#0f172a; margin:0.35rem 0 1rem;" id="aboutCompanyHeader">
@@ -462,29 +533,31 @@
         </div>
       </div>
 
-      <!-- Factory Details Table -->
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1.5rem;">
-        <h4 style="margin-top:0; margin-bottom:1rem; color:#0f172a; font-size:1.05rem;">Facility & Registration</h4>
-        <table class="table" style="width:100%; font-size:0.85rem;">
+      <!-- Factory Details & Address Card -->
+      <div class="facility-box">
+        <h4 style="margin-top:0; margin-bottom:1rem; color:#0f172a; font-size:1.05rem; display:flex; align-items:center; gap:0.4rem;">
+          <span>🏢</span> Facility &amp; Registered Details
+        </h4>
+        <table class="facility-table">
           <tr>
-            <th style="padding:0.6rem 0; color:#64748b; width:130px;">Business Type</th>
-            <td id="tableBizType" style="padding:0.6rem 0; font-weight:600;">Manufacturer & Wholesaler</td>
+            <th>Business Type</th>
+            <td id="tableBizType">Manufacturer &amp; Wholesaler</td>
           </tr>
           <tr>
-            <th style="padding:0.6rem 0; color:#64748b;">Year Established</th>
-            <td id="tableEstYear" style="padding:0.6rem 0; font-weight:600;">2015</td>
+            <th>Year Established</th>
+            <td id="tableEstYear">2015</td>
           </tr>
           <tr>
-            <th style="padding:0.6rem 0; color:#64748b;">GST Number</th>
-            <td id="tableGst" style="padding:0.6rem 0; font-family:monospace; font-weight:700;">27AADCA9821Z5</td>
+            <th>GST Number</th>
+            <td id="tableGst" style="font-family:monospace; font-weight:700;">27AADCA9821Z5</td>
           </tr>
           <tr>
-            <th style="padding:0.6rem 0; color:#64748b;">Manufacturing Hub</th>
-            <td id="tableCity" style="padding:0.6rem 0;">Mumbai, Maharashtra, India</td>
+            <th>Manufacturing Hub</th>
+            <td id="tableCity">Mumbai, Maharashtra, India</td>
           </tr>
           <tr>
-            <th style="padding:0.6rem 0; color:#64748b;">Registered Address</th>
-            <td id="tableAddress" style="padding:0.6rem 0;">Plot 45, MIDC Industrial Area, Andheri East</td>
+            <th>Registered Address</th>
+            <td id="tableAddress">Plot 45, MIDC Industrial Area, Andheri East</td>
           </tr>
         </table>
       </div>
@@ -556,10 +629,14 @@
   <footer class="site-footer">
     <div class="footer-container">
       <div>
-        <h3 style="color:#ffffff; margin-top:0; font-size:1.2rem; margin-bottom:0.5rem;" id="footerCompName">Apex Packaging Solutions</h3>
-        <p style="font-size:0.85rem; line-height:1.6; max-width:420px;" id="footerAboutText">
+        <h3 style="color:#ffffff; margin-top:0; font-size:1.2rem; margin-bottom:0.4rem;" id="footerCompName">Apex Packaging Solutions</h3>
+        <p style="font-size:0.85rem; line-height:1.6; max-width:420px; color:#cbd5e1; margin-bottom:0.75rem;" id="footerAboutText">
           Certified industrial manufacturing and supply partner backed by Flenko Trade Assurance protection.
         </p>
+        <div style="font-size:0.8rem; color:#94a3b8; display:flex; flex-direction:column; gap:0.35rem;">
+          <span id="footerCityCountry">📍 Mumbai, Maharashtra, India</span>
+          <span style="color:#22c55e; font-weight:600;">🛡️ Verified Business Entity</span>
+        </div>
         <div id="footerPaidTrustedWrap" style="margin-top:1rem; font-size:0.8rem; display:none;">
           <span class="paid-trusted-gold-tag" style="padding:0.25rem 0.6rem; font-size:0.72rem;">
             🏆 Paid Verified Seller Entity
@@ -836,10 +913,13 @@
       document.getElementById('heroCompanyTitle').innerText = supplier.company_name;
       document.getElementById('heroTagline').innerText = supplier.website_tagline || `Certified Manufacturer and Wholesale Exporter of ${supplier.category || 'High Quality B2B Products'}`;
 
-      // Paid Verified Badge - Strictly shown ONLY if seller has an active paid membership
+      // Paid Verified Badge - STRICTLY shown ONLY if seller has an active paid membership
       const isPaidSeller = Boolean(
-        supplier.is_paid_trusted === true ||
-        (supplier.subscription && supplier.subscription !== 'free' && supplier.subscription !== 'basic')
+        supplier.is_paid_trusted === true &&
+        supplier.subscription &&
+        supplier.subscription !== 'free' &&
+        supplier.subscription !== 'basic' &&
+        supplier.subscription !== 'none'
       );
       const goldBadge = document.getElementById('paidTrustedBadge');
       if (goldBadge) {
@@ -867,10 +947,23 @@
       document.getElementById('tableCity').innerText = `${supplier.city || 'Industrial Hub'}, ${supplier.country || 'India'}`;
       document.getElementById('tableAddress').innerText = supplier.address || `${supplier.city || 'Industrial Hub'}, ${supplier.country || 'India'}`;
 
-      // Footer
+      // Footer: crisp, clean summary (no giant 5-paragraph text dump)
       document.getElementById('footerCompName').innerText = supplier.company_name;
       document.getElementById('footerCopyName').innerText = supplier.company_name;
-      document.getElementById('footerAboutText').innerText = supplier.about || `${supplier.company_name} - Verified Manufacturer & Wholesaler.`;
+      if (document.getElementById('footerCityCountry')) {
+        document.getElementById('footerCityCountry').innerText = `📍 ${supplier.city || 'Industrial Hub'}, ${supplier.country || 'India'}`;
+      }
+
+      let footerSummary = supplier.website_tagline || '';
+      if (!footerSummary && supplier.about) {
+        const cleanAbout = supplier.about.replace(/\s+/g, ' ').trim();
+        const firstSentence = cleanAbout.split(/[.\n]/)[0].trim();
+        footerSummary = firstSentence.length > 25 ? (firstSentence + '.') : (cleanAbout.slice(0, 140) + '...');
+      }
+      if (!footerSummary) {
+        footerSummary = `${supplier.company_name} is a certified manufacturer and wholesale supplier offering factory-direct pricing with buyer Trade Assurance protection.`;
+      }
+      document.getElementById('footerAboutText').innerText = footerSummary;
 
       renderCatalog(siteProducts);
       renderReviews(siteReviews);

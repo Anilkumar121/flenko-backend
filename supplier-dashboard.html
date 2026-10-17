@@ -447,9 +447,8 @@
         const b = biz || {};
         const u = userObj || auth.getUser() || {};
         const isPaid = Boolean(
-          b.is_paid_trusted === true || b.is_paid_trusted === 'true' || 
-          u.is_paid_trusted === true ||
-          (u.subscription && u.subscription !== 'free' && u.subscription !== 'basic')
+          (b.is_paid_trusted === true || b.is_paid_trusted === 'true' || u.is_paid_trusted === true) &&
+          (u.subscription && u.subscription !== 'free' && u.subscription !== 'basic' && u.subscription !== 'none')
         );
         const isWebEnabled = b.website_enabled === true || b.website_enabled === 'true';
         const sub = b.subdomain;

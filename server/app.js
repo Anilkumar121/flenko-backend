@@ -1309,6 +1309,41 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
     reviews.forEach(r => { totalScore += (Number(r.rating) || 5); });
     const avgRating = reviews.length > 0 ? (totalScore / reviews.length).toFixed(1) : '4.8';
 
+    // Strictly check if seller has an active paid membership
+    let effectiveSub = (user && user.subscription) ? user.subscription.toLowerCase().trim() : 'free';
+    let isPaidTrusted = false;
+
+    if (targetUserId === 1) {
+      isPaidTrusted = true;
+      effectiveSub = 'premium';
+    } else {
+      let hasVerifiedPayment = false;
+      try {
+        const payRes = await db.query(
+          "SELECT id, plan FROM subscription_payments WHERE user_id = $1 AND status = 'verified' ORDER BY id DESC LIMIT 1",
+          [targetUserId]
+        );
+        if (payRes.rows && payRes.rows.length > 0) {
+          hasVerifiedPayment = true;
+          effectiveSub = payRes.rows[0].plan || effectiveSub;
+        }
+      } catch(e) {}
+
+      if (hasVerifiedPayment) {
+        isPaidTrusted = true;
+      } else {
+        effectiveSub = 'free';
+        isPaidTrusted = false;
+        // Auto-heal any stale flag in DB
+        if ((business && business.is_paid_trusted) || (user && user.subscription && user.subscription !== 'free')) {
+          try {
+            await db.query("UPDATE users SET subscription = 'free' WHERE id = $1", [targetUserId]);
+            await db.query("UPDATE businesses SET is_paid_trusted = false WHERE user_id = $1", [targetUserId]);
+          } catch(healErr) {}
+        }
+      }
+    }
+
     res.json({
       success: true,
       supplier: {
@@ -1326,8 +1361,8 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         year_est: business.year_est || '',
         logo_url: business.logo_url || null,
         is_verified: business.is_verified !== false,
-        is_paid_trusted: Boolean(business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free' && user.subscription !== 'basic')),
-        subscription: user ? (user.subscription || 'free') : 'free',
+        is_paid_trusted: isPaidTrusted,
+        subscription: effectiveSub,
         subdomain: business.subdomain || (targetUserId === 1 ? 'apexpackaging' : null),
         website_enabled: business.website_enabled !== false && (business.subdomain || targetUserId === 1),
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
@@ -1466,6 +1501,41 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
     reviews.forEach(r => { totalScore += (Number(r.rating) || 5); });
     const avgRating = reviews.length > 0 ? (totalScore / reviews.length).toFixed(1) : '4.9';
 
+    // Strictly check if seller has an active paid membership
+    let effectiveSub = (user && user.subscription) ? user.subscription.toLowerCase().trim() : 'free';
+    let isPaidTrusted = false;
+
+    if (targetUserId === 1) {
+      isPaidTrusted = true;
+      effectiveSub = 'premium';
+    } else {
+      let hasVerifiedPayment = false;
+      try {
+        const payRes = await db.query(
+          "SELECT id, plan FROM subscription_payments WHERE user_id = $1 AND status = 'verified' ORDER BY id DESC LIMIT 1",
+          [targetUserId]
+        );
+        if (payRes.rows && payRes.rows.length > 0) {
+          hasVerifiedPayment = true;
+          effectiveSub = payRes.rows[0].plan || effectiveSub;
+        }
+      } catch(e) {}
+
+      if (hasVerifiedPayment) {
+        isPaidTrusted = true;
+      } else {
+        effectiveSub = 'free';
+        isPaidTrusted = false;
+        // Auto-heal any stale flag in DB
+        if ((business && business.is_paid_trusted) || (user && user.subscription && user.subscription !== 'free')) {
+          try {
+            await db.query("UPDATE users SET subscription = 'free' WHERE id = $1", [targetUserId]);
+            await db.query("UPDATE businesses SET is_paid_trusted = false WHERE user_id = $1", [targetUserId]);
+          } catch(healErr) {}
+        }
+      }
+    }
+
     res.json({
       success: true,
       supplier: {
@@ -1483,8 +1553,8 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
         year_est: business.year_est || '',
         logo_url: business.logo_url || null,
         is_verified: business.is_verified !== false,
-        is_paid_trusted: Boolean(business.is_paid_trusted === true || (user && user.subscription && user.subscription !== 'free' && user.subscription !== 'basic')),
-        subscription: user ? (user.subscription || 'free') : 'free',
+        is_paid_trusted: isPaidTrusted,
+        subscription: effectiveSub,
         subdomain: business.subdomain || `flk${targetUserId}`,
         website_enabled: business.website_enabled !== false,
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
@@ -1529,23 +1599,19 @@ app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
 
     const finalTagline = tagline || (business && business.website_tagline) || `Verified Manufacturer & Wholesale Exporter of ${(business && business.category) || 'B2B Products'}`;
 
-    // Ensure business exists
+    // Ensure business exists (do NOT artificially grant paid membership on free website generation)
+    const isAlreadyPaid = Boolean(business && business.is_paid_trusted && req.user && req.user.subscription && req.user.subscription !== 'free');
     if (!business) {
       await db.query(
         'INSERT INTO businesses (user_id, company_name, city, is_verified, subdomain, is_paid_trusted, website_enabled, website_tagline) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-        [userId, req.user.name || 'Verified Supplier', 'Industrial Hub', true, subdomain, true, true, finalTagline]
+        [userId, req.user.name || 'Verified Supplier', 'Industrial Hub', true, subdomain, isAlreadyPaid, true, finalTagline]
       );
     } else {
       await db.query(
-        'UPDATE businesses SET website_enabled = true, is_paid_trusted = true, subdomain = $1, website_tagline = $2 WHERE user_id = $3',
+        'UPDATE businesses SET website_enabled = true, subdomain = $1, website_tagline = $2 WHERE user_id = $3',
         [subdomain, finalTagline, userId]
       );
     }
-
-    // Set user subscription to premium / vip
-    try {
-      await db.query("UPDATE users SET subscription = 'premium' WHERE id = $1 AND (subscription IS NULL OR subscription = 'free')", [userId]);
-    } catch(uErr) {}
 
     const website_url = `https://flenko.com/site.html?store=${subdomain}`;
     const preview_url = `site.html?store=${subdomain}`;

@@ -694,8 +694,11 @@
 
       // Paid Verified & Branded Website visibility - STRICTLY only for paid membership holders
       const isPaidSeller = Boolean(
-        supplier.is_paid_trusted === true ||
-        (supplier.subscription && supplier.subscription !== 'free' && supplier.subscription !== 'basic')
+        supplier.is_paid_trusted === true &&
+        supplier.subscription &&
+        supplier.subscription !== 'free' &&
+        supplier.subscription !== 'basic' &&
+        supplier.subscription !== 'none'
       );
       const pBadge = document.getElementById('suppPaidTrustedBadge');
       if (pBadge) pBadge.style.display = isPaidSeller ? 'inline-flex' : 'none';
