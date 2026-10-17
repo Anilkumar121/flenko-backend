@@ -192,6 +192,13 @@ class FlenkoCountryPicker {
     panel.style.display = 'none';
 
     panel.innerHTML = `
+      <div class="country-modal-header">
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.15rem;">🌐</span>
+          <strong style="font-size:0.95rem; color:#0f172a;">Select Country / Destination</strong>
+        </div>
+        <button type="button" class="country-modal-close-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#64748b; line-height:1; padding:0 4px;" aria-label="Close">&times;</button>
+      </div>
       <div class="country-search-box">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="text" class="country-search-input" placeholder="Search country (e.g. USA, India, Germany)..." autocomplete="off">
@@ -203,11 +210,35 @@ class FlenkoCountryPicker {
     this.searchInput = panel.querySelector('.country-search-input');
     this.listContainer = panel.querySelector('.country-list-scroll');
 
+    const closeBtn = panel.querySelector('.country-modal-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.close();
+      });
+    }
+
     this.container.appendChild(trigger);
     this.container.appendChild(hiddenInput);
     this.container.appendChild(panel);
 
     this.renderList(FLENKO_COUNTRIES);
+
+    // Ensure shared mobile backdrop exists in body
+    let backdrop = document.getElementById('flenkoCountryBackdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'flenkoCountryBackdrop';
+      backdrop.className = 'flenko-country-backdrop';
+      backdrop.style.display = 'none';
+      document.body.appendChild(backdrop);
+    }
+    this.backdrop = backdrop;
+    backdrop.addEventListener('click', () => {
+      document.querySelectorAll('.flenko-country-panel').forEach(p => p.style.display = 'none');
+      backdrop.style.display = 'none';
+      document.body.style.overflow = '';
+    });
 
     // Event listeners
     trigger.addEventListener('click', (e) => {
@@ -225,14 +256,14 @@ class FlenkoCountryPicker {
       this.renderList(filtered);
     });
 
-    // Close when clicking outside
+    // Close when clicking outside on desktop
     document.addEventListener('click', (e) => {
       if (!this.container.contains(e.target)) {
         this.close();
       }
     });
 
-    // Prevent closing when clicking inside search input
+    // Prevent closing when clicking inside panel
     panel.addEventListener('click', (e) => e.stopPropagation());
   }
 
@@ -293,13 +324,23 @@ class FlenkoCountryPicker {
     // Close other pickers on the page
     document.querySelectorAll('.flenko-country-panel').forEach(p => p.style.display = 'none');
     this.panel.style.display = 'block';
+
+    if (window.innerWidth <= 768 && this.backdrop) {
+      this.backdrop.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
     this.searchInput.value = '';
     this.renderList(FLENKO_COUNTRIES);
-    setTimeout(() => this.searchInput.focus(), 50);
+    setTimeout(() => this.searchInput.focus(), 60);
   }
 
   close() {
     this.panel.style.display = 'none';
+    if (this.backdrop) {
+      this.backdrop.style.display = 'none';
+      document.body.style.overflow = '';
+    }
   }
 }
 

@@ -114,7 +114,7 @@ html, body {
    3. MOBILE TOP BAR & HEADER STYLING
    ========================================================================== */
 @media (max-width: 768px) {
-  /* Responsive Top Bar */
+  /* Ultra-Clean Single-Line Top Bar on Mobile */
   .flenko-top-bar {
     display: block !important;
     background: #0A2342 !important;
@@ -127,21 +127,66 @@ html, body {
   .flenko-top-bar .container {
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    padding: 0 0.75rem !important;
-    gap: 0.5rem !important;
+    justify-content: center !important;
+    padding: 0 0.5rem !important;
+    gap: 0 !important;
   }
 
   .flenko-top-left {
     display: flex !important;
     align-items: center !important;
-    gap: 0.35rem !important;
-    font-size: 0.75rem !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 4px !important;
+    font-size: 0.72rem !important;
   }
 
-  .flenko-top-bar a,
-  .flenko-top-bar span {
+  /* Hide right side promotional links in top bar on mobile (accessible via bottom nav) */
+  .flenko-top-bar .flenko-top-right {
+    display: none !important;
+  }
+
+  /* Compact prefixes in top bar */
+  .deliver-to-prefix,
+  .currency-label-prefix {
+    display: none !important;
+  }
+
+  /* Compact Language button in top bar on mobile */
+  .flenko-top-bar .flenko-lang-display-name {
+    display: none !important;
+  }
+
+  .flenko-top-bar .flenko-lang-display-flag::after {
+    content: " Lang";
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .flenko-top-bar .flenko-country-btn {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    padding: 2px 7px !important;
     font-size: 0.72rem !important;
+    border-radius: 4px !important;
+    gap: 4px !important;
+  }
+
+  .flenko-top-bar .flenko-country-btn .country-label {
+    max-width: 80px !important;
+    font-size: 0.72rem !important;
+    color: #ffffff !important;
+  }
+
+  .flenko-top-bar .flenko-country-btn .country-flag {
+    font-size: 0.85rem !important;
+  }
+
+  .flenko-top-bar .flenko-country-btn .chevron-icon {
+    stroke: #ffffff !important;
+    width: 10px !important;
+    height: 10px !important;
   }
 
   /* Compact Header */
@@ -166,48 +211,140 @@ html, body {
   }
 
   .brand img {
-    height: 48px !important;
-    max-height: 52px !important;
+    height: 46px !important;
+    max-height: 50px !important;
   }
 
-  /* Search Box on Mobile */
+  /* ==========================================================================
+     MODERN 2-TIER MOBILE SEARCH BAR
+     Tier 1: Full-width search input + 50px Orange Search Icon button
+     Tier 2: Category selector (50%) + Supplier Country filter (50%)
+     ========================================================================== */
   .flenko-search-box {
     width: 100% !important;
     max-width: 100% !important;
     display: flex !important;
+    flex-wrap: wrap !important;
     border: 2px solid #FF6B00 !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     overflow: hidden !important;
     background: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    box-shadow: 0 3px 12px rgba(255, 107, 0, 0.12) !important;
   }
 
-  .search-type-select {
-    padding: 0.5rem 0.35rem !important;
-    font-size: 0.78rem !important;
-    font-weight: 700 !important;
-    border-right: 1px solid #e2e8f0 !important;
-    background: #f8fafc !important;
-    max-width: 82px !important;
-  }
-
+  /* Tier 1 - Row 1: Search Input */
   .flenko-search-input {
-    flex: 1 !important;
+    order: 1 !important;
+    flex: 1 1 calc(100% - 50px) !important;
+    width: calc(100% - 50px) !important;
     min-width: 0 !important;
-    padding: 0.55rem 0.6rem !important;
-    font-size: 0.88rem !important;
+    height: 44px !important;
+    padding: 0 12px !important;
+    font-size: 0.92rem !important;
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    outline: none !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
   }
 
+  /* Tier 1 - Row 1: Orange Search Button */
   .flenko-search-btn {
-    padding: 0 0.85rem !important;
-    font-size: 0.85rem !important;
-    font-weight: 700 !important;
+    order: 2 !important;
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 44px !important;
+    padding: 0 !important;
     background: #FF6B00 !important;
     color: #ffffff !important;
     border: none !important;
+    border-bottom: 1px solid #FF6B00 !important;
+    border-radius: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+  }
+
+  .flenko-search-btn .search-btn-text {
+    display: none !important;
+  }
+
+  .flenko-search-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+    stroke: #ffffff !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  /* Tier 2 - Row 2: Search Category Select (Products / Suppliers / RFQ) */
+  .search-type-select {
+    order: 3 !important;
+    flex: 1 1 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: 38px !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+    background: #f8fafc !important;
+    border: none !important;
+    border-right: 1px solid #e2e8f0 !important;
+    border-top: 1px solid #f1f5f9 !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+    outline: none !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Tier 2 - Row 2: Supplier Country Filter in Search Box */
+  .flenko-search-box .flenko-country-wrapper,
+  .flenko-search-box #headerSearchCountryContainer,
+  .flenko-search-box #headerCountryContainer {
+    order: 4 !important;
+    flex: 1 1 0 !important;
+    width: auto !important;
+    height: 38px !important;
+    background: #f8fafc !important;
+    border-top: 1px solid #f1f5f9 !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .flenko-search-box .flenko-country-btn {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  .flenko-search-box .flenko-country-btn .country-label {
+    max-width: 100px !important;
+    font-size: 0.78rem !important;
+    color: #334155 !important;
+  }
+
+  .flenko-search-box .flenko-country-btn .country-flag {
+    font-size: 0.95rem !important;
+  }
+
+  .flenko-search-box .flenko-country-btn .chevron-icon {
+    width: 11px !important;
+    height: 11px !important;
   }
 
   /* Hide desktop header action buttons on mobile as they are in the bottom bar */
@@ -710,12 +847,11 @@ html, body {
     padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
-  /* Floating Translator Button on Mobile (placed above bottom nav) */
-  .flenko-floating-lang-btn {
-    bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
-    right: 12px !important;
-    padding: 6px 12px !important;
-    font-size: 0.75rem !important;
+  /* Hide Floating Buttons on Mobile - prevents overlapping & screen clutter; functions are accessible in top bar & bottom nav */
+  .flenko-floating-curr-btn,
+  .flenko-floating-lang-btn,
+  #flenkoFloatingCurrencyBtn {
+    display: none !important;
   }
 
   /* Full Screen / Bottom Sheet Language Modal on Phones */

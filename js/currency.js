@@ -128,7 +128,7 @@
       el.innerHTML = `
         <span onclick="window.currencyManager.openModal()" style="cursor:pointer; display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:4px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); font-size:0.82rem; transition:all 0.15s ease;" title="Change Currency">
           <span class="flenko-curr-flag">${cur.flag}</span>
-          <span>Currency: <strong class="flenko-curr-code">${cur.code}</strong> (<span class="flenko-curr-symbol">${cur.symbol}</span>)</span>
+          <span><span class="currency-label-prefix">Currency: </span><strong class="flenko-curr-code">${cur.code}</strong> (<span class="flenko-curr-symbol">${cur.symbol}</span>)</span>
           <span style="font-size:0.7rem; opacity:0.8;">▾</span>
         </span>
       `;
