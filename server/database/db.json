@@ -13,11 +13,63 @@
     }
   ],
   "otp_requests": [],
-  "businesses": [],
+  "businesses": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "company_name": "Apex Packaging Solutions",
+      "category": "Packaging & Printing",
+      "business_type": "Manufacturer & Wholesaler",
+      "gst_number": "27AADCA9821Z5",
+      "city": "Mumbai",
+      "country": "India",
+      "address": "Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069",
+      "about": "Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.",
+      "is_verified": true,
+      "is_paid_trusted": true,
+      "subdomain": "apexpackaging",
+      "website_enabled": true,
+      "website_tagline": "Leading Industrial Packaging & Corrugated Box Manufacturer",
+      "logo_url": "assets/images/logo.png",
+      "year_est": "2015",
+      "created_at": "2020-01-15T00:00:00.000Z"
+    }
+  ],
   "leads": [],
   "products": [],
   "rfqs": [],
   "quotations": [],
   "password_resets": [],
-  "idCounter": 100
+  "lead_payments": [],
+  "subscription_payments": [],
+  "reviews": [
+    {
+      "id": 1,
+      "supplier_id": 1,
+      "product_id": 101,
+      "product_name": "Heavy-Duty Corrugated Boxes",
+      "reviewer_name": "Rajesh K. (Procurement Head)",
+      "rating": 5,
+      "comment": "Top quality material and on-time bulk delivery. Highly recommend for large packaging orders.",
+      "created_at": "2026-10-14T13:28:31.228Z"
+    },
+    {
+      "id": 2,
+      "supplier_id": 1,
+      "product_id": null,
+      "product_name": "Bulk Packaging Supply",
+      "reviewer_name": "Sunil Mehta (Operations Director)",
+      "rating": 5,
+      "comment": "Very professional response to our RFQ. Excellent prices and custom printing options.",
+      "created_at": "2026-10-10T13:28:31.228Z"
+    }
+  ],
+  "idCounter": 100,
+  "platform_settings": [
+    {
+      "setting_key": "google_sheet_webhook_url",
+      "setting_value": "https://script.google.com/macros/s/AKfycb_test/exec",
+      "updated_at": "2026-10-17T13:28:31.286Z"
+    }
+  ]
 }

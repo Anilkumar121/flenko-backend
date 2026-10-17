@@ -51,6 +51,7 @@ if (fs.existsSync(mockDbPath)) {
     mockDB.lead_payments = mockDB.lead_payments || [];
     mockDB.subscription_payments = mockDB.subscription_payments || [];
     mockDB.reviews = mockDB.reviews || [];
+    mockDB.platform_settings = mockDB.platform_settings || [];
   } catch (err) {
     console.error('Error reading db.json:', err);
   }
@@ -279,6 +280,11 @@ async function ensureTables() {
       rating INTEGER DEFAULT 5,
       comment TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS platform_settings (
+      setting_key VARCHAR(100) PRIMARY KEY,
+      setting_value TEXT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 
@@ -1023,6 +1029,31 @@ module.exports = {
     }
     if (text.includes('SELECT id FROM quotations WHERE rfq_id = $1 AND supplier_id = $2')) {
       return { rows: (mockDB.quotations || []).filter(q => q.rfq_id == params[0] && q.supplier_id == params[1]) };
+    }
+
+    if (text.includes('platform_settings')) {
+      mockDB.platform_settings = mockDB.platform_settings || [];
+      if (text.includes('SELECT') && text.includes('WHERE setting_key = $1')) {
+        const row = mockDB.platform_settings.find(s => s.setting_key === params[0]);
+        return { rows: row ? [row] : [] };
+      }
+      if (text.includes('SELECT') && !text.includes('WHERE')) {
+        return { rows: mockDB.platform_settings };
+      }
+      if (text.includes('INSERT') || text.includes('UPDATE')) {
+        const key = params[0];
+        const val = params[1];
+        let existing = mockDB.platform_settings.find(s => s.setting_key === key);
+        if (existing) {
+          existing.setting_value = val;
+          existing.updated_at = new Date();
+        } else {
+          existing = { setting_key: key, setting_value: val, updated_at: new Date() };
+          mockDB.platform_settings.push(existing);
+        }
+        saveMockDB();
+        return { rows: [existing] };
+      }
     }
     
     return { rows: [] };

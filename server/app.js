@@ -315,6 +315,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 const { dispatchCloudOtp, getCloudConfigStatus } = require('./services/cloudOtp');
 const { sendWhatsAppMessage, pollPendingMessages, recordWorkerPing, getWorkerStatus } = require('./whatsapp');
 const { sendPasswordResetEmail } = require('./services/mailService');
+const googleSheetsService = require('./services/googleSheetsService');
 
 // Helper: Generate 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -448,6 +449,7 @@ app.post('/api/auth/register', async (req, res) => {
               );
             }
           } catch(bErr) {}
+          googleSheetsService.syncSellerToGoogleSheet(existingUser.id).catch(e => console.warn('[Google Sheets Sync error]', e.message));
         }
 
         const token = jwt.sign({ id: existingUser.id, phone: existingUser.phone, role: finalRole, email: existingUser.email }, JWT_SECRET, { expiresIn: '30d' });
@@ -497,6 +499,7 @@ app.post('/api/auth/register', async (req, res) => {
           [user.id, cleanName, city || 'Industrial Hub', true]
         );
       } catch(bErr) {}
+      googleSheetsService.syncSellerToGoogleSheet(user.id).catch(e => console.warn('[Google Sheets Sync error]', e.message));
     }
 
     const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
@@ -1164,6 +1167,8 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
       };
       res.json({ success: true, message: 'Business created successfully', business: updatedBusiness, logo_url });
     }
+    // Auto-sync seller updates to Google Sheet
+    googleSheetsService.syncSellerToGoogleSheet(targetUserId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
   } catch (error) {
     console.error('Error updating business profile:', error);
     res.status(500).json({ error: 'Internal server error: ' + error.message });
@@ -1546,6 +1551,9 @@ app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
     const preview_url = `site.html?store=${subdomain}`;
     const site_route_url = `https://flenko.com/site/${subdomain}`;
 
+    // Auto-sync seller website link to Google Sheet
+    googleSheetsService.syncSellerToGoogleSheet(userId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+
     res.json({
       success: true,
       message: '🎉 Congratulations! Your Branded Store Website is Live!',
@@ -1907,6 +1915,9 @@ app.post('/api/subscriptions/upgrade', authMiddleware, async (req, res) => {
       const waMsg = `💎 *New Membership Upgrade on Flenko!*\n\n• Plan: ${planLabel} (₹${amount.toLocaleString()})\n• UTR: ${cleanUtr}\n• User: ${req.user.name || ''} (${req.user.phone})\n• Time: ${new Date().toLocaleString('en-IN')}`;
       await sendWhatsAppMessage('8368074009', waMsg);
     } catch(e) {}
+
+    // Auto-sync upgraded membership plan to Google Sheet
+    googleSheetsService.syncSellerToGoogleSheet(req.user.id).catch(e => console.warn('[Google Sheets Sync error]', e.message));
 
     res.json({ success: true, message: `Successfully upgraded to ${planLabel} plan!` });
   } catch (error) {
@@ -2835,6 +2846,90 @@ app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     res.json({ success: true, message: 'User deleted' });
   } catch (error) {
     res.status(500).json({ error: 'Delete user error' });
+  }
+});
+
+// Route: Admin Get All Users & Suppliers with Full Business Info
+app.get('/api/admin/users/all', adminMiddleware, async (req, res) => {
+  try {
+    const uRes = await db.query('SELECT id, name, phone, email, city, role, subscription, created_at FROM users ORDER BY id DESC');
+    const users = uRes.rows || [];
+    const bRes = await db.query('SELECT user_id, company_name, gst_number, business_type, city, category, is_paid_trusted, subdomain FROM businesses');
+    const businesses = bRes.rows || [];
+    const pRes = await db.query('SELECT supplier_id, COUNT(*) as cnt FROM products GROUP BY supplier_id');
+    const pMap = {};
+    (pRes.rows || []).forEach(r => { pMap[r.supplier_id] = parseInt(r.cnt, 10); });
+
+    const enriched = users.map(u => {
+      const b = businesses.find(biz => biz.user_id == u.id);
+      return {
+        ...u,
+        company_name: (b && b.company_name) || u.name,
+        gst_number: (b && b.gst_number) || 'N/A',
+        business_type: (b && b.business_type) || 'N/A',
+        category: (b && b.category) || 'General',
+        is_paid_trusted: Boolean((b && b.is_paid_trusted) || (u.subscription && u.subscription !== 'free' && u.subscription !== 'basic')),
+        subdomain: (b && b.subdomain) || '',
+        products_count: pMap[u.id] || 0
+      };
+    });
+    res.json({ success: true, users: enriched, total: enriched.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users: ' + err.message });
+  }
+});
+
+// Route: Admin Get Google Sheet Integration Status & Code
+app.get('/api/admin/settings/google-sheet', adminMiddleware, async (req, res) => {
+  try {
+    const webhookUrl = await googleSheetsService.getWebhookUrl();
+    const lastSync = await googleSheetsService.getLastSyncTime();
+    const scriptCode = googleSheetsService.getAppsScriptTemplate();
+    res.json({
+      success: true,
+      webhook_url: webhookUrl,
+      last_sync: lastSync,
+      script_code: scriptCode
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Route: Admin Save Google Sheet Webhook URL
+app.post('/api/admin/settings/google-sheet', adminMiddleware, async (req, res) => {
+  try {
+    const { webhook_url } = req.body;
+    const saved = await googleSheetsService.saveWebhookUrl(webhook_url);
+    res.json({ success: true, message: 'Google Sheet Webhook URL saved successfully!', webhook_url: saved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Route: Admin Trigger Full Google Sheet Sync
+app.post('/api/admin/google-sheet/sync-all', adminMiddleware, async (req, res) => {
+  try {
+    const result = await googleSheetsService.syncAllSellersToGoogleSheet();
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Route: Admin Export All Sellers as CSV
+app.get('/api/admin/sellers/export-csv', adminMiddleware, async (req, res) => {
+  try {
+    const sellers = await googleSheetsService.getAllSellersRecords();
+    const csvContent = googleSheetsService.generateSellersCsv(sellers);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="flenko_sellers_database.csv"');
+    res.send(csvContent);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate CSV: ' + err.message });
   }
 });
 
