@@ -265,13 +265,15 @@
   left: 0;
   width: 320px;
   max-width: 90vw;
-  background: var(--color-white);
+  background: #ffffff !important;
+  color: #0f172a !important;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   overflow: hidden;
   animation: flenkoFadeIn 0.15s ease-out;
+  text-align: left !important;
 }
 
 @keyframes flenkoFadeIn {
@@ -279,58 +281,99 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.country-modal-header {
+  display: none;
+  color: #0f172a !important;
+}
+
+.country-modal-header strong {
+  color: #0f172a !important;
+}
+
+.country-modal-close-btn {
+  color: #64748b !important;
+  transition: color var(--transition-fast);
+}
+
+.country-modal-close-btn:hover {
+  color: #0f172a !important;
+}
+
 .country-search-box {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-light);
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc !important;
+  color: #0f172a !important;
 }
 
 .country-search-input {
   border: none;
-  background: transparent;
+  background: transparent !important;
   width: 100%;
   font-size: 0.875rem;
-  color: var(--color-text-main);
+  color: #0f172a !important;
   outline: none;
   font-family: inherit;
 }
 
 .country-search-input::placeholder {
-  color: var(--color-text-muted);
+  color: #94a3b8 !important;
 }
 
 .country-list-scroll {
   max-height: 280px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: #ffffff !important;
 }
 
 .country-option {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.625rem 1rem;
+  padding: 0.65rem 1rem;
   cursor: pointer;
   transition: background var(--transition-fast);
   font-size: 0.875rem;
+  color: #1e293b !important;
+  text-align: left !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #f8fafc;
 }
 
 .country-option:hover {
-  background-color: #f1f5f9;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
 .country-option.selected {
-  background-color: rgba(22, 119, 210, 0.08);
+  background-color: #eff6ff !important;
   font-weight: 600;
-  color: var(--color-blue-primary);
+  color: #0284c7 !important;
 }
 
 .country-option .country-flag {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  color: #1e293b !important;
+}
+
+.country-option .country-flag-img {
+  width: 20px;
+  height: 14px;
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .country-option .country-name {
@@ -338,25 +381,38 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #1e293b !important;
+  font-weight: 500;
+}
+
+.country-option.selected .country-name {
+  color: #0284c7 !important;
+  font-weight: 700;
 }
 
 .country-option .country-dial {
   font-size: 0.75rem;
-  color: var(--color-text-muted);
-  font-weight: 500;
+  color: #64748b !important;
+  font-weight: 600;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.country-option.selected .country-dial {
+  color: #0284c7 !important;
+  background: rgba(2, 132, 199, 0.12);
 }
 
 .no-country-found {
   padding: 1.5rem;
   text-align: center;
-  color: var(--color-text-muted);
+  color: #64748b !important;
   font-size: 0.875rem;
+  background: #ffffff !important;
 }
 
 /* Mobile Country Picker Modal & Backdrop */
-.country-modal-header {
-  display: none;
-}
 .flenko-country-backdrop {
   display: none;
 }
@@ -369,6 +425,7 @@
     padding: 0.85rem 1rem !important;
     border-bottom: 1px solid #e2e8f0 !important;
     background: #f8fafc !important;
+    color: #0f172a !important;
   }
 
   .flenko-country-panel {
@@ -383,6 +440,8 @@
     box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.4) !important;
     z-index: 100000 !important;
     border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
     overflow: hidden !important;
   }
 

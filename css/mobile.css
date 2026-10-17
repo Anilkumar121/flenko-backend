@@ -181,6 +181,17 @@ html, body {
 
   .flenko-top-bar .flenko-country-btn .country-flag {
     font-size: 0.85rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .flenko-top-bar .flenko-country-btn .country-flag-img {
+    width: 16px !important;
+    height: 11px !important;
+    border-radius: 2px !important;
+    vertical-align: middle !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
   }
 
   .flenko-top-bar .flenko-country-btn .chevron-icon {
@@ -868,5 +879,33 @@ html, body {
   .flenko-lang-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 0.4rem !important;
+  }
+
+  /* Complete Country Modal Color & Visibility Isolation on Mobile */
+  .flenko-country-panel,
+  .flenko-country-panel * {
+    box-sizing: border-box;
+  }
+  .flenko-country-panel {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  .flenko-country-panel .country-option {
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+  .flenko-country-panel .country-name {
+    color: #1e293b !important;
+    font-weight: 500 !important;
+  }
+  .flenko-country-panel .country-flag {
+    color: #1e293b !important;
+  }
+  .flenko-country-panel .country-option.selected {
+    background: #eff6ff !important;
+  }
+  .flenko-country-panel .country-option.selected .country-name {
+    color: #0284c7 !important;
+    font-weight: 700 !important;
   }
 }

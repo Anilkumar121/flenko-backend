@@ -164,6 +164,21 @@ class FlenkoCountryPicker {
     }
   }
 
+  static getFlagHtml(c) {
+    if (!c || c.code === 'ALL') {
+      return '<span class="country-flag-globe" style="font-size:1.15rem; line-height:1; display:inline-block; vertical-align:middle;">🌐</span>';
+    }
+    const code = (c.code || '').toLowerCase();
+    const fallback = c.flag || c.code;
+    return `<img src="https://flagcdn.com/w40/${code}.png" 
+                 srcset="https://flagcdn.com/w80/${code}.png 2x" 
+                 width="20" height="14" 
+                 alt="${c.name || code}" 
+                 class="country-flag-img" 
+                 style="border-radius:2px; object-fit:cover; vertical-align:middle; display:inline-block; box-shadow:0 1px 2px rgba(0,0,0,0.15); flex-shrink:0;" 
+                 onerror="this.onerror=null; this.outerHTML='<span class=\\'country-flag-fallback\\'>${fallback}</span>';">`;
+  }
+
   init() {
     this.container.innerHTML = '';
     this.container.classList.add('flenko-country-wrapper');
@@ -173,7 +188,7 @@ class FlenkoCountryPicker {
     trigger.type = 'button';
     trigger.className = `flenko-country-btn style-${this.styleType}`;
     trigger.innerHTML = `
-      <span class="country-flag">${this.selected.flag}</span>
+      <span class="country-flag">${FlenkoCountryPicker.getFlagHtml(this.selected)}</span>
       <span class="country-label">${this.selected.name}</span>
       <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
     `;
@@ -201,7 +216,7 @@ class FlenkoCountryPicker {
       </div>
       <div class="country-search-box">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input type="text" class="country-search-input" placeholder="Search country (e.g. USA, India, Germany)..." autocomplete="off">
+        <input type="text" class="country-search-input" placeholder="Search country (e.g. USA, India)..." autocomplete="off">
       </div>
       <div class="country-list-scroll"></div>
     `;
@@ -275,9 +290,9 @@ class FlenkoCountryPicker {
 
     this.listContainer.innerHTML = countries.map(c => `
       <div class="country-option ${c.code === this.selected.code ? 'selected' : ''}" data-code="${c.code}">
-        <span class="country-flag">${c.flag}</span>
+        <span class="country-flag">${FlenkoCountryPicker.getFlagHtml(c)}</span>
         <span class="country-name">${c.name}</span>
-        ${c.dial ? `<span class="country-dial">${c.dial}</span>` : ''}
+        ${c.dial ? `<span class="country-dial">${c.dial}</span>` : (c.code !== 'ALL' ? `<span class="country-dial">${c.code}</span>` : '')}
       </div>
     `).join('');
 
@@ -301,8 +316,10 @@ class FlenkoCountryPicker {
     }
     
     // Update trigger UI
-    this.trigger.querySelector('.country-flag').textContent = country.flag;
-    this.trigger.querySelector('.country-label').textContent = country.name;
+    const flagEl = this.trigger.querySelector('.country-flag');
+    if (flagEl) flagEl.innerHTML = FlenkoCountryPicker.getFlagHtml(country);
+    const labelEl = this.trigger.querySelector('.country-label');
+    if (labelEl) labelEl.textContent = country.name;
     this.hiddenInput.value = country.code === 'ALL' ? '' : country.name;
 
     this.close();
@@ -323,13 +340,23 @@ class FlenkoCountryPicker {
   open() {
     // Close other pickers on the page
     document.querySelectorAll('.flenko-country-panel').forEach(p => p.style.display = 'none');
-    this.panel.style.display = 'block';
 
-    if (window.innerWidth <= 768 && this.backdrop) {
-      this.backdrop.style.display = 'block';
-      document.body.style.overflow = 'hidden';
+    // On mobile screens, append modal directly to body to decouple completely from parent styling/overflow
+    if (window.innerWidth <= 768) {
+      if (this.panel.parentElement !== document.body) {
+        document.body.appendChild(this.panel);
+      }
+      if (this.backdrop) {
+        this.backdrop.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+    } else {
+      if (this.panel.parentElement !== this.container) {
+        this.container.appendChild(this.panel);
+      }
     }
 
+    this.panel.style.display = 'block';
     this.searchInput.value = '';
     this.renderList(FLENKO_COUNTRIES);
     setTimeout(() => this.searchInput.focus(), 60);
