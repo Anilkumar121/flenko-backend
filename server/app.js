@@ -1647,7 +1647,7 @@ app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
       website_url,
       preview_url,
       site_route_url,
-      is_paid_trusted: true
+      is_paid_trusted: isAlreadyPaid
     });
   } catch (err) {
     console.error('Error generating seller website:', err);

@@ -877,23 +877,25 @@
           const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
           localSeller.subdomain = data.subdomain;
           localSeller.website_enabled = true;
-          localSeller.is_paid_trusted = true;
           localSeller.website_tagline = tagline;
+          if (data.is_paid_trusted !== undefined) {
+            localSeller.is_paid_trusted = data.is_paid_trusted;
+          }
           localStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller));
 
           const u = auth.getUser() || {};
-          u.is_paid_trusted = true;
-          u.subscription = 'premium';
           if (u.business) {
             u.business.subdomain = data.subdomain;
             u.business.website_enabled = true;
-            u.business.is_paid_trusted = true;
+            if (data.is_paid_trusted !== undefined) {
+              u.business.is_paid_trusted = data.is_paid_trusted;
+            }
           }
           auth.setUser(u);
 
           const liveUrl = getStoreWorkingUrl(data.subdomain || cleanSub);
           closeWebsiteModal();
-          alert(`🎉 Congratulations! Your Branded Store Website is Live!\n\nOfficial Website Link:\n${liveUrl}\n\n🛡️ "Paid Trusted Seller" badge is now active across Flenko!`);
+          alert(`🎉 Congratulations! Your Branded Store Website is Live!\n\nOfficial Website Link:\n${liveUrl}`);
           window.location.reload();
         } else {
           alert('❌ Failed to activate website: ' + ((data && data.error) || 'Please try again.'));

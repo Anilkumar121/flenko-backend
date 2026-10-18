@@ -830,8 +830,12 @@
         year_est: (isMatchingSubdomain && localSeller.year_est) ? localSeller.year_est : (localSeller.year_est || '2015'),
         subdomain: activeSubdomain || (localSeller.subdomain) || 'apexpackaging',
         is_paid_trusted: Boolean(
-          (localSeller && (localSeller.subscription === 'premium' || localSeller.subscription === 'pro' || localSeller.subscription === 'enterprise' || localSeller.subscription === 'website_combo')) ||
-          (localSeller && localSeller.is_paid_trusted === true)
+          localSeller &&
+          localSeller.subscription &&
+          localSeller.subscription !== 'free' &&
+          localSeller.subscription !== 'basic' &&
+          localSeller.subscription !== 'none' &&
+          (localSeller.is_paid_trusted === true || localSeller.subscription === 'premium' || localSeller.subscription === 'pro' || localSeller.subscription === 'enterprise')
         ),
         subscription: localSeller.subscription || 'free',
         logo_url: (isMatchingSubdomain && localSeller.logo_url) ? localSeller.logo_url : 'assets/images/logo.png'
