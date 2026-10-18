@@ -1,15 +1,25 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL || (process.env.DB_HOST && process.env.DB_NAME));
+
 const poolConfig = process.env.DATABASE_URL
-  ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+  ? { 
+      connectionString: process.env.DATABASE_URL, 
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000,
+      max: 10
+    }
   : {
       user: process.env.DB_USER,
       host: process.env.DB_HOST,
       database: process.env.DB_NAME,
       password: process.env.DB_PASSWORD,
       port: process.env.DB_PORT,
-      connectionTimeoutMillis: 3000,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000,
+      max: 10
     };
 
 const pool = new Pool(poolConfig);
@@ -296,26 +306,159 @@ async function ensureTables() {
     }
   }
   console.log('✅ PostgreSQL schema verified and synchronized successfully.');
+
+  // Auto-seed default Master Admin and demo Apex store if PostgreSQL is fresh & empty
+  try {
+    const userCountRes = await pool.query('SELECT COUNT(*) as count FROM users');
+    if (userCountRes.rows && parseInt(userCountRes.rows[0].count) === 0) {
+      await pool.query(`
+        INSERT INTO users (phone, password, name, email, city, role, subscription)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (phone) DO NOTHING
+      `, [
+        '8368074009',
+        'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f',
+        'Master Admin',
+        'admin@flenko.com',
+        'New Delhi',
+        'admin',
+        'vip'
+      ]);
+      console.log('✅ Default Master Admin seeded into PostgreSQL.');
+    }
+
+    const bizCountRes = await pool.query('SELECT COUNT(*) as count FROM businesses');
+    if (bizCountRes.rows && parseInt(bizCountRes.rows[0].count) === 0) {
+      const uRes = await pool.query("SELECT id FROM users WHERE phone = '8368074009' LIMIT 1");
+      const admId = (uRes.rows && uRes.rows[0]) ? uRes.rows[0].id : 1;
+      await pool.query(`
+        INSERT INTO businesses (user_id, company_name, category, business_type, gst_number, city, country, address, about, is_verified, is_paid_trusted, subdomain, website_enabled, website_tagline, logo_url, year_est)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      `, [
+        admId,
+        'Apex Packaging Solutions',
+        'Packaging & Printing',
+        'Manufacturer & Wholesaler',
+        '27AADCA9821Z5',
+        'Mumbai',
+        'India',
+        'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
+        'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
+        true,
+        true,
+        'apexpackaging',
+        true,
+        'Leading Industrial Packaging & Corrugated Box Manufacturer',
+        'assets/images/logo.png',
+        '2015'
+      ]);
+      console.log('✅ Default Apex Packaging Solutions business seeded into PostgreSQL.');
+    }
+
+    const prodCountRes = await pool.query('SELECT COUNT(*) as count FROM products');
+    if (prodCountRes.rows && parseInt(prodCountRes.rows[0].count) === 0) {
+      const uRes = await pool.query("SELECT id FROM users WHERE phone = '8368074009' LIMIT 1");
+      const admId = (uRes.rows && uRes.rows[0]) ? uRes.rows[0].id : 1;
+      await pool.query(`
+        INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country)
+        VALUES 
+        ($1, 'Heavy-Duty Corrugated Boxes', 45, 'Packaging & Printing', 500, 'Pieces', 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80', 'corrugated boxes, shipping cartons, bulk packaging', 50000, 'India'),
+        ($1, 'Self-Adhesive BOPP Packaging Tape', 65, 'Packaging & Printing', 100, 'Rolls', 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80', 'packaging tape, bopp adhesive tape, sealing tape', 12000, 'India'),
+        ($1, 'Industrial Stretch Wrapping Film', 320, 'Packaging & Printing', 20, 'Rolls', 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80', 'stretch wrap, pallet wrap, industrial cling film', 8500, 'India')
+      `, [admId]);
+      console.log('✅ Default packaging products seeded into PostgreSQL.');
+    }
+
+    const revCountRes = await pool.query('SELECT COUNT(*) as count FROM reviews');
+    if (revCountRes.rows && parseInt(revCountRes.rows[0].count) === 0) {
+      const uRes = await pool.query("SELECT id FROM users WHERE phone = '8368074009' LIMIT 1");
+      const admId = (uRes.rows && uRes.rows[0]) ? uRes.rows[0].id : 1;
+      await pool.query(`
+        INSERT INTO reviews (supplier_id, product_name, reviewer_name, rating, comment)
+        VALUES 
+        ($1, 'Heavy-Duty Corrugated Boxes', 'Rajesh K. (Procurement Head)', 5, 'Top quality material and on-time bulk delivery. Highly recommend for large packaging orders.'),
+        ($1, 'Bulk Packaging Supply', 'Sunil Mehta (Operations Director)', 5, 'Very professional response to our RFQ. Excellent prices and custom printing options.')
+      `, [admId]);
+      console.log('✅ Default reviews seeded into PostgreSQL.');
+    }
+  } catch(seedErr) {
+    console.warn('Non-fatal seed check warning:', seedErr.message);
+  }
 }
 
-pool.query('SELECT 1').then(() => {
-  console.log('✅ PostgreSQL connected successfully!');
-  ensureTables();
-}).catch(() => {
-  console.warn('⚠️ PostgreSQL connection failed. Using IN-MEMORY DEVELOPMENT ADAPTER (Data saved to db.json).');
-  useMock = true;
+let isConnectedToPostgres = false;
+let lastDbError = null;
+let lastConnectedAt = null;
+let reconnectTimer = null;
+
+pool.on('error', (err) => {
+  console.error('⚠️ PostgreSQL pool idle error:', err.message);
+  isConnectedToPostgres = false;
+  lastDbError = err.message;
+  scheduleReconnect();
 });
+
+async function checkAndConnectDb() {
+  if (!hasDatabaseUrl) {
+    useMock = true;
+    console.warn('⚠️ No DATABASE_URL found in environment variables. Using in-memory fallback (data wipes on server restart).');
+    return false;
+  }
+
+  try {
+    const res = await pool.query('SELECT 1');
+    if (res) {
+      isConnectedToPostgres = true;
+      useMock = false;
+      lastDbError = null;
+      lastConnectedAt = new Date();
+      console.log('✅ PostgreSQL connected successfully! (Cloud persistent storage active)');
+      await ensureTables();
+      return true;
+    }
+  } catch (err) {
+    lastDbError = err.message;
+    console.warn(`⚠️ PostgreSQL connection failed: ${err.message}.`);
+    if (hasDatabaseUrl) {
+      console.warn('🔄 DATABASE_URL is set. Retrying connection in 10s...');
+      scheduleReconnect();
+    }
+    useMock = true;
+    return false;
+  }
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer || !hasDatabaseUrl) return;
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    console.log('🔄 Retrying PostgreSQL connection...');
+    await checkAndConnectDb();
+  }, 10000);
+}
+
+// Initial connection attempt
+checkAndConnectDb();
 
 module.exports = {
   query: async (text, params = []) => {
-    if (!useMock) {
+    if (!useMock && isConnectedToPostgres) {
       try {
         return await pool.query(text, params);
       } catch (err) {
         console.warn('Postgres query failed:', err.message);
-        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || (err.message && err.message.includes('Connection terminated')) || (err.message && err.message.includes('timeout'))) {
-          console.warn('Switching to mock adapter due to connection loss.');
+        if (
+          err.code === 'ECONNREFUSED' ||
+          err.code === 'ENOTFOUND' ||
+          (err.message && (err.message.includes('Connection terminated') || err.message.includes('timeout') || err.message.includes('Connection lost') || err.message.includes('closed')))
+        ) {
+          console.warn('Temporary connection drop to PostgreSQL. Retrying connection in background...');
+          isConnectedToPostgres = false;
           useMock = true;
+          lastDbError = err.message;
+          scheduleReconnect();
+        } else {
+          throw err;
         }
       }
     }
@@ -1058,5 +1201,274 @@ module.exports = {
     
     return { rows: [] };
   },
-  pool
+  pool,
+  getDbStatus,
+  getSnapshotData,
+  importSnapshotData,
+  checkAndConnectDb
 };
+
+async function getDbStatus() {
+  let stats = {
+    usersCount: 0,
+    businessesCount: 0,
+    productsCount: 0,
+    leadsCount: 0,
+    reviewsCount: 0
+  };
+
+  const isLivePg = isConnectedToPostgres && !useMock;
+  if (isLivePg) {
+    try {
+      const [uRes, bRes, pRes, lRes, rRes] = await Promise.all([
+        pool.query('SELECT COUNT(*) as count FROM users'),
+        pool.query('SELECT COUNT(*) as count FROM businesses'),
+        pool.query('SELECT COUNT(*) as count FROM products'),
+        pool.query('SELECT COUNT(*) as count FROM leads'),
+        pool.query('SELECT COUNT(*) as count FROM reviews')
+      ]);
+      stats.usersCount = parseInt(uRes.rows[0].count) || 0;
+      stats.businessesCount = parseInt(bRes.rows[0].count) || 0;
+      stats.productsCount = parseInt(pRes.rows[0].count) || 0;
+      stats.leadsCount = parseInt(lRes.rows[0].count) || 0;
+      stats.reviewsCount = parseInt(rRes.rows[0].count) || 0;
+    } catch (e) {
+      console.warn('Error reading stats from PostgreSQL:', e.message);
+    }
+  } else {
+    stats.usersCount = (mockDB.users || []).length;
+    stats.businessesCount = (mockDB.businesses || []).length;
+    stats.productsCount = (mockDB.products || []).length;
+    stats.leadsCount = (mockDB.leads || []).length;
+    stats.reviewsCount = (mockDB.reviews || []).length;
+  }
+
+  return {
+    configured: hasDatabaseUrl,
+    connected: isLivePg,
+    mode: isLivePg ? 'postgresql' : (hasDatabaseUrl ? 'reconnecting' : 'ephemeral_mock'),
+    storageType: isLivePg ? 'Cloud PostgreSQL (Persistent & 24/7 Safe)' : 'Ephemeral Server Memory / db.json (Resets on restart)',
+    databaseUrlSet: Boolean(process.env.DATABASE_URL),
+    lastConnectedAt,
+    lastDbError,
+    stats,
+    warning: !isLivePg
+      ? 'Render free web service restarts every 24 hours. Without a connected PostgreSQL DATABASE_URL, any new sellers or products will be wiped on restart. Connect a free PostgreSQL database to keep data permanent.'
+      : null
+  };
+}
+
+async function getSnapshotData() {
+  if (isConnectedToPostgres && !useMock) {
+    try {
+      const [u, b, p, l, r, rfq, quot, set] = await Promise.all([
+        pool.query('SELECT * FROM users ORDER BY id ASC'),
+        pool.query('SELECT * FROM businesses ORDER BY id ASC'),
+        pool.query('SELECT * FROM products ORDER BY id ASC'),
+        pool.query('SELECT * FROM leads ORDER BY id ASC'),
+        pool.query('SELECT * FROM reviews ORDER BY id ASC'),
+        pool.query('SELECT * FROM rfqs ORDER BY id ASC'),
+        pool.query('SELECT * FROM quotations ORDER BY id ASC'),
+        pool.query('SELECT * FROM platform_settings ORDER BY setting_key ASC')
+      ]);
+      return {
+        exported_at: new Date().toISOString(),
+        source: 'postgresql',
+        users: u.rows,
+        businesses: b.rows,
+        products: p.rows,
+        leads: l.rows,
+        reviews: r.rows,
+        rfqs: rfq.rows,
+        quotations: quot.rows,
+        platform_settings: set.rows
+      };
+    } catch (err) {
+      console.warn('Error exporting from postgres, falling back to mockDB:', err.message);
+    }
+  }
+
+  return {
+    exported_at: new Date().toISOString(),
+    source: 'mock_memory',
+    users: mockDB.users || [],
+    businesses: mockDB.businesses || [],
+    products: mockDB.products || [],
+    leads: mockDB.leads || [],
+    reviews: mockDB.reviews || [],
+    rfqs: mockDB.rfqs || [],
+    quotations: mockDB.quotations || [],
+    platform_settings: mockDB.platform_settings || []
+  };
+}
+
+async function importSnapshotData(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    throw new Error('Invalid backup file format.');
+  }
+
+  const result = {
+    users: 0,
+    businesses: 0,
+    products: 0,
+    leads: 0,
+    reviews: 0
+  };
+
+  // Always update mockDB
+  if (Array.isArray(snapshot.users) && snapshot.users.length > 0) {
+    mockDB.users = snapshot.users;
+    result.users = snapshot.users.length;
+  }
+  if (Array.isArray(snapshot.businesses) && snapshot.businesses.length > 0) {
+    mockDB.businesses = snapshot.businesses;
+    result.businesses = snapshot.businesses.length;
+  }
+  if (Array.isArray(snapshot.products) && snapshot.products.length > 0) {
+    mockDB.products = snapshot.products;
+    result.products = snapshot.products.length;
+  }
+  if (Array.isArray(snapshot.leads) && snapshot.leads.length > 0) {
+    mockDB.leads = snapshot.leads;
+    result.leads = snapshot.leads.length;
+  }
+  if (Array.isArray(snapshot.reviews) && snapshot.reviews.length > 0) {
+    mockDB.reviews = snapshot.reviews;
+    result.reviews = snapshot.reviews.length;
+  }
+  if (Array.isArray(snapshot.rfqs)) mockDB.rfqs = snapshot.rfqs;
+  if (Array.isArray(snapshot.quotations)) mockDB.quotations = snapshot.quotations;
+  if (Array.isArray(snapshot.platform_settings)) mockDB.platform_settings = snapshot.platform_settings;
+  saveMockDB();
+
+  // If connected to PostgreSQL, import into PostgreSQL tables
+  if (isConnectedToPostgres && !useMock) {
+    try {
+      // Import users
+      if (Array.isArray(snapshot.users)) {
+        for (const u of snapshot.users) {
+          await pool.query(`
+            INSERT INTO users (id, phone, password, name, email, city, role, subscription)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (id) DO UPDATE SET
+              phone = EXCLUDED.phone,
+              password = COALESCE(EXCLUDED.password, users.password),
+              name = EXCLUDED.name,
+              email = EXCLUDED.email,
+              city = EXCLUDED.city,
+              role = EXCLUDED.role,
+              subscription = EXCLUDED.subscription
+          `, [u.id, u.phone, u.password || null, u.name || '', u.email || '', u.city || '', u.role || 'buyer', u.subscription || 'free']).catch(e => console.warn('User import err:', e.message));
+        }
+        await pool.query(`SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(max(id), 1)) FROM users`).catch(() => {});
+      }
+
+      // Import businesses
+      if (Array.isArray(snapshot.businesses)) {
+        for (const b of snapshot.businesses) {
+          await pool.query(`
+            INSERT INTO businesses (id, user_id, company_name, category, business_type, gst_number, city, country, address, about, is_verified, is_paid_trusted, subdomain, website_enabled, website_tagline, logo_url, year_est)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            ON CONFLICT (id) DO UPDATE SET
+              user_id = EXCLUDED.user_id,
+              company_name = EXCLUDED.company_name,
+              category = EXCLUDED.category,
+              business_type = EXCLUDED.business_type,
+              gst_number = EXCLUDED.gst_number,
+              city = EXCLUDED.city,
+              country = EXCLUDED.country,
+              address = EXCLUDED.address,
+              about = EXCLUDED.about,
+              is_verified = EXCLUDED.is_verified,
+              is_paid_trusted = EXCLUDED.is_paid_trusted,
+              subdomain = EXCLUDED.subdomain,
+              website_enabled = EXCLUDED.website_enabled,
+              website_tagline = EXCLUDED.website_tagline,
+              logo_url = EXCLUDED.logo_url,
+              year_est = EXCLUDED.year_est
+          `, [
+            b.id, b.user_id, b.company_name, b.category || '', b.business_type || '', b.gst_number || '',
+            b.city || '', b.country || 'India', b.address || '', b.about || '',
+            b.is_verified !== false, b.is_paid_trusted === true, b.subdomain || '',
+            b.website_enabled !== false, b.website_tagline || '', b.logo_url || '', b.year_est || ''
+          ]).catch(e => console.warn('Business import err:', e.message));
+        }
+        await pool.query(`SELECT setval(pg_get_serial_sequence('businesses', 'id'), COALESCE(max(id), 1)) FROM businesses`).catch(() => {});
+      }
+
+      // Import products
+      if (Array.isArray(snapshot.products)) {
+        for (const p of snapshot.products) {
+          await pool.query(`
+            INSERT INTO products (id, supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (id) DO UPDATE SET
+              supplier_id = EXCLUDED.supplier_id,
+              name = EXCLUDED.name,
+              price = EXCLUDED.price,
+              category = EXCLUDED.category,
+              moq = EXCLUDED.moq,
+              unit = EXCLUDED.unit,
+              image_url = EXCLUDED.image_url,
+              seo_tags = EXCLUDED.seo_tags,
+              stock_quantity = EXCLUDED.stock_quantity,
+              country = EXCLUDED.country
+          `, [
+            p.id, p.supplier_id, p.name, p.price || null, p.category || '', p.moq || 1,
+            p.unit || 'Pieces', p.image_url || '', p.seo_tags || '', p.stock_quantity || 500, p.country || 'India'
+          ]).catch(e => console.warn('Product import err:', e.message));
+        }
+        await pool.query(`SELECT setval(pg_get_serial_sequence('products', 'id'), COALESCE(max(id), 1)) FROM products`).catch(() => {});
+      }
+
+      // Import leads
+      if (Array.isArray(snapshot.leads)) {
+        for (const l of snapshot.leads) {
+          await pool.query(`
+            INSERT INTO leads (id, supplier_id, buyer_id, product_needed, buyer_phone, details, status, is_direct, is_paid, replies, source)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (id) DO UPDATE SET
+              status = EXCLUDED.status,
+              is_paid = EXCLUDED.is_paid,
+              replies = EXCLUDED.replies
+          `, [
+            l.id, l.supplier_id || null, l.buyer_id || null, l.product_needed || '', l.buyer_phone || '',
+            l.details || '', l.status || 'New', l.is_direct === true, l.is_paid === true,
+            JSON.stringify(l.replies || []), l.source || 'flenko_direct'
+          ]).catch(e => console.warn('Lead import err:', e.message));
+        }
+        await pool.query(`SELECT setval(pg_get_serial_sequence('leads', 'id'), COALESCE(max(id), 1)) FROM leads`).catch(() => {});
+      }
+
+      // Import reviews
+      if (Array.isArray(snapshot.reviews)) {
+        for (const r of snapshot.reviews) {
+          await pool.query(`
+            INSERT INTO reviews (id, supplier_id, product_id, product_name, reviewer_name, rating, comment)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO NOTHING
+          `, [
+            r.id, r.supplier_id, r.product_id || null, r.product_name || '',
+            r.reviewer_name || 'Verified Buyer', r.rating || 5, r.comment || ''
+          ]).catch(e => console.warn('Review import err:', e.message));
+        }
+        await pool.query(`SELECT setval(pg_get_serial_sequence('reviews', 'id'), COALESCE(max(id), 1)) FROM reviews`).catch(() => {});
+      }
+
+      // Import platform_settings
+      if (Array.isArray(snapshot.platform_settings)) {
+        for (const s of snapshot.platform_settings) {
+          await pool.query(`
+            INSERT INTO platform_settings (setting_key, setting_value)
+            VALUES ($1, $2)
+            ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value
+          `, [s.setting_key, s.setting_value]).catch(() => {});
+        }
+      }
+    } catch(pgErr) {
+      console.error('PostgreSQL import error:', pgErr);
+    }
+  }
+
+  return result;
+}

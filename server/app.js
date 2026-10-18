@@ -65,6 +65,20 @@ const uploadLogo = multer({
   limits: { fileSize: 25 * 1024 * 1024, fieldSize: 25 * 1024 * 1024 }
 });
 
+// Helper to convert uploaded images (<= 3.5MB) to persistent base64 data URIs so they survive cloud container restarts
+function fileToDataUri(file) {
+  if (!file || !file.path) return null;
+  try {
+    if (file.size && file.size > 3.5 * 1024 * 1024) return null;
+    const fileBuffer = fs.readFileSync(file.path);
+    const mime = file.mimetype || 'image/jpeg';
+    return `data:${mime};base64,${fileBuffer.toString('base64')}`;
+  } catch (err) {
+    console.error('Error converting file to base64 data URI:', err.message);
+    return null;
+  }
+}
+
 // Serve uploaded images and static assets
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
 app.use('/css', express.static(path.join(__dirname, '../css')));
@@ -1084,7 +1098,13 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
   
   // Use production backend host for image URL if on cloud, otherwise request host
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
-  let logo_url = req.file ? `${backendHost}/assets/images/logos/${req.file.filename}` : (req.body.logo_url || null);
+  let logo_url = null;
+  if (req.file) {
+    const dataUri = fileToDataUri(req.file);
+    logo_url = dataUri || `${backendHost}/assets/images/logos/${req.file.filename}`;
+  } else if (req.body.logo_url) {
+    logo_url = req.body.logo_url;
+  }
 
   try {
     let targetUserId = req.user.id;
@@ -2333,7 +2353,7 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
   const image_url = (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image'))
     ? req.body.image_data
-    : (req.file ? `${backendHost}/assets/images/products/${req.file.filename}` : (req.body.image_url || 'assets/images/logo.png'));
+    : (req.file ? (fileToDataUri(req.file) || `${backendHost}/assets/images/products/${req.file.filename}`) : (req.body.image_url || 'assets/images/logo.png'));
   
   // Auto-SEO Generator
   const autoSeoTags = `buy ${cleanName} wholesale, best ${cleanName} supplier, ${cleanName} manufacturers in ${effectiveCountry}, top quality ${effectiveCategory}`;
@@ -2397,7 +2417,8 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
     let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productId];
 
     if (req.file) {
-      const image_url = `${backendHost}/assets/images/products/${req.file.filename}`;
+      const dataUri = fileToDataUri(req.file);
+      const image_url = dataUri || `${backendHost}/assets/images/products/${req.file.filename}`;
       updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 RETURNING *';
       params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productId];
     } else if (req.body.image_data) {
@@ -2996,6 +3017,47 @@ app.get('/api/admin/sellers/export-csv', adminMiddleware, async (req, res) => {
     res.send(csvContent);
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate CSV: ' + err.message });
+  }
+});
+
+// Route: Admin Database Status & Storage Diagnostics
+app.get('/api/admin/db/status', adminMiddleware, async (req, res) => {
+  try {
+    const status = await db.getDbStatus();
+    res.json({ success: true, ...status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Route: Admin Download Full Database Backup Snapshot (.json)
+app.get('/api/admin/db/export', adminMiddleware, async (req, res) => {
+  try {
+    const snapshot = await db.getSnapshotData();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="flenko_db_backup_${timestamp}.json"`);
+    res.send(JSON.stringify(snapshot, null, 2));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Route: Admin Restore Database Backup Snapshot (.json)
+app.post('/api/admin/db/import', adminMiddleware, async (req, res) => {
+  try {
+    const { snapshot } = req.body;
+    if (!snapshot) {
+      return res.status(400).json({ success: false, error: 'No snapshot data provided.' });
+    }
+    const result = await db.importSnapshotData(snapshot);
+    res.json({
+      success: true,
+      message: `Database restored successfully! (${result.users} users, ${result.businesses} businesses, ${result.products} products, ${result.leads} leads).`,
+      restored: result
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

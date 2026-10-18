@@ -695,14 +695,122 @@
             <button class="btn btn-primary" style="width: 100%;" onclick="saveSettings('finance')">Save Financial Settings</button>
           </div>
 
-          <div class="stat-card" style="padding: 2rem;">
-            <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1.5rem; font-size: 1.125rem;">Database Maintenance</h3>
-            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem;">
-              Purge any dummy/test data and retain only real verified users and genuine listings.
-            </p>
-            <button class="btn btn-secondary" style="color: #dc2626; border-color: #fca5a5; width: 100%; font-weight: 700; padding: 0.75rem;" onclick="cleanDemoData()">
-              🧹 Purge Demo / Test Products
-            </button>
+          <!-- DATABASE HEALTH & PERMANENT CLOUD PERSISTENCE CARD -->
+          <div class="stat-card" style="padding: 2rem; grid-column: span 2; border-top: 4px solid #028867; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem;">
+              <div>
+                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                  <span style="font-size: 1.6rem;">💾</span>
+                  <h3 style="color: #0f172a; margin: 0; font-size: 1.3rem; font-weight:800;">Database Storage &amp; Cloud Persistence Health</h3>
+                  <span id="dbHealthStatusBadge" class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700; font-size:0.75rem; padding:3px 10px; border-radius:12px;">Checking DB...</span>
+                </div>
+                <p style="font-size: 0.88rem; color: #475569; margin: 0.4rem 0 0; max-width: 820px; line-height:1.5;">
+                  Monitor your database persistence status, prevent 24-hour Render container resets, and create 1-click full backups of all sellers, listings, and inquiries.
+                </p>
+              </div>
+              <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary" onclick="downloadDbBackup()" style="font-size:0.85rem; padding:0.5rem 1rem; font-weight:600;">
+                  📥 Download Backup (.json)
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="triggerDbRestore()" style="font-size:0.85rem; padding:0.5rem 1rem; font-weight:600; border-color:#cbd5e1;">
+                  📤 Restore Backup (.json)
+                </button>
+                <input type="file" id="dbRestoreFileInput" accept=".json" style="display:none;" onchange="handleDbRestoreFile(event)">
+                <button type="button" class="btn btn-primary" onclick="loadDbHealthStatus()" style="background:#0F4C9B; font-size:0.85rem; padding:0.5rem 1rem; font-weight:700;">
+                  🔄 Check DB Status
+                </button>
+              </div>
+            </div>
+
+            <!-- DB METRICS TILES -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+              <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Storage Engine</div>
+                <div id="dbStorageEngineText" style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-top: 0.25rem;">Loading...</div>
+              </div>
+              <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Users in DB</div>
+                <div id="dbStatsUsers" style="font-size: 1.25rem; font-weight: 800; color: #0F4C9B; margin-top: 0.25rem;">0</div>
+              </div>
+              <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Suppliers / Businesses</div>
+                <div id="dbStatsBusinesses" style="font-size: 1.25rem; font-weight: 800; color: #028867; margin-top: 0.25rem;">0</div>
+              </div>
+              <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Catalog Products</div>
+                <div id="dbStatsProducts" style="font-size: 1.25rem; font-weight: 800; color: #d97706; margin-top: 0.25rem;">0</div>
+              </div>
+              <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Inquiries / Leads</div>
+                <div id="dbStatsLeads" style="font-size: 1.25rem; font-weight: 800; color: #7c3aed; margin-top: 0.25rem;">0</div>
+              </div>
+            </div>
+
+            <!-- WARNING CALLOUT (VISIBLE ONLY WHEN NOT ON CLOUD POSTGRESQL) -->
+            <div id="dbWarningBanner" style="display: none; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+              <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                <span style="font-size: 1.5rem; line-height: 1;">⚠️</span>
+                <div style="font-size: 0.88rem; color: #92400e; line-height: 1.5;">
+                  <strong>Important Notice (24-Hour Container Reset):</strong><br>
+                  Aapka backend abhi <em>Temporary Local Memory</em> me data save kar raha hai kyunki Render environment variables mein <code>DATABASE_URL</code> set nahi hai. Render free tier har 24 ghante mein server disk wipe karta hai. Niche diye gaye <strong>2-minute simple steps</strong> se Render par free PostgreSQL database create karein taaki data <strong>hamesha ke liye permanent</strong> rahe!
+                </div>
+              </div>
+            </div>
+
+            <!-- SUCCESS CALLOUT (VISIBLE WHEN ON CLOUD POSTGRESQL) -->
+            <div id="dbSuccessBanner" style="display: none; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+              <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <span style="font-size: 1.3rem;">🛡️</span>
+                <div style="font-size: 0.88rem; color: #166534; font-weight: 600;">
+                  Cloud PostgreSQL Database is Active and Connected! Every newly registered seller, product, and inquiry is permanently stored and will never be lost on server restarts.
+                </div>
+              </div>
+            </div>
+
+            <!-- COLLAPSIBLE SETUP GUIDE FOR RENDER POSTGRESQL -->
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; overflow: hidden; margin-bottom: 1.25rem;">
+              <div style="padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;" onclick="toggleDbGuide()">
+                <div style="font-weight: 700; font-size: 0.9rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>📖 2-Minute Guide: How to keep data permanent forever (Render PostgreSQL Setup)</span>
+                  <span style="font-size: 0.72rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 10px; font-weight:600;">Click to open</span>
+                </div>
+                <span id="dbGuideArrow" style="font-weight: bold; color: #64748b;">▼</span>
+              </div>
+              
+              <div id="dbGuideContent" style="display: none; padding: 1.25rem; border-top: 1px solid #e2e8f0; background: white;">
+                <p style="font-size: 0.85rem; color: #334155; margin: 0 0 0.75rem;">
+                  Render par free PostgreSQL database jodna bahut simple hai. Sirf yeh simple steps karein:
+                </p>
+                <ol style="margin: 0 0 1rem 1.25rem; padding: 0; font-size: 0.85rem; color: #334155; line-height: 1.8;">
+                  <li>Open <strong><a href="https://dashboard.render.com" target="_blank" style="color:#0F4C9B; font-weight:700;">Render Dashboard</a></strong>.</li>
+                  <li>Click top-right <strong>New +</strong> &gt; Select <strong>PostgreSQL</strong>.</li>
+                  <li>Name: <code>flenko-db</code> daalein aur <strong>Create Database</strong> par click karein (free tier).</li>
+                  <li>Database ready hone ke baad neeche scroll karein aur <strong>Internal Database URL</strong> (ya External Database URL) copy karein.</li>
+                  <li>Apni Web Service (<strong>flenko-backend</strong>) par click karein &gt; Left menu se <strong>Environment</strong> tab open karein.</li>
+                  <li>Ek naya Environment Variable add karein:
+                    <div style="margin: 0.35rem 0; background: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.82rem;">
+                      Key: <strong>DATABASE_URL</strong><br>
+                      Value: <em>&lt;Paste your copied PostgreSQL URL here&gt;</em>
+                    </div>
+                  </li>
+                  <li>Click <strong>Save Changes</strong>. Render 60 seconds mein restart hoga aur Master Admin + Apex store auto-seed ho jayenge! Aapka saara data permanent ho jayega!</li>
+                </ol>
+                <div style="font-size: 0.8rem; color: #64748b; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: 6px; border-left: 3px solid #0F4C9B;">
+                  💡 <strong>Alternative 100% Free Lifetime DB:</strong> Aap <strong><a href="https://neon.tech" target="_blank" style="color:#0F4C9B; font-weight:700;">Neon.tech</a></strong> ya <strong><a href="https://supabase.com" target="_blank" style="color:#0F4C9B; font-weight:700;">Supabase</a></strong> par bhi free PostgreSQL bana kar uska Connection String <code>DATABASE_URL</code> mein daal sakte hain!
+                </div>
+              </div>
+            </div>
+
+            <!-- DANGER ZONE / PURGE DEMO BUTTON -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e2e8f0; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <span style="font-size: 0.85rem; font-weight: 700; color: #0f172a;">Demo / Sample Data Purge:</span>
+                <span style="font-size: 0.8rem; color: #64748b; margin-left: 0.3rem;">Purge mock listings and keep real verified sellers.</span>
+              </div>
+              <button class="btn btn-secondary" style="color: #dc2626; border-color: #fca5a5; font-weight: 700; padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="cleanDemoData()">
+                🧹 Purge Demo / Test Products
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -795,6 +903,7 @@
         loadAllAdminUsers();
       } else if (tabId === 'settings') {
         loadGoogleSheetSettings();
+        loadDbHealthStatus();
       }
     }
 
@@ -1181,6 +1290,156 @@ Successfully synced ${data.count} sellers into your Google Sheet!`);
         document.execCommand('copy');
         alert('📋 Script code copied!');
       });
+    }
+
+    // ==============================================
+    // DATABASE PERSISTENCE & BACKUP MANAGEMENT
+    // ==============================================
+    async function loadDbHealthStatus() {
+      const token = auth.getToken();
+      if (!token) return;
+
+      const badge = document.getElementById('dbHealthStatusBadge');
+      const engineText = document.getElementById('dbStorageEngineText');
+      const warningBanner = document.getElementById('dbWarningBanner');
+      const successBanner = document.getElementById('dbSuccessBanner');
+
+      if (badge) {
+        badge.innerText = 'Checking...';
+        badge.style.background = '#e0f2fe';
+        badge.style.color = '#0369a1';
+      }
+
+      try {
+        const res = await auth.fetchWithFallback('/admin/db/status', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          const isConnected = data.connected;
+
+          if (badge) {
+            if (isConnected) {
+              badge.innerText = '🟢 Cloud PostgreSQL Active (Permanent Data)';
+              badge.style.background = '#dcfce7';
+              badge.style.color = '#166534';
+            } else {
+              badge.innerText = '🔴 Ephemeral Storage (Resets on 24h Restart!)';
+              badge.style.background = '#fee2e2';
+              badge.style.color = '#991b1b';
+            }
+          }
+
+          if (engineText) {
+            engineText.innerText = isConnected ? 'PostgreSQL (Cloud DB)' : 'Memory Cache (db.json)';
+            engineText.style.color = isConnected ? '#166534' : '#dc2626';
+          }
+
+          if (warningBanner) {
+            warningBanner.style.display = isConnected ? 'none' : 'block';
+          }
+          if (successBanner) {
+            successBanner.style.display = isConnected ? 'block' : 'none';
+          }
+
+          if (data.stats) {
+            const uEl = document.getElementById('dbStatsUsers');
+            const bEl = document.getElementById('dbStatsBusinesses');
+            const pEl = document.getElementById('dbStatsProducts');
+            const lEl = document.getElementById('dbStatsLeads');
+            if (uEl) uEl.innerText = data.stats.usersCount || 0;
+            if (bEl) bEl.innerText = data.stats.businessesCount || 0;
+            if (pEl) pEl.innerText = data.stats.productsCount || 0;
+            if (lEl) lEl.innerText = data.stats.leadsCount || 0;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load database health status:', err);
+        if (badge) {
+          badge.innerText = '⚠️ Status Check Failed';
+          badge.style.background = '#fef3c7';
+          badge.style.color = '#92400e';
+        }
+      }
+    }
+
+    async function downloadDbBackup() {
+      const token = auth.getToken();
+      try {
+        const res = await auth.fetchWithFallback('/admin/db/export', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Backup export request failed');
+        const blob = await res.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `flenko_db_backup_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (err) {
+        alert('Failed to download database backup: ' + err.message);
+      }
+    }
+
+    function triggerDbRestore() {
+      const fileInput = document.getElementById('dbRestoreFileInput');
+      if (fileInput) fileInput.click();
+    }
+
+    async function handleDbRestoreFile(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (!confirm(`Restore Database from "${file.name}"?\nThis will merge/restore users, businesses, products, and inquiries.`)) {
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const snapshot = JSON.parse(event.target.result);
+          const token = auth.getToken();
+          const res = await auth.fetchWithFallback('/admin/db/import', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ snapshot })
+          });
+          const data = await res.json();
+          if (data && data.success) {
+            alert(`🎉 Success!\n${data.message}`);
+            loadDbHealthStatus();
+            loadAllAdminUsers();
+            loadAdminProducts();
+          } else {
+            alert('Restore Error: ' + ((data && data.error) || 'Failed to restore backup'));
+          }
+        } catch (err) {
+          alert('Invalid backup file or parse error: ' + err.message);
+        } finally {
+          e.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function toggleDbGuide() {
+      const el = document.getElementById('dbGuideContent');
+      const arrow = document.getElementById('dbGuideArrow');
+      if (!el) return;
+      if (el.style.display === 'none' || !el.style.display) {
+        el.style.display = 'block';
+        if (arrow) arrow.innerText = '▲';
+      } else {
+        el.style.display = 'none';
+        if (arrow) arrow.innerText = '▼';
+      }
     }
 
     // ==============================================
@@ -1696,6 +1955,7 @@ Successfully synced ${data.count} sellers into your Google Sheet!`);
         loadAllLeads();
         loadAllAdminUsers();
         loadGoogleSheetSettings();
+        loadDbHealthStatus();
       }
     });
   </script>
