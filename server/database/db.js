@@ -444,8 +444,19 @@ module.exports = {
       saveMockDB();
       return { rows: [newUser] };
     }
-    if (text.includes('SELECT * FROM users') && !text.includes('WHERE')) {
-      return { rows: mockDB.users || [] };
+    if (text.includes('FROM users') && !text.includes('WHERE')) {
+      mockDB.users = mockDB.users || [];
+      if (text.includes('COUNT(*)')) {
+        return { rows: [{ count: mockDB.users.length, cnt: mockDB.users.length }] };
+      }
+      let rows = [...mockDB.users];
+      if (text.includes('ORDER BY id DESC') || text.includes('ORDER BY created_at DESC')) {
+        rows.sort((a, b) => (b.id || 0) - (a.id || 0));
+      } else if (text.includes('ORDER BY id ASC')) {
+        rows.sort((a, b) => (a.id || 0) - (b.id || 0));
+      }
+      if (text.includes('LIMIT 10')) rows = rows.slice(0, 10);
+      return { rows };
     }
     if (text.includes('SELECT * FROM users WHERE')) {
       mockDB.users = mockDB.users || [];
@@ -572,12 +583,21 @@ module.exports = {
       const row = mockDB.businesses.find(b => (b.subdomain || '').toLowerCase().trim() === targetSub || String(b.user_id) === targetSub);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('FROM businesses') && text.includes('SELECT')) {
+    if (text.includes('FROM businesses') && (text.includes('SELECT') || !text.includes('WHERE'))) {
+      mockDB.businesses = mockDB.businesses || [];
+      if (text.includes('COUNT(*)')) {
+        return { rows: [{ count: mockDB.businesses.length, cnt: mockDB.businesses.length }] };
+      }
       let rows = [...mockDB.businesses];
       if (params.length > 0 && text.includes('LOWER(b.category) = LOWER($1)')) {
         rows = rows.filter(b => b.category && b.category.toLowerCase() === params[0].toLowerCase());
       }
-      return { rows: rows.reverse() };
+      if (text.includes('ORDER BY id ASC')) {
+        rows.sort((a, b) => (a.id || 0) - (b.id || 0));
+      } else {
+        rows.sort((a, b) => (b.id || 0) - (a.id || 0));
+      }
+      return { rows };
     }
     if (text.includes('INSERT INTO businesses')) {
       const newBiz = {
@@ -716,6 +736,9 @@ module.exports = {
     }
     if (text.includes('FROM reviews')) {
       mockDB.reviews = mockDB.reviews || [];
+      if (text.includes('COUNT(*)')) {
+        return { rows: [{ count: mockDB.reviews.length, cnt: mockDB.reviews.length }] };
+      }
       return { rows: mockDB.reviews.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
     }
     if (text.includes('FROM leads WHERE') && (text.includes('supplier_id') || text.includes('supplier_id IS NULL') || text.includes('is_direct'))) {
@@ -809,17 +832,18 @@ module.exports = {
       const rows = (mockDB.leads || []).filter(l => l.supplier_id == uId || l.buyer_id == uId);
       return { rows: rows.slice().reverse() };
     }
-    if (text.includes('SELECT COUNT(*) as cnt FROM leads WHERE is_direct = true')) {
-      const cnt = (mockDB.leads || []).filter(l => l.is_direct === true || l.is_direct === 'true').length;
-      return { rows: [{ cnt }] };
-    }
-    if (text.includes('SELECT COUNT(*) as cnt FROM leads WHERE is_direct = false OR supplier_id IS NULL')) {
-      const cnt = (mockDB.leads || []).filter(l => !l.is_direct || l.is_direct === false || l.is_direct === 'false' || !l.supplier_id).length;
-      return { rows: [{ cnt }] };
-    }
-    if (text.includes('SELECT COUNT(*) as cnt FROM leads')) {
-      const cnt = (mockDB.leads || []).length;
-      return { rows: [{ cnt }] };
+    if (text.includes('COUNT(*)') && text.includes('FROM leads')) {
+      mockDB.leads = mockDB.leads || [];
+      if (text.includes('is_direct = true')) {
+        const cnt = mockDB.leads.filter(l => l.is_direct === true || l.is_direct === 'true').length;
+        return { rows: [{ count: cnt, cnt }] };
+      }
+      if (text.includes('is_direct = false OR supplier_id IS NULL')) {
+        const cnt = mockDB.leads.filter(l => !l.is_direct || l.is_direct === false || l.is_direct === 'false' || !l.supplier_id).length;
+        return { rows: [{ count: cnt, cnt }] };
+      }
+      const cnt = mockDB.leads.length;
+      return { rows: [{ count: cnt, cnt }] };
     }
     if (text.includes('INSERT INTO lead_payments')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
@@ -934,6 +958,25 @@ module.exports = {
       saveMockDB();
       return { rows: [newProd] };
     }
+    if (text.includes('FROM products') && text.includes('GROUP BY supplier_id')) {
+      mockDB.products = mockDB.products || [];
+      const countMap = {};
+      mockDB.products.forEach(p => {
+        const sid = p.supplier_id || 1;
+        countMap[sid] = (countMap[sid] || 0) + 1;
+      });
+      const rows = Object.keys(countMap).map(sid => ({ supplier_id: parseInt(sid), cnt: countMap[sid] }));
+      return { rows };
+    }
+    if (text.includes('COUNT(*)') && text.includes('FROM products')) {
+      mockDB.products = mockDB.products || [];
+      if (text.includes('WHERE supplier_id')) {
+        const suppId = params[0];
+        const cnt = mockDB.products.filter(p => p.supplier_id == suppId).length;
+        return { rows: [{ count: cnt, cnt }] };
+      }
+      return { rows: [{ count: mockDB.products.length, cnt: mockDB.products.length }] };
+    }
     if (text.includes('FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name))')) {
       mockDB.products = mockDB.products || [];
       const suppId = params[0];
@@ -992,7 +1035,7 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('FROM products') && (text.includes('businesses') || text.includes('ORDER BY created_at') || text.includes('SELECT p.*') || text.includes('SELECT * FROM products'))) {
+    if (text.includes('FROM products') && (text.includes('businesses') || text.includes('ORDER BY') || text.includes('SELECT p.*') || text.includes('SELECT * FROM products') || !text.includes('WHERE'))) {
       mockDB.products = mockDB.products || [];
       mockDB.businesses = mockDB.businesses || [];
       mockDB.users = mockDB.users || [];

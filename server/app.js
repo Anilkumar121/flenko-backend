@@ -2458,6 +2458,10 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry]
     );
+
+    // Auto-sync seller product count to Google Sheets
+    googleSheetsService.syncSellerToGoogleSheet(effectiveSupplierId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+
     res.json({ success: true, product: newProd.rows[0], seo_generated: autoSeoTags, category: effectiveCategory, country: effectiveCountry });
   } catch (error) {
     console.error('Error adding product:', error);
@@ -2501,6 +2505,9 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
       }
       return res.status(404).json({ error: 'Product not found' });
     }
+    const suppId = (updated.rows && updated.rows[0] && updated.rows[0].supplier_id) || req.user.id;
+    googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+
     res.json({ success: true, product: updated.rows[0], category: effectiveCategory, country: effectiveCountry });
   } catch (error) {
     console.error('Error updating product:', error);
@@ -2515,6 +2522,10 @@ app.delete('/api/products/:id', authMiddleware, async (req, res) => {
     if (deleted.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found or unauthorized' });
     }
+
+    const suppId = (deleted.rows && deleted.rows[0] && deleted.rows[0].supplier_id) || req.user.id;
+    googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -3025,6 +3036,32 @@ app.get('/api/admin/users/all', adminMiddleware, async (req, res) => {
         products_count: pMap[u.id] || 0
       };
     });
+
+    // Also include any standalone business records whose user_id is not already in enriched
+    const existingIds = new Set(enriched.map(u => String(u.id)));
+    businesses.forEach(b => {
+      if (b.user_id && !existingIds.has(String(b.user_id))) {
+        existingIds.add(String(b.user_id));
+        enriched.push({
+          id: b.user_id,
+          name: b.company_name || ('Supplier #' + b.user_id),
+          phone: 'N/A',
+          email: 'N/A',
+          city: b.city || 'India',
+          role: 'supplier',
+          subscription: b.is_paid_trusted ? 'premium' : 'free',
+          created_at: b.created_at || new Date(),
+          company_name: b.company_name || 'Verified Supplier',
+          gst_number: b.gst_number || 'N/A',
+          business_type: b.business_type || 'Manufacturer',
+          category: b.category || 'General',
+          is_paid_trusted: Boolean(b.is_paid_trusted),
+          subdomain: b.subdomain || '',
+          products_count: pMap[b.user_id] || 0
+        });
+      }
+    });
+
     res.json({ success: true, users: enriched, total: enriched.length });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch users: ' + err.message });
@@ -3053,7 +3090,16 @@ app.post('/api/admin/settings/google-sheet', adminMiddleware, async (req, res) =
   try {
     const { webhook_url } = req.body;
     const saved = await googleSheetsService.saveWebhookUrl(webhook_url);
-    res.json({ success: true, message: 'Google Sheet Webhook URL saved successfully!', webhook_url: saved });
+    let syncResult = null;
+    if (saved && !saved.includes('_test') && saved.startsWith('http')) {
+      syncResult = await googleSheetsService.syncAllSellersToGoogleSheet();
+    }
+    res.json({ 
+      success: true, 
+      message: 'Google Sheet Webhook URL saved successfully!', 
+      webhook_url: saved,
+      synced_sellers: (syncResult && syncResult.count) || 0
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -3163,6 +3209,35 @@ app.post('/api/admin/clean-demo-data', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// Automated Background Periodic Sync: Syncs all sellers to Google Sheets every 15 minutes
+const GOOGLE_SHEETS_SYNC_INTERVAL_MS = 15 * 60 * 1000;
+setInterval(async () => {
+  try {
+    const webhook = await googleSheetsService.getWebhookUrl();
+    if (webhook && !webhook.includes('_test') && webhook.startsWith('http')) {
+      const result = await googleSheetsService.syncAllSellersToGoogleSheet();
+      if (result && result.success) {
+        console.log(`📊 [Google Sheets Periodic Sync] Auto-synced ${result.count} sellers at ${new Date().toISOString()}`);
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ [Google Sheets Periodic Sync error]:', err.message);
+  }
+}, GOOGLE_SHEETS_SYNC_INTERVAL_MS);
+
+// Initial sync 25s after server boot
+setTimeout(async () => {
+  try {
+    const webhook = await googleSheetsService.getWebhookUrl();
+    if (webhook && !webhook.includes('_test') && webhook.startsWith('http')) {
+      const result = await googleSheetsService.syncAllSellersToGoogleSheet();
+      if (result && result.success) {
+        console.log(`📊 [Google Sheets Startup Sync] Auto-synced ${result.count} sellers on boot.`);
+      }
+    }
+  } catch (e) {}
+}, 25000);
 
 const PORT = process.env.PORT || 3000;
 if (require.main === module || !process.env.NO_AUTO_LISTEN) {

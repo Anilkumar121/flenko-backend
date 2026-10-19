@@ -22,7 +22,7 @@
   "lead_payments": [],
   "subscription_payments": [],
   "reviews": [],
-  "idCounter": 3,
+  "idCounter": 6,
   "platform_settings": [
     {
       "setting_key": "google_sheet_webhook_url",

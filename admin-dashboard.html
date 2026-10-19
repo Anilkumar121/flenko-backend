@@ -466,8 +466,8 @@
           <div style="display: flex; gap: 0.75rem; align-items: center; flex: 1; min-width: 280px;">
             <input type="text" id="userFilterSearch" class="form-control" placeholder="Search by name, company, mobile or email..." oninput="filterUsersLocally()" style="font-size: 0.85rem; max-width: 380px;">
             <select id="userRoleFilter" class="form-control" onchange="filterUsersLocally()" style="font-size: 0.85rem; width: auto; font-weight: 600;">
-              <option value="all">All Roles</option>
-              <option value="supplier" selected>Suppliers &amp; Manufacturers</option>
+              <option value="all" selected>All Roles (Everyone)</option>
+              <option value="supplier">Suppliers &amp; Manufacturers</option>
               <option value="buyer">Buyers Only</option>
               <option value="admin">Administrators</option>
             </select>
@@ -1053,13 +1053,32 @@
           headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await res.json();
-        if (data && data.users) {
+        if (data && data.users && Array.isArray(data.users)) {
           rawUsersList = data.users;
+          if (document.getElementById('badgeSidebarUsers')) {
+            document.getElementById('badgeSidebarUsers').innerText = data.users.length;
+          }
           filterUsersLocally();
+          return;
         }
       } catch(e) {
         console.warn('Error loading admin users, using fallback:', e);
       }
+
+      // Fallback from localStorage registered users cache
+      try {
+        const localList = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
+        if (localList && localList.length > 0) {
+          rawUsersList = localList;
+          if (document.getElementById('badgeSidebarUsers')) {
+            document.getElementById('badgeSidebarUsers').innerText = localList.length;
+          }
+          filterUsersLocally();
+          return;
+        }
+      } catch(e) {}
+
+      filterUsersLocally();
     }
 
     function filterUsersLocally() {
@@ -1067,7 +1086,15 @@
       const roleFilter = document.getElementById('userRoleFilter')?.value || 'all';
       
       const filtered = rawUsersList.filter(u => {
-        const matchRole = (roleFilter === 'all') || (u.role === roleFilter);
+        let matchRole = true;
+        if (roleFilter === 'supplier') {
+          matchRole = (u.role === 'supplier' || u.role === 'seller' || Boolean(u.company_name && u.company_name !== u.name) || Boolean(u.subdomain) || (u.products_count && u.products_count > 0));
+        } else if (roleFilter === 'buyer') {
+          matchRole = (u.role === 'buyer');
+        } else if (roleFilter === 'admin') {
+          matchRole = (u.role === 'admin');
+        }
+
         const matchQ = !q || 
           (u.name && u.name.toLowerCase().includes(q)) ||
           (u.company_name && u.company_name.toLowerCase().includes(q)) ||
@@ -1078,7 +1105,7 @@
         return matchRole && matchQ;
       });
 
-      const sellersCount = rawUsersList.filter(u => u.role === 'supplier').length;
+      const sellersCount = rawUsersList.filter(u => u.role === 'supplier' || u.role === 'seller' || Boolean(u.company_name && u.company_name !== u.name) || Boolean(u.subdomain) || (u.products_count && u.products_count > 0)).length;
       if (document.getElementById('displayedUsersCount')) document.getElementById('displayedUsersCount').innerText = filtered.length;
       if (document.getElementById('totalSuppliersBadgeCount')) document.getElementById('totalSuppliersBadgeCount').innerText = sellersCount;
 
@@ -1161,10 +1188,14 @@
           
           const statusBadge = document.getElementById('googleSheetStatusBadge');
           if (statusBadge) {
-            if (data.webhook_url) {
+            if (data.webhook_url && !data.webhook_url.includes('_test')) {
               statusBadge.innerText = '🟢 Connected & Auto-Sync Active';
               statusBadge.style.background = '#dcfce7';
               statusBadge.style.color = '#166534';
+            } else if (data.webhook_url && data.webhook_url.includes('_test')) {
+              statusBadge.innerText = '⚠️ Test/Placeholder URL (Paste Your Real Apps Script URL)';
+              statusBadge.style.background = '#fef3c7';
+              statusBadge.style.color = '#b45309';
             } else {
               statusBadge.innerText = '⚪ Not Configured (Paste Webhook URL)';
               statusBadge.style.background = '#f1f5f9';
@@ -1206,7 +1237,8 @@
         });
         const data = await res.json();
         if (data && data.success) {
-          alert('✅ Google Sheet Webhook URL saved successfully! Real-time auto-sync is now active for all sellers.');
+          const syncInfo = data.synced_sellers ? `\n\n📊 ${data.synced_sellers} sellers were automatically pushed to your sheet right now!` : '';
+          alert('✅ Google Sheet Webhook URL saved successfully!' + syncInfo + '\n\nReal-time auto-sync and periodic background sync (every 15 min) are active.');
           loadGoogleSheetSettings();
         } else {
           alert('Error: ' + ((data && data.error) || 'Failed to save URL'));
