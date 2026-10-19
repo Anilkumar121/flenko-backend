@@ -329,18 +329,32 @@
             console.warn('Business profile save error:', e);
           }
 
-          // Also save business profile locally
+          // Also save business profile locally and in user list
           try {
-            localStorage.setItem('flenko_seller_profile', JSON.stringify({
+            const fullBiz = {
               ...bizPayload,
-              user_id: res.user ? res.user.id : 1,
+              user_id: res.user ? res.user.id : 101,
               is_verified: true
-            }));
+            };
+            localStorage.setItem('flenko_seller_profile', JSON.stringify(fullBiz));
+            
+            const userObj = res.user || {};
+            userObj.business = fullBiz;
+            userObj.company_name = bizPayload.company_name;
+            userObj.name = bizPayload.company_name;
+            userObj.role = 'supplier';
+            auth.setUser(userObj);
+            auth.saveLocalUser(userObj);
+
+            // Sync with backend database and Google Sheets immediately
+            try {
+              await auth.syncSellerSession();
+            } catch(sErr) {}
           } catch(e) {}
 
           setTimeout(() => {
             window.location.href = 'supplier-dashboard.html';
-          }, 400);
+          }, 350);
 
         } else {
           if (res.isExisting) {

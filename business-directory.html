@@ -199,7 +199,7 @@
     </div>
 
     <!-- Suppliers Grid Container -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;" id="supplierDirectoryGrid"></div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;" id="supplierDirectoryGrid"></div>
   </main>
 
   <script src="js/auth.js"></script>
@@ -219,7 +219,7 @@
 
       // Fetch real live suppliers registered in backend
       try {
-        const res = await fetch('https://flenko-backend.onrender.com/api/public/businesses');
+        const res = await auth.fetchWithFallback('/public/businesses');
         if (res.ok) {
           const data = await res.json();
           if (data.businesses && data.businesses.length > 0) {
@@ -231,13 +231,63 @@
               business_type: b.business_type || "Verified Supplier",
               city: b.city || "Global Hub",
               is_verified: b.is_verified !== false,
-              created_at: b.created_at
+              created_at: b.created_at,
+              logo_url: b.logo_url
             }));
           }
         }
       } catch(e) {
         console.warn("Could not fetch live businesses", e);
       }
+
+      // Merge locally registered sellers so newly added suppliers never vanish across reboots
+      try {
+        const registeredUsers = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
+        const localProfile = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        const existingNames = new Set(allSuppliers.map(s => (s.company_name || '').toLowerCase().trim()));
+
+        if (localProfile && localProfile.company_name && !/^\d+$/.test(localProfile.company_name.trim())) {
+          const lName = localProfile.company_name.toLowerCase().trim();
+          if (!existingNames.has(lName)) {
+            allSuppliers.unshift({
+              id: localProfile.id || localProfile.user_id || 101,
+              user_id: localProfile.user_id || 101,
+              company_name: localProfile.company_name,
+              category: localProfile.category || 'General B2B',
+              business_type: localProfile.business_type || 'Manufacturer',
+              city: localProfile.city || 'Industrial Hub',
+              is_verified: true,
+              created_at: new Date().toISOString(),
+              logo_url: localProfile.logo_url
+            });
+            existingNames.add(lName);
+          }
+        }
+
+        registeredUsers.forEach(u => {
+          if (u.role === 'supplier' || u.business || u.company_name) {
+            const biz = u.business || {};
+            const cName = biz.company_name || u.company_name || u.name;
+            if (cName && !/^\d+$/.test(cName.trim()) && cName.toLowerCase() !== 'supplier') {
+              const uName = cName.toLowerCase().trim();
+              if (!existingNames.has(uName)) {
+                allSuppliers.unshift({
+                  id: biz.id || u.id || 102,
+                  user_id: u.id || 102,
+                  company_name: cName,
+                  category: biz.category || u.category || 'General B2B',
+                  business_type: biz.business_type || 'Manufacturer',
+                  city: biz.city || u.city || 'Industrial Hub',
+                  is_verified: true,
+                  created_at: u.created_at || new Date().toISOString(),
+                  logo_url: biz.logo_url || u.logo_url
+                });
+                existingNames.add(uName);
+              }
+            }
+          }
+        });
+      } catch(e) {}
 
       // Check URL query parameters (e.g. ?cat=Industrial+Machinery)
       const urlParams = new URLSearchParams(window.location.search);

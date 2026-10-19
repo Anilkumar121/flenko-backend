@@ -140,7 +140,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 104,
-      supplier_id: 1,
+      supplier_id: 2,
       name: "Heavy-Duty Hydraulic Scrap Baling Press Machine",
       price: 385000.00,
       category: "Industrial Machinery",
@@ -154,7 +154,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 105,
-      supplier_id: 1,
+      supplier_id: 2,
       name: "High-Precision 3-Axis CNC Vertical Machining Center",
       price: 1250000.00,
       category: "Industrial Machinery",
@@ -168,7 +168,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 106,
-      supplier_id: 1,
+      supplier_id: 2,
       name: "Industrial Rotary Screw Air Compressor (15 HP / 11 kW)",
       price: 145000.00,
       category: "Industrial Machinery",
@@ -182,7 +182,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 107,
-      supplier_id: 1,
+      supplier_id: 3,
       name: "Three-Phase Commercial On-Grid Solar Inverter (50 kW)",
       price: 185000.00,
       category: "Electrical & Electronics",
@@ -196,7 +196,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 108,
-      supplier_id: 1,
+      supplier_id: 3,
       name: "Multicore Armoured Flexible Copper Control Cable",
       price: 285.00,
       category: "Electrical & Electronics",
@@ -210,7 +210,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 109,
-      supplier_id: 1,
+      supplier_id: 4,
       name: "High Purity Titanium Dioxide Rutile Grade (TiO2 98%)",
       price: 195.00,
       category: "Chemicals & Dyes",
@@ -224,7 +224,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 110,
-      supplier_id: 1,
+      supplier_id: 4,
       name: "Industrial Caustic Soda Flakes (99.5% NaOH)",
       price: 42.00,
       category: "Chemicals & Dyes",
@@ -238,7 +238,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 111,
-      supplier_id: 1,
+      supplier_id: 5,
       name: "Hot-Dip Galvanized Steel ERW Pipes (Class B & C)",
       price: 78.50,
       category: "Building & Construction",
@@ -252,7 +252,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 112,
-      supplier_id: 1,
+      supplier_id: 6,
       name: "High-Tensile Grade 8.8 Hex Bolts & Industrial Fasteners",
       price: 8.50,
       category: "Hardware & Tools",
@@ -266,7 +266,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 113,
-      supplier_id: 1,
+      supplier_id: 7,
       name: "Medical Grade Nitrile Examination Gloves (Powder-Free)",
       price: 3.80,
       category: "Medical & Pharma",
@@ -280,7 +280,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 114,
-      supplier_id: 1,
+      supplier_id: 8,
       name: "100% Combed Compact Cotton Ring-Spun Yarn (30s & 40s)",
       price: 265.00,
       category: "Textiles & Apparel",
@@ -294,7 +294,7 @@ if (!mockDB.products || mockDB.products.length === 0) {
     },
     {
       id: 115,
-      supplier_id: 1,
+      supplier_id: 9,
       name: "Monocrystalline Tier-1 Bifacial Solar PV Modules (550W)",
       price: 10800.00,
       category: "Renewable Energy",
@@ -309,55 +309,56 @@ if (!mockDB.products || mockDB.products.length === 0) {
   ];
 }
 
-if (!mockDB.idCounter || mockDB.idCounter < 105) {
-  mockDB.idCounter = 105;
+if (!mockDB.idCounter || mockDB.idCounter < 120) {
+  mockDB.idCounter = 120;
 }
 
-// Ensure Master Admin exists
-if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009')) {
-  mockDB.users.push({
-    id: 1,
-    phone: '8368074009',
-    password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f',
-    name: 'Master Admin',
-    email: 'admin@flenko.com',
-    city: 'New Delhi',
-    role: 'admin',
-    subscription: 'vip',
-    created_at: new Date()
-  });
-}
+const defaultVerifiedUsers = [
+  { id: 1, phone: "8368074009", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Master Admin", email: "admin@flenko.com", city: "Mumbai, Maharashtra", role: "admin", subscription: "vip", created_at: "2026-10-13T10:41:26.946Z" },
+  { id: 2, phone: "9825012345", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Bharat Heavy Machinery & Automation Works", email: "sales@bharatmachinery.com", city: "Rajkot, Gujarat", role: "supplier", subscription: "pro", created_at: "2026-10-13T10:45:00.000Z" },
+  { id: 3, phone: "9822067890", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Voltech Power Systems & Industrial Electricals", email: "info@voltechpower.com", city: "Pune, Maharashtra", role: "supplier", subscription: "pro", created_at: "2026-10-13T10:50:00.000Z" },
+  { id: 4, phone: "9824011223", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Gujarat Petrochem & Polymers Industries", email: "contact@gujaratpetrochem.com", city: "Vadodara, Gujarat", role: "supplier", subscription: "pro", created_at: "2026-10-13T10:55:00.000Z" },
+  { id: 5, phone: "9826033445", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Kamdhenu Infra & Structural Steel Ltd", email: "orders@kamdhenusteel.com", city: "Raipur, Chhattisgarh", role: "supplier", subscription: "pro", created_at: "2026-10-13T11:00:00.000Z" },
+  { id: 6, phone: "9814055667", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Apex Precision Fasteners & Industrial Tools", email: "sales@apexprecisionfasteners.com", city: "Ludhiana, Punjab", role: "supplier", subscription: "pro", created_at: "2026-10-13T11:05:00.000Z" },
+  { id: 7, phone: "9879077889", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "MediCare Pharma & Health Supplies", email: "supply@medicarehealth.com", city: "Ahmedabad, Gujarat", role: "supplier", subscription: "pro", created_at: "2026-10-13T11:10:00.000Z" },
+  { id: 8, phone: "9842099001", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Tirupur Global Knits & Fabrics", email: "exports@tirupurglobalknits.com", city: "Tirupur, Tamil Nadu", role: "supplier", subscription: "pro", created_at: "2026-10-13T11:15:00.000Z" },
+  { id: 9, phone: "9829022334", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "SunPower Green Energy & Solar Systems", email: "solar@sunpowerenergy.com", city: "Jaipur, Rajasthan", role: "supplier", subscription: "pro", created_at: "2026-10-13T11:20:00.000Z" },
+  { id: 10, phone: "9827044556", password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", name: "Kisan Agri Implements & Processing Systems", email: "agri@kisanagri.com", city: "Indore, Madhya Pradesh", role: "supplier", subscription: "basic", created_at: "2026-10-13T11:25:00.000Z" }
+];
 
-// Ensure default business for supplier 1 has subdomain & paid trusted status
-let supBiz = (mockDB.businesses || []).find(b => b.user_id == 1 || b.id == 1);
-if (!supBiz) {
-  mockDB.businesses = mockDB.businesses || [];
-  mockDB.businesses.push({
-    id: 1,
-    user_id: 1,
-    company_name: 'Apex Packaging Solutions',
-    category: 'Packaging & Printing',
-    business_type: 'Manufacturer & Wholesaler',
-    gst_number: '27AADCA9821Z5',
-    city: 'Mumbai',
-    country: 'India',
-    address: 'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
-    about: 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
-    is_verified: true,
-    is_paid_trusted: true,
-    subdomain: 'apexpackaging',
-    website_enabled: true,
-    website_tagline: 'Leading Industrial Packaging & Corrugated Box Manufacturer',
-    logo_url: 'assets/images/logo.png',
-    year_est: '2015',
-    created_at: new Date('2020-01-15')
-  });
-} else {
-  supBiz.subdomain = supBiz.subdomain || 'apexpackaging';
-  supBiz.is_paid_trusted = (supBiz.is_paid_trusted !== undefined) ? supBiz.is_paid_trusted : true;
-  supBiz.website_enabled = (supBiz.website_enabled !== undefined) ? supBiz.website_enabled : true;
-  supBiz.website_tagline = supBiz.website_tagline || 'Leading Industrial Packaging & Corrugated Box Manufacturer';
-}
+const defaultVerifiedBusinesses = [
+  { id: 1, user_id: 1, company_name: "Apex Packaging Solutions", category: "Packaging & Printing", business_type: "Manufacturer & Wholesaler", gst_number: "27AADCA9821Z5", city: "Mumbai", country: "India", address: "Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069", about: "Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies.", is_verified: true, is_paid_trusted: true, subdomain: "apexpackaging", website_enabled: true, website_tagline: "Leading Industrial Packaging & Corrugated Box Manufacturer", logo_url: "assets/images/logo.png", year_est: "2015", created_at: "2020-01-15T00:00:00.000Z" },
+  { id: 2, user_id: 2, company_name: "Bharat Heavy Machinery & Automation Works", category: "Industrial Machinery", business_type: "Manufacturer & Exporter", gst_number: "24AAACB1234D1Z8", city: "Rajkot", country: "India", address: "Shapar-Veraval Industrial Zone, National Highway 27, Rajkot, Gujarat 360024", about: "Premier enterprise engineering heavy-duty hydraulic baling presses, CNC turning centers, and industrial rotary compressors.", is_verified: true, is_paid_trusted: true, subdomain: "bharatmachinery", website_enabled: true, website_tagline: "Engineering Excellence in Heavy Industrial & CNC Machinery", logo_url: "assets/images/logo.png", year_est: "2012", created_at: "2020-03-20T00:00:00.000Z" },
+  { id: 3, user_id: 3, company_name: "Voltech Power Systems & Industrial Electricals", category: "Electrical & Electronics", business_type: "Manufacturer & Wholesaler", gst_number: "27AABCV5678E1Z4", city: "Pune", country: "India", address: "Bhosari Industrial Area, Sector 7, PCMC, Pune, Maharashtra 411026", about: "Voltech Power Systems specializes in commercial on-grid solar power inverters, heavy industrial switchgear, and armored copper cables.", is_verified: true, is_paid_trusted: true, subdomain: "voltechpower", website_enabled: true, website_tagline: "Next-Gen Commercial Solar Inverters & Industrial Electrical Infrastructure", logo_url: "assets/images/logo.png", year_est: "2016", created_at: "2021-02-10T00:00:00.000Z" },
+  { id: 4, user_id: 4, company_name: "Gujarat Petrochem & Polymers Industries", category: "Chemicals & Dyes", business_type: "Manufacturer & Bulk Supplier", gst_number: "24AADCG9012F1Z9", city: "Vadodara", country: "India", address: "GIDC Petrochemical Complex, Ranoli, Vadodara, Gujarat 391750", about: "ISO & REACH certified producer of industrial caustic soda flakes (99.5%), titanium dioxide rutile pigments, and specialty polymers.", is_verified: true, is_paid_trusted: true, subdomain: "gujaratpetrochem", website_enabled: true, website_tagline: "Pure Grade Industrial Chemicals, Caustic Soda & Specialty Polymers", logo_url: "assets/images/logo.png", year_est: "2014", created_at: "2021-06-18T00:00:00.000Z" },
+  { id: 5, user_id: 5, company_name: "Kamdhenu Infra & Structural Steel Ltd", category: "Building & Construction", business_type: "Manufacturer & Mill Supplier", gst_number: "22AABCK3456G1Z2", city: "Raipur", country: "India", address: "Urla Industrial Growth Centre, Phase II, Raipur, Chhattisgarh 493221", about: "Produces hot-dip galvanized ERW steel pipes, structural sections, and high-tensile TMT bars compliant with BIS 1786.", is_verified: true, is_paid_trusted: true, subdomain: "kamdhenusteel", website_enabled: true, website_tagline: "High-Tensile ERW Steel Pipes & Structural Building Infrastructure", logo_url: "assets/images/logo.png", year_est: "2011", created_at: "2020-08-14T00:00:00.000Z" },
+  { id: 6, user_id: 6, company_name: "Apex Precision Fasteners & Industrial Tools", category: "Hardware & Tools", business_type: "Manufacturer & Exporter", gst_number: "03AADCA7890H1Z5", city: "Ludhiana", country: "India", address: "Focal Point Phase IV, Ludhiana, Punjab 141010", about: "Manufactures DIN/ISO certified high-tensile grade 8.8 and 10.9 hex bolts, heavy fasteners, and industrial tooling.", is_verified: true, is_paid_trusted: true, subdomain: "apexprecisionfasteners", website_enabled: true, website_tagline: "Certified High-Tensile Industrial Fasteners, Hex Bolts & Tooling", logo_url: "assets/images/logo.png", year_est: "2015", created_at: "2021-09-05T00:00:00.000Z" },
+  { id: 7, user_id: 7, company_name: "MediCare Pharma & Health Supplies", category: "Medical & Pharma", business_type: "Manufacturer & Certified Supplier", gst_number: "24AABCM2345J1Z1", city: "Ahmedabad", country: "India", address: "Changodar Industrial Area, Sanand Road, Ahmedabad, Gujarat 382213", about: "Manufactures medical-grade powder-free nitrile examination gloves, surgical masks, and hospital consumables.", is_verified: true, is_paid_trusted: true, subdomain: "medicarehealth", website_enabled: true, website_tagline: "Certified Medical Examination Gloves, Hygiene Supplies & Hospital PPE", logo_url: "assets/images/logo.png", year_est: "2018", created_at: "2022-01-22T00:00:00.000Z" },
+  { id: 8, user_id: 8, company_name: "Tirupur Global Knits & Fabrics", category: "Textiles & Apparel", business_type: "Manufacturer & Exporter", gst_number: "33AABCT6789K1Z7", city: "Tirupur", country: "India", address: "Avinashi Road, Textile Park, Tirupur, Tamil Nadu 641603", about: "Produces 100% combed compact cotton ring-spun yarn (30s, 40s) and heavy knitted fabric rolls with GOTS certification.", is_verified: true, is_paid_trusted: true, subdomain: "tirupurglobalknits", website_enabled: true, website_tagline: "Organic Combed Cotton Ring-Spun Yarns & Premium Knitted Fabrics", logo_url: "assets/images/logo.png", year_est: "2013", created_at: "2020-11-12T00:00:00.000Z" },
+  { id: 9, user_id: 9, company_name: "SunPower Green Energy & Solar Systems", category: "Renewable Energy", business_type: "Manufacturer & EPC Supplier", gst_number: "08AABCS0123L1Z3", city: "Jaipur", country: "India", address: "Sitapura Industrial Area, Tonk Road, Jaipur, Rajasthan 302022", about: "Manufactures high-efficiency 550W Tier-1 bifacial monocrystalline solar PV modules and turnkey industrial solar power solutions.", is_verified: true, is_paid_trusted: true, subdomain: "sunpowerenergy", website_enabled: true, website_tagline: "Tier-1 550W Bifacial Solar PV Panels & Commercial Clean Tech", logo_url: "assets/images/logo.png", year_est: "2017", created_at: "2021-04-30T00:00:00.000Z" },
+  { id: 10, user_id: 10, company_name: "Kisan Agri Implements & Processing Systems", category: "Agriculture & Food", business_type: "Manufacturer & Distributor", gst_number: "23AABCK9901M1Z6", city: "Indore", country: "India", address: "Sanwer Road Industrial Area, Sector C, Indore, Madhya Pradesh 452015", about: "Heavy-duty grain processing machinery, seed grading equipment, and automated drip irrigation networks.", is_verified: true, is_paid_trusted: false, subdomain: "kisanagri", website_enabled: true, website_tagline: "Agricultural Processing Machinery, Seed Grading & Irrigation Systems", logo_url: "assets/images/logo.png", year_est: "2019", created_at: "2022-07-09T00:00:00.000Z" }
+];
+
+// Ensure core verified users exist
+mockDB.users = mockDB.users || [];
+defaultVerifiedUsers.forEach(du => {
+  if (!mockDB.users.some(u => u.id == du.id || (u.phone && du.phone && u.phone.toString().slice(-10) === du.phone.toString().slice(-10)))) {
+    mockDB.users.push(du);
+  }
+});
+
+// Ensure core verified businesses exist
+mockDB.businesses = mockDB.businesses || [];
+defaultVerifiedBusinesses.forEach(dbz => {
+  const existing = mockDB.businesses.find(b => b.id == dbz.id || b.user_id == dbz.user_id);
+  if (!existing) {
+    mockDB.businesses.push(dbz);
+  } else {
+    existing.subdomain = existing.subdomain || dbz.subdomain;
+    existing.website_enabled = (existing.website_enabled !== undefined) ? existing.website_enabled : dbz.website_enabled;
+    existing.is_paid_trusted = (existing.is_paid_trusted !== undefined) ? existing.is_paid_trusted : dbz.is_paid_trusted;
+  }
+});
 
 function saveMockDB() {
   try {

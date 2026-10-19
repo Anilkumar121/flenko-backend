@@ -574,6 +574,7 @@ const auth = {
         const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
         localList.unshift(resData.product);
         localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
+        this.syncSellerSession().catch(() => {});
       } catch(e) {}
       return resData;
     }
@@ -605,6 +606,7 @@ const auth = {
           localList[idx] = { ...localList[idx], ...(resData.product || {}) };
           localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
         }
+        this.syncSellerSession().catch(() => {});
       } catch(e) {}
       return resData;
     }
@@ -624,6 +626,7 @@ const auth = {
       let localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
       localList = localList.filter(p => p.id != id);
       localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
+      this.syncSellerSession().catch(() => {});
     } catch(e) {}
 
     return { success: true };
