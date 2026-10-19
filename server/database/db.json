@@ -26,8 +26,13 @@
   "platform_settings": [
     {
       "setting_key": "google_sheet_webhook_url",
-      "setting_value": "https://script.google.com/macros/s/AKfycb_test/exec",
-      "updated_at": "2026-10-17T13:28:31.286Z"
+      "setting_value": "https://script.google.com/macros/s/AKfycbwNsOEOcmcNNgdoeCP-UtlWim08SfzTSYVWWUHg3gnGGmosjwnIhIAlb6MlKlWgxcw/exec",
+      "updated_at": "2026-10-19T21:00:00.000Z"
+    },
+    {
+      "setting_key": "google_sheet_last_sync",
+      "setting_value": "19/10/2026, 9:05:04 pm",
+      "updated_at": "2026-10-19T15:35:04.357Z"
     }
   ]
 }

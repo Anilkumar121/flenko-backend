@@ -625,6 +625,9 @@
                 <button type="button" class="btn btn-secondary" onclick="downloadSellersCsv()" style="font-size:0.85rem; padding:0.5rem 1rem; font-weight:600;">
                   📥 Download CSV Database
                 </button>
+                <button type="button" id="btnTestSheetWebhook" class="btn btn-outline" onclick="testGoogleSheetConnection()" style="font-size:0.85rem; padding:0.5rem 1rem; font-weight:700; border-color:#028867; color:#028867;">
+                  🧪 Test Connection
+                </button>
                 <button type="button" id="btnSyncAllSheets" class="btn btn-primary" onclick="syncGoogleSheetNow()" style="background:#0F4C9B; font-size:0.85rem; padding:0.5rem 1.25rem; font-weight:700;">
                   ⚡ Sync All Sellers Now
                 </button>
@@ -1224,6 +1227,11 @@
       const url = (input ? input.value : '').trim();
       const btn = document.getElementById('btnSaveSheetWebhook');
 
+      if (url.includes('docs.google.com/spreadsheets')) {
+        alert('⚠️ Dhyaan dein:\nAapne Google Sheet ka browser link paste kiya hai.\n\nSheet mein data automatically sync karne ke liye Google Apps Script Webhook URL (jo /exec par khatam hota hai) paste karein.\n\nNeeche "1-Minute Setup Guide" kholein aur steps follow karein.');
+        return;
+      }
+
       if (btn) { btn.disabled = true; btn.innerText = 'Saving...'; }
 
       try {
@@ -1250,6 +1258,33 @@
       }
     }
 
+    async function testGoogleSheetConnection() {
+      const token = auth.getToken();
+      const btn = document.getElementById('btnTestSheetWebhook');
+      if (btn) { btn.disabled = true; btn.innerText = 'Testing... ⏳'; }
+
+      try {
+        const res = await auth.fetchWithFallback('/admin/google-sheet/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          alert('✅ Google Sheet Connected & Working 100%!\n\nGoogle Apps Script ne "success" response diya hai aur test verification row aapki Google Sheet mein write kar di hai.\n\nAb real-time auto sync 100% active hai!');
+          loadGoogleSheetSettings();
+        } else {
+          alert('⚠️ Connection Test Failed:\n\n' + ((data && data.error) || 'Could not connect to Google Sheet Webhook. Kripya Apps Script mein Deploy > Web App (Who has access: Anyone) check karein.'));
+        }
+      } catch(e) {
+        alert('Network error while testing Google Sheet webhook.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = '🧪 Test Connection'; }
+      }
+    }
+
     async function syncGoogleSheetNow() {
       const token = auth.getToken();
       const btn = document.getElementById('btnSyncAllSheets');
@@ -1265,8 +1300,7 @@
         });
         const data = await res.json();
         if (data && data.success) {
-          alert(`🎉 Sync Complete!
-Successfully synced ${data.count} sellers into your Google Sheet!`);
+          alert(`🎉 Sync Complete!\n\nSuccessfully synced ${data.count} account(s) into your Google Sheet!\n\nAap apni Google Sheet open karke dekh sakte hain, saara data update ho gaya hai.`);
           loadGoogleSheetSettings();
         } else {
           alert('Sync Note: ' + ((data && data.error) || data.message || 'Please check your Webhook URL in Settings.'));

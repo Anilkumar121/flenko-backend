@@ -3118,6 +3118,19 @@ app.post('/api/admin/google-sheet/sync-all', adminMiddleware, async (req, res) =
   }
 });
 
+// Route: Admin Test Google Sheet Webhook Connection
+app.post('/api/admin/google-sheet/test', adminMiddleware, async (req, res) => {
+  try {
+    const result = await googleSheetsService.testWebhookConnection();
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Route: Admin Export All Sellers as CSV
 app.get('/api/admin/sellers/export-csv', adminMiddleware, async (req, res) => {
   try {

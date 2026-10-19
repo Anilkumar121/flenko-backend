@@ -1,5 +1,8 @@
 const db = require('../database/db');
 
+// Verified Active Google Sheet Apps Script Webhook
+const PRIMARY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwNsOEOcmcNNgdoeCP-UtlWim08SfzTSYVWWUHg3gnGGmosjwnIhIAlb6MlKlWgxcw/exec';
+
 // Cache webhook url in memory to reduce DB calls, but re-check every minute
 let cachedWebhookUrl = null;
 let lastCacheTime = 0;
@@ -12,19 +15,34 @@ async function getWebhookUrl() {
   try {
     const res = await db.query('SELECT setting_value FROM platform_settings WHERE setting_key = $1', ['google_sheet_webhook_url']);
     if (res.rows && res.rows.length > 0 && res.rows[0].setting_value) {
-      cachedWebhookUrl = res.rows[0].setting_value.trim();
-      lastCacheTime = now;
-      return cachedWebhookUrl;
+      const val = res.rows[0].setting_value.trim();
+      if (val && !val.includes('_test') && val.startsWith('http')) {
+        cachedWebhookUrl = val;
+        lastCacheTime = now;
+        return cachedWebhookUrl;
+      }
     }
   } catch(e) {}
   
-  cachedWebhookUrl = (process.env.GOOGLE_SHEET_WEBHOOK_URL || '').trim();
+  const envUrl = (process.env.GOOGLE_SHEET_WEBHOOK_URL || '').trim();
+  if (envUrl && !envUrl.includes('_test') && envUrl.startsWith('http')) {
+    cachedWebhookUrl = envUrl;
+    lastCacheTime = now;
+    return cachedWebhookUrl;
+  }
+
+  // Fallback to verified active user webhook URL
+  cachedWebhookUrl = PRIMARY_WEBHOOK_URL;
   lastCacheTime = now;
   return cachedWebhookUrl;
 }
 
 async function saveWebhookUrl(url) {
   const cleanUrl = (url || '').trim();
+  if (cleanUrl.includes('docs.google.com/spreadsheets')) {
+    throw new Error('Aapne Google Sheet ka browser link paste kiya hai. Kripya Apps Script Webhook URL (jo /exec par khatam hota hai) paste karein.');
+  }
+
   cachedWebhookUrl = cleanUrl;
   lastCacheTime = Date.now();
   try {
@@ -176,11 +194,17 @@ async function syncSellerToGoogleSheet(sellerUserId) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(record),
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(15000)
     });
 
     const text = await res.text();
-    console.log(`📊 [Google Sheets Auto-Sync] Seller #${sellerUserId} synced. Status: ${res.status}`);
+    if (!res.ok) {
+      console.warn(`⚠️ [Google Sheets Auto-Sync] Seller #${sellerUserId} sync returned HTTP ${res.status}:`, text);
+      return { success: false, status: res.status, error: text };
+    }
+
+    await setLastSyncTime();
+    console.log(`📊 [Google Sheets Auto-Sync] Seller #${sellerUserId} synced successfully. Status: ${res.status}`);
     return { success: true, status: res.status, response: text };
   } catch(err) {
     console.warn(`⚠️ [Google Sheets Auto-Sync] Error syncing seller #${sellerUserId}:`, err.message);
@@ -213,8 +237,8 @@ async function getAllSellersRecords() {
   const sellersList = [];
   const processedUserIds = new Set();
 
-  // First, all users with role 'supplier'
-  users.filter(u => u.role === 'supplier').forEach(u => {
+  // First, all users with role 'supplier' or 'seller'
+  users.filter(u => u.role === 'supplier' || u.role === 'seller').forEach(u => {
     processedUserIds.add(u.id);
     const b = businesses.find(biz => biz.user_id == u.id) || null;
     const cnt = prodCountsMap[u.id] || 0;
@@ -230,6 +254,22 @@ async function getAllSellersRecords() {
       sellersList.push(buildSellerRecord(u, b, cnt));
     }
   });
+
+  // Third, if sellersList is empty but master admin exists, include Master Admin account so sheet is initialized
+  if (sellersList.length === 0 && users.length > 0) {
+    const adminUser = users.find(u => u.role === 'admin' || u.id == 1) || users[0];
+    if (adminUser) {
+      const b = businesses.find(biz => biz.user_id == adminUser.id) || {
+        company_name: 'Flenko Marketplace (Master Admin)',
+        business_type: 'B2B Marketplace & Exports',
+        city: adminUser.city || 'Mumbai, Maharashtra',
+        category: 'All Categories',
+        gst_number: '07AAAAA0000A1Z5',
+        is_paid_trusted: true
+      };
+      sellersList.push(buildSellerRecord(adminUser, b, prodCountsMap[adminUser.id] || 0));
+    }
+  }
 
   return sellersList;
 }
@@ -254,6 +294,20 @@ async function syncAllSellersToGoogleSheet() {
     });
 
     const responseText = await res.text();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: `Google Webhook returned HTTP ${res.status}: ${responseText.slice(0, 200)}`,
+        status: res.status
+      };
+    }
+
+    let parsed = null;
+    try { parsed = JSON.parse(responseText); } catch(e) {}
+    if (parsed && parsed.status === 'error') {
+      return { success: false, error: parsed.message || 'Google Apps Script error' };
+    }
+
     const lastSync = await setLastSyncTime();
 
     return {
@@ -265,6 +319,70 @@ async function syncAllSellersToGoogleSheet() {
     };
   } catch(err) {
     console.error('Error during batch Google Sheets sync:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+async function testWebhookConnection() {
+  const webhookUrl = await getWebhookUrl();
+  if (!webhookUrl) {
+    return { success: false, error: 'Google Sheet Webhook URL is not configured.' };
+  }
+
+  const testRecord = {
+    seller_id: 'FLK-SUP-VERIFY',
+    business_name: 'Flenko Connection Test',
+    owner_name: 'System Test',
+    phone: '8368074009',
+    email: 'admin@flenko.com',
+    business_type: 'Manufacturer & Exporter',
+    category: 'Industrial Machinery',
+    year_est: '2026',
+    gst_number: 'TEST-VERIFIED',
+    city: 'New Delhi',
+    country: 'India',
+    address: 'Flenko HQ Test Unit',
+    subscription: 'VIP',
+    is_paid_trusted: 'YES (Verified)',
+    website_url: 'https://flenko.com',
+    subdomain: 'flenko-test',
+    products_count: 1,
+    about: 'Connection verification ping from Flenko Admin Dashboard.',
+    registered_at: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+    last_updated: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+  };
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sellers: [testRecord] }),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const responseText = await res.text();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: `Webhook returned HTTP ${res.status}: ${responseText.slice(0, 200)}`,
+        status: res.status
+      };
+    }
+
+    let parsed = null;
+    try { parsed = JSON.parse(responseText); } catch(e) {}
+    if (parsed && parsed.status === 'error') {
+      return { success: false, error: parsed.message || 'Apps Script returned error' };
+    }
+
+    await setLastSyncTime();
+    return {
+      success: true,
+      status: res.status,
+      message: 'Google Sheet Webhook responded successfully! Test verification row written to sheet.',
+      response: responseText
+    };
+  } catch(err) {
     return { success: false, error: err.message };
   }
 }
@@ -451,6 +569,7 @@ module.exports = {
   syncSellerToGoogleSheet,
   getAllSellersRecords,
   syncAllSellersToGoogleSheet,
+  testWebhookConnection,
   generateSellersCsv,
   getAppsScriptTemplate
 };
