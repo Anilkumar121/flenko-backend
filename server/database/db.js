@@ -35,9 +35,7 @@ let mockDB = {
   users: [],
   otp_requests: [],
   businesses: [],
-  leads: [
-    { id: 1, supplier_id: 1, product_needed: '1000 Corrugated Boxes', buyer_phone: '9876543210', details: 'Need heavy duty 5-ply boxes', status: 'New', created_at: new Date() }
-  ],
+  leads: [],
   products: [],
   rfqs: [],
   quotations: [],
@@ -67,254 +65,20 @@ if (fs.existsSync(mockDbPath)) {
   }
 }
 
-// Seed initial supplier reviews if empty
-if (!mockDB.reviews || mockDB.reviews.length === 0) {
-  mockDB.reviews = [
-    {
-      id: 1,
-      supplier_id: 1,
-      product_id: 101,
-      product_name: 'Heavy-Duty Corrugated Boxes',
-      reviewer_name: 'Rajesh K. (Procurement Head)',
-      rating: 5,
-      comment: 'Top quality material and on-time bulk delivery. Highly recommend for large packaging orders.',
-      created_at: new Date(Date.now() - 3 * 86400000)
-    },
-    {
-      id: 2,
-      supplier_id: 1,
-      product_id: null,
-      product_name: 'Bulk Packaging Supply',
-      reviewer_name: 'Sunil Mehta (Operations Director)',
-      rating: 5,
-      comment: 'Very professional response to our RFQ. Excellent prices and custom printing options.',
-      created_at: new Date(Date.now() - 7 * 86400000)
-    }
-  ];
-}
+// Initialize reviews without seeding
+mockDB.reviews = mockDB.reviews || [];
 
-// Seed rich default product catalog if empty
-if (!mockDB.products || mockDB.products.length === 0) {
-  mockDB.products = [
-    {
-      id: 101,
-      supplier_id: 1,
-      name: "Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)",
-      price: 24.50,
-      category: "Packaging & Printing",
-      moq: 500,
-      unit: "Pieces",
-      stock_quantity: 50000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "corrugated boxes, shipping cartons, bulk packaging, cartons india",
-      created_at: new Date('2026-10-14T10:00:00.000Z')
-    },
-    {
-      id: 102,
-      supplier_id: 1,
-      name: "Self-Adhesive BOPP Packaging Tape (65 Micron)",
-      price: 45.00,
-      category: "Packaging & Printing",
-      moq: 120,
-      unit: "Rolls",
-      stock_quantity: 12000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "packaging tape, bopp adhesive tape, sealing tape rolls",
-      created_at: new Date('2026-10-14T10:05:00.000Z')
-    },
-    {
-      id: 103,
-      supplier_id: 1,
-      name: "Industrial Stretch Wrapping Film (23 Micron)",
-      price: 180.00,
-      category: "Packaging & Printing",
-      moq: 50,
-      unit: "Rolls",
-      stock_quantity: 8500,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "stretch wrap, pallet wrap, industrial cling film roll",
-      created_at: new Date('2026-10-14T10:10:00.000Z')
-    },
-    {
-      id: 104,
-      supplier_id: 1,
-      name: "Heavy-Duty Hydraulic Scrap Baling Press Machine",
-      price: 385000.00,
-      category: "Industrial Machinery",
-      moq: 1,
-      unit: "Units",
-      stock_quantity: 15,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "hydraulic baling press, scrap metal machine, recycling machinery",
-      created_at: new Date('2026-10-14T10:15:00.000Z')
-    },
-    {
-      id: 105,
-      supplier_id: 1,
-      name: "High-Precision 3-Axis CNC Vertical Machining Center",
-      price: 1250000.00,
-      category: "Industrial Machinery",
-      moq: 1,
-      unit: "Units",
-      stock_quantity: 8,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "cnc machine, vmc milling center, precision metal machining",
-      created_at: new Date('2026-10-14T10:20:00.000Z')
-    },
-    {
-      id: 106,
-      supplier_id: 1,
-      name: "Industrial Rotary Screw Air Compressor (15 HP / 11 kW)",
-      price: 145000.00,
-      category: "Industrial Machinery",
-      moq: 1,
-      unit: "Units",
-      stock_quantity: 25,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "screw compressor, industrial air compressor, factory pneumatic equipment",
-      created_at: new Date('2026-10-14T10:25:00.000Z')
-    },
-    {
-      id: 107,
-      supplier_id: 1,
-      name: "Three-Phase Commercial On-Grid Solar Inverter (50 kW)",
-      price: 185000.00,
-      category: "Electrical & Electronics",
-      moq: 2,
-      unit: "Units",
-      stock_quantity: 40,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "solar inverter, on-grid solar system, commercial solar 50kw",
-      created_at: new Date('2026-10-14T10:30:00.000Z')
-    },
-    {
-      id: 108,
-      supplier_id: 1,
-      name: "Multicore Armoured Flexible Copper Control Cable",
-      price: 285.00,
-      category: "Electrical & Electronics",
-      moq: 100,
-      unit: "Meters",
-      stock_quantity: 25000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "copper control cable, armoured industrial cable, electrical wiring",
-      created_at: new Date('2026-10-14T10:35:00.000Z')
-    },
-    {
-      id: 109,
-      supplier_id: 1,
-      name: "High Purity Titanium Dioxide Rutile Grade (TiO2 98%)",
-      price: 195.00,
-      category: "Chemicals & Dyes",
-      moq: 1000,
-      unit: "Kg",
-      stock_quantity: 80000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "titanium dioxide, tio2 rutile, paint pigment chemical",
-      created_at: new Date('2026-10-14T10:40:00.000Z')
-    },
-    {
-      id: 110,
-      supplier_id: 1,
-      name: "Industrial Caustic Soda Flakes (99.5% NaOH)",
-      price: 42.00,
-      category: "Chemicals & Dyes",
-      moq: 1000,
-      unit: "Kg",
-      stock_quantity: 150000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "caustic soda flakes, sodium hydroxide bulk, industrial chemical",
-      created_at: new Date('2026-10-14T10:45:00.000Z')
-    },
-    {
-      id: 111,
-      supplier_id: 1,
-      name: "Hot-Dip Galvanized Steel ERW Pipes (Class B & C)",
-      price: 78.50,
-      category: "Building & Construction",
-      moq: 100,
-      unit: "Meters",
-      stock_quantity: 30000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "gi pipes, galvanized steel pipes, erw structural steel",
-      created_at: new Date('2026-10-14T10:50:00.000Z')
-    },
-    {
-      id: 112,
-      supplier_id: 1,
-      name: "High-Tensile Grade 8.8 Hex Bolts & Industrial Fasteners",
-      price: 8.50,
-      category: "Hardware & Tools",
-      moq: 1000,
-      unit: "Pieces",
-      stock_quantity: 500000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "hex bolts, industrial fasteners, high tensile nuts bolts",
-      created_at: new Date('2026-10-14T10:55:00.000Z')
-    },
-    {
-      id: 113,
-      supplier_id: 1,
-      name: "Medical Grade Nitrile Examination Gloves (Powder-Free)",
-      price: 3.80,
-      category: "Medical & Pharma",
-      moq: 5000,
-      unit: "Pieces",
-      stock_quantity: 250000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "nitrile gloves, medical examination gloves, powder free hospital supplies",
-      created_at: new Date('2026-10-14T11:00:00.000Z')
-    },
-    {
-      id: 114,
-      supplier_id: 1,
-      name: "100% Combed Compact Cotton Ring-Spun Yarn (30s & 40s)",
-      price: 265.00,
-      category: "Textiles & Apparel",
-      moq: 1000,
-      unit: "Kg",
-      stock_quantity: 60000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "cotton yarn, combed ring spun yarn, knitting textile yarn",
-      created_at: new Date('2026-10-14T11:05:00.000Z')
-    },
-    {
-      id: 115,
-      supplier_id: 1,
-      name: "Monocrystalline Tier-1 Bifacial Solar PV Modules (550W)",
-      price: 10800.00,
-      category: "Renewable Energy",
-      moq: 20,
-      unit: "Pieces",
-      stock_quantity: 5000,
-      country: "India",
-      image_url: "https://images.unsplash.com/photo-1508873696983-2df5293cb395?auto=format&fit=crop&w=400&q=80",
-      seo_tags: "solar panels 550w, bifacial solar modules, tier 1 pv panels",
-      created_at: new Date('2026-10-14T11:10:00.000Z')
-    }
-  ];
-}
 
-if (!mockDB.idCounter || mockDB.idCounter < 105) {
-  mockDB.idCounter = 105;
+// Product catalog initialized empty without demo records
+mockDB.products = mockDB.products || [];
+
+
+if (!mockDB.idCounter || mockDB.idCounter < 2) {
+  mockDB.idCounter = 2;
 }
 
 // Ensure Master Admin exists
-mockDB.users = (mockDB.users || []).filter(u => u.id === 1);
+mockDB.users = (mockDB.users || []).filter(u => u.role === 'admin' && (u.id === 1 || (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009'));
 if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009')) {
   mockDB.users.push({
     id: 1,
@@ -329,36 +93,9 @@ if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').sl
   });
 }
 
-// Ensure default business for supplier 1 has subdomain & paid trusted status
-mockDB.businesses = (mockDB.businesses || []).filter(b => (b.id === 1 && b.user_id === 1));
-let supBiz = mockDB.businesses.find(b => b.user_id == 1 || b.id == 1);
-if (!supBiz) {
-  mockDB.businesses.push({
-    id: 1,
-    user_id: 1,
-    company_name: 'Apex Packaging Solutions',
-    category: 'Packaging & Printing',
-    business_type: 'Manufacturer & Wholesaler',
-    gst_number: '27AADCA9821Z5',
-    city: 'Mumbai',
-    country: 'India',
-    address: 'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
-    about: 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
-    is_verified: true,
-    is_paid_trusted: true,
-    subdomain: 'apexpackaging',
-    website_enabled: true,
-    website_tagline: 'Leading Industrial Packaging & Corrugated Box Manufacturer',
-    logo_url: 'assets/images/logo.png',
-    year_est: '2015',
-    created_at: new Date('2020-01-15')
-  });
-} else {
-  supBiz.subdomain = supBiz.subdomain || 'apexpackaging';
-  supBiz.is_paid_trusted = (supBiz.is_paid_trusted !== undefined) ? supBiz.is_paid_trusted : true;
-  supBiz.website_enabled = (supBiz.website_enabled !== undefined) ? supBiz.website_enabled : true;
-  supBiz.website_tagline = supBiz.website_tagline || 'Leading Industrial Packaging & Corrugated Box Manufacturer';
-}
+// Businesses catalog initialized empty without demo records
+mockDB.businesses = mockDB.businesses || [];
+
 
 function saveMockDB() {
   try {
@@ -548,60 +285,7 @@ async function ensureTables() {
       console.log('✅ Default Master Admin seeded into PostgreSQL.');
     }
 
-    const bizCountRes = await pool.query('SELECT COUNT(*) as count FROM businesses');
-    if (bizCountRes.rows && parseInt(bizCountRes.rows[0].count) === 0) {
-      const uRes = await pool.query("SELECT id FROM users WHERE phone = '8368074009' LIMIT 1");
-      const admId = (uRes.rows && uRes.rows[0]) ? uRes.rows[0].id : 1;
-      await pool.query(`
-        INSERT INTO businesses (user_id, company_name, category, business_type, gst_number, city, country, address, about, is_verified, is_paid_trusted, subdomain, website_enabled, website_tagline, logo_url, year_est)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-      `, [
-        admId,
-        'Apex Packaging Solutions',
-        'Packaging & Printing',
-        'Manufacturer & Wholesaler',
-        '27AADCA9821Z5',
-        'Mumbai',
-        'India',
-        'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
-        'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
-        true,
-        true,
-        'apexpackaging',
-        true,
-        'Leading Industrial Packaging & Corrugated Box Manufacturer',
-        'assets/images/logo.png',
-        '2015'
-      ]);
-      console.log('✅ Default Apex Packaging Solutions business seeded into PostgreSQL.');
-    }
-
-    const prodCountRes = await pool.query('SELECT COUNT(*) as count FROM products');
-    if (prodCountRes.rows && parseInt(prodCountRes.rows[0].count) === 0) {
-      const uRes = await pool.query("SELECT id FROM users WHERE phone = '8368074009' LIMIT 1");
-      const admId = (uRes.rows && uRes.rows[0]) ? uRes.rows[0].id : 1;
-      await pool.query(`
-        INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country)
-        VALUES 
-        ($1, 'Heavy-Duty Corrugated Boxes', 45, 'Packaging & Printing', 500, 'Pieces', 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80', 'corrugated boxes, shipping cartons, bulk packaging', 50000, 'India'),
-        ($1, 'Self-Adhesive BOPP Packaging Tape', 65, 'Packaging & Printing', 100, 'Rolls', 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80', 'packaging tape, bopp adhesive tape, sealing tape', 12000, 'India'),
-        ($1, 'Industrial Stretch Wrapping Film', 320, 'Packaging & Printing', 20, 'Rolls', 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80', 'stretch wrap, pallet wrap, industrial cling film', 8500, 'India')
-      `, [admId]);
-      console.log('✅ Default packaging products seeded into PostgreSQL.');
-    }
-
-    const revCountRes = await pool.query('SELECT COUNT(*) as count FROM reviews');
-    if (revCountRes.rows && parseInt(revCountRes.rows[0].count) === 0) {
-      const uRes = await pool.query("SELECT id FROM users WHERE phone = '8368074009' LIMIT 1");
-      const admId = (uRes.rows && uRes.rows[0]) ? uRes.rows[0].id : 1;
-      await pool.query(`
-        INSERT INTO reviews (supplier_id, product_name, reviewer_name, rating, comment)
-        VALUES 
-        ($1, 'Heavy-Duty Corrugated Boxes', 'Rajesh K. (Procurement Head)', 5, 'Top quality material and on-time bulk delivery. Highly recommend for large packaging orders.'),
-        ($1, 'Bulk Packaging Supply', 'Sunil Mehta (Operations Director)', 5, 'Very professional response to our RFQ. Excellent prices and custom printing options.')
-      `, [admId]);
-      console.log('✅ Default reviews seeded into PostgreSQL.');
-    }
+    // Master Admin is maintained. No demo businesses, products, or reviews auto-seeded.
   } catch(seedErr) {
     console.warn('Non-fatal seed check warning:', seedErr.message);
   }
@@ -759,6 +443,9 @@ module.exports = {
       mockDB.users.push(newUser);
       saveMockDB();
       return { rows: [newUser] };
+    }
+    if (text.includes('SELECT * FROM users') && !text.includes('WHERE')) {
+      return { rows: mockDB.users || [] };
     }
     if (text.includes('SELECT * FROM users WHERE')) {
       mockDB.users = mockDB.users || [];
@@ -1354,13 +1041,18 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes("DELETE FROM users WHERE role = 'supplier'")) {
-      mockDB.users = (mockDB.users || []).filter(u => u.id == 1 || u.role !== 'supplier');
+    if (text.includes("DELETE FROM users WHERE role != 'admin'") || text.includes("DELETE FROM users WHERE role = 'supplier'")) {
+      mockDB.users = (mockDB.users || []).filter(u => u.id == 1 && u.role === 'admin');
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM businesses WHERE user_id !=')) {
-      mockDB.businesses = (mockDB.businesses || []).filter(b => b.user_id == 1);
+    if (text.includes('DELETE FROM businesses')) {
+      mockDB.businesses = [];
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM reviews') && !text.includes('WHERE id')) {
+      mockDB.reviews = [];
       saveMockDB();
       return { rows: [] };
     }
@@ -1371,6 +1063,16 @@ module.exports = {
     }
     if (text.includes('DELETE FROM leads') && !text.includes('WHERE id')) {
       mockDB.leads = [];
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM quotations') && !text.includes('WHERE id')) {
+      mockDB.quotations = [];
+      saveMockDB();
+      return { rows: [] };
+    }
+    if (text.includes('DELETE FROM rfqs') && !text.includes('WHERE id') && !text.includes('WHERE buyer_id')) {
+      mockDB.rfqs = [];
       saveMockDB();
       return { rows: [] };
     }

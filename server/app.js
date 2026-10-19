@@ -1348,26 +1348,7 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
     let user = (userRes.rows && userRes.rows.length > 0) ? userRes.rows[0] : null;
 
     if (!business && !user) {
-      // Default fallback for demo / supplier 1
-      if (suppId === 1) {
-        business = {
-          id: 1,
-          user_id: 1,
-          company_name: 'Apex Packaging Solutions',
-          category: 'Packaging & Printing',
-          business_type: 'Manufacturer & Wholesaler',
-          gst_number: '27AADCA9821Z5',
-          city: 'Mumbai',
-          country: 'India',
-          address: 'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
-          about: 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
-          is_verified: true,
-          logo_url: 'assets/images/logo.png',
-          created_at: new Date('2020-01-15')
-        };
-      } else {
-        return res.status(404).json({ error: 'Supplier not found' });
-      }
+      return res.status(404).json({ error: 'Supplier not found' });
     } else if (!business) {
       business = {
         id: user.id,
@@ -1496,10 +1477,10 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         is_verified: business.is_verified !== false,
         is_paid_trusted: isPaidTrusted,
         subscription: effectiveSub,
-        subdomain: business.subdomain || (targetUserId === 1 ? 'apexpackaging' : null),
-        website_enabled: business.website_enabled !== false && (business.subdomain || targetUserId === 1),
+        subdomain: business.subdomain || null,
+        website_enabled: Boolean(business.website_enabled && business.subdomain),
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
-        website_url: business.subdomain ? `https://flenko.com/site.html?store=${business.subdomain}` : (targetUserId === 1 ? 'https://flenko.com/site.html?store=apexpackaging' : null),
+        website_url: business.subdomain ? `https://flenko.com/site.html?store=${business.subdomain}` : null,
         member_since: business.created_at || (user ? user.created_at : new Date('2022-01-01')),
         contact: {
           phone: user ? user.phone : null,
@@ -1546,29 +1527,6 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
       });
     }
 
-    // Default demo store if sub is apexpackaging or 1
-    if (!business && (rawSub === 'apexpackaging' || rawSub === '1' || rawSub === 'apex')) {
-      business = {
-        id: 1,
-        user_id: 1,
-        company_name: 'Apex Packaging Solutions',
-        category: 'Packaging & Printing',
-        business_type: 'Manufacturer & Wholesaler',
-        gst_number: '27AADCA9821Z5',
-        city: 'Mumbai',
-        country: 'India',
-        address: 'Plot 45, MIDC Industrial Estate, Andheri East, Mumbai, Maharashtra 400069',
-        about: 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
-        is_verified: true,
-        is_paid_trusted: true,
-        subdomain: 'apexpackaging',
-        website_enabled: true,
-        website_tagline: 'Leading Industrial Packaging & Corrugated Box Manufacturer',
-        logo_url: 'assets/images/logo.png',
-        year_est: '2015',
-        created_at: new Date('2020-01-15')
-      };
-    }
 
     if (!business) {
       return res.status(404).json({ error: 'Seller website not found' });
@@ -3200,12 +3158,13 @@ app.post('/api/admin/clean-demo-data', async (req, res) => {
 
   try {
     await db.query('DELETE FROM products');
-    await db.query('DELETE FROM businesses WHERE user_id != 1');
-    await db.query("DELETE FROM users WHERE role = 'supplier' AND id != 1");
+    await db.query('DELETE FROM businesses');
+    await db.query("DELETE FROM users WHERE role != 'admin' AND id != 1");
+    await db.query('DELETE FROM reviews');
     await db.query('DELETE FROM leads');
     await db.query('DELETE FROM rfqs');
     await db.query('DELETE FROM quotations');
-    res.json({ success: true, message: 'All demo products and sellers removed successfully!' });
+    res.json({ success: true, message: 'All demo products, buyers, and sellers removed successfully!' });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
