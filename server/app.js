@@ -652,6 +652,100 @@ app.post('/api/auth/sync-user', async (req, res) => {
   }
 });
 
+// Route: Sync full seller session (User, Business profile, Products) across restarts
+app.post('/api/auth/sync-seller-session', async (req, res) => {
+  try {
+    const { user, business, products } = req.body;
+    if (!user && !business) {
+      return res.status(400).json({ error: 'User or business data required' });
+    }
+
+    let targetUserId = (user && user.id) ? parseInt(user.id) : (business && business.user_id ? parseInt(business.user_id) : null);
+    const cleanPhone = (user && user.phone) ? user.phone.toString().replace(/[^0-9]/g, '').slice(-10) : '';
+    const rawComp = (business && business.company_name) || (user && user.company_name) || (user && user.name) || '';
+    const cleanCompName = (rawComp && !/^\d+$/.test(rawComp.trim())) ? rawComp.trim() : 'Verified Supplier';
+
+    // 1. Ensure User exists
+    let existingUser = null;
+    if (targetUserId) {
+      const uRes = await db.query('SELECT * FROM users WHERE id = $1', [targetUserId]);
+      if (uRes.rows && uRes.rows.length > 0) existingUser = uRes.rows[0];
+    }
+    if (!existingUser && cleanPhone) {
+      const pRes = await db.query('SELECT * FROM users WHERE phone LIKE $1', ['%' + cleanPhone]);
+      if (pRes.rows && pRes.rows.length > 0) {
+        existingUser = pRes.rows[0];
+        targetUserId = existingUser.id;
+      }
+    }
+
+    if (!existingUser) {
+      const newPhone = cleanPhone ? ('+91' + cleanPhone) : ('9' + Date.now().toString().slice(-9));
+      const insRes = await db.query(
+        'INSERT INTO users (phone, name, email, city, role, subscription) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, phone, name, email, city, role, subscription',
+        [newPhone, cleanCompName, (user && user.email) || null, (user && user.city) || (business && business.city) || 'Industrial Hub', 'supplier', (user && user.subscription) || 'free']
+      );
+      existingUser = (insRes.rows && insRes.rows[0]) ? insRes.rows[0] : null;
+      if (existingUser) targetUserId = existingUser.id;
+    } else {
+      if (cleanCompName && (!existingUser.name || /^\d+$/.test(existingUser.name) || existingUser.name === 'Supplier')) {
+        await db.query('UPDATE users SET name = $1 WHERE id = $2', [cleanCompName, existingUser.id]);
+        existingUser.name = cleanCompName;
+      }
+    }
+
+    // 2. Ensure Business exists & is updated
+    if (business && targetUserId) {
+      const bRes = await db.query('SELECT id FROM businesses WHERE user_id = $1', [targetUserId]);
+      if (bRes.rows && bRes.rows.length > 0) {
+        await db.query(
+          'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10 WHERE user_id = $11',
+          [cleanCompName, business.gst_number || '', business.business_type || 'Manufacturer & Wholesaler', business.address || '', business.city || 'Industrial Hub', business.category || 'General B2B', business.logo_url || null, business.country || 'India', business.about || '', business.year_est || '', targetUserId]
+        );
+      } else {
+        await db.query(
+          'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est, is_verified) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
+          [targetUserId, cleanCompName, business.gst_number || '', business.business_type || 'Manufacturer & Wholesaler', business.address || '', business.city || 'Industrial Hub', business.category || 'General B2B', business.logo_url || null, business.country || 'India', business.about || '', business.year_est || '', true]
+        );
+      }
+    }
+
+    // 3. Ensure Products exist
+    if (Array.isArray(products) && products.length > 0 && targetUserId) {
+      const existingProds = await db.query('SELECT name FROM products WHERE supplier_id = $1', [targetUserId]);
+      const existingNames = new Set((existingProds.rows || []).map(p => (p.name || '').toLowerCase().trim()));
+
+      for (const p of products) {
+        const pName = (p.name || '').trim();
+        if (!pName || existingNames.has(pName.toLowerCase())) continue;
+        const pPrice = (p.price !== undefined && p.price !== null && p.price !== '' && !isNaN(Number(p.price))) ? Number(p.price) : null;
+        const pCat = classifyCategory(pName, p.category);
+        const pCountry = (p.country || 'India').trim();
+        const pMoq = parseInt(p.moq) || 1;
+        const pStock = parseInt(p.stock_quantity || p.stock) || 500;
+        const pImg = p.image_url || p.image || 'assets/images/logo.png';
+        const pSeo = `buy ${pName} wholesale, best ${pName} supplier, ${pName} in ${pCountry}`;
+
+        await db.query(
+          'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+          [targetUserId, pName, pPrice, pCat, pMoq, p.unit || 'Pieces', pImg, pSeo, pStock, pCountry]
+        );
+        existingNames.add(pName.toLowerCase());
+      }
+    }
+
+    // Auto-sync seller updates to Google Sheet
+    if (targetUserId) {
+      googleSheetsService.syncSellerToGoogleSheet(targetUserId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    }
+
+    res.json({ success: true, restored: true, userId: targetUserId });
+  } catch(err) {
+    console.error('sync-seller-session error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Route: Google Sign-In Authentication
 app.post('/api/auth/google', async (req, res) => {
   try {
@@ -1074,20 +1168,42 @@ const adminMiddleware = (req, res, next) => {
 // Route: Get Current User Profile
 app.get('/api/users/me', authMiddleware, async (req, res) => {
   try {
-    const userRes = await db.query('SELECT id, name, phone, email, city, role FROM users WHERE id = $1', [req.user.id]);
-    if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    
-    const user = userRes.rows[0];
+    let userRes = await db.query('SELECT id, name, phone, email, city, role, subscription FROM users WHERE id = $1', [req.user.id]);
+    let user = null;
+    if (userRes.rows && userRes.rows.length > 0) {
+      user = userRes.rows[0];
+    } else {
+      // Auto-recover user in case of server restart
+      const cleanPhone = (req.user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      const recUser = await db.query(
+        'INSERT INTO users (id, phone, name, email, city, role, subscription) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING RETURNING id, name, phone, email, city, role, subscription',
+        [req.user.id, cleanPhone || ('9' + Date.now().toString().slice(-9)), (req.user.name && !/^\d+$/.test(req.user.name)) ? req.user.name : 'Supplier', req.user.email || null, 'Industrial Hub', req.user.role || 'supplier', 'free']
+      );
+      if (recUser.rows && recUser.rows.length > 0) {
+        user = recUser.rows[0];
+      } else {
+        const u = await db.query('SELECT id, name, phone, email, city, role, subscription FROM users WHERE id = $1', [req.user.id]);
+        user = (u.rows && u.rows[0]) ? u.rows[0] : { id: req.user.id, name: 'Supplier', role: req.user.role || 'supplier', subscription: 'free' };
+      }
+    }
+
+    // Sanitize user name if numeric like "100"
+    if (user.name && /^\d+$/.test(user.name.trim())) {
+      user.name = 'Supplier';
+    }
 
     // fetch business details
     const bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [user.id]);
-    if (bizRes.rows.length > 0) {
+    if (bizRes.rows && bizRes.rows.length > 0) {
       user.business = bizRes.rows[0];
+      if (user.business.company_name && /^\d+$/.test(user.business.company_name.trim())) {
+        user.business.company_name = 'Verified Supplier';
+      }
     }
 
     res.json({ user });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
 
@@ -1096,6 +1212,12 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
   const { company_name, gst_number, business_type, address, city, category, country, about, year_est, establishment_year } = req.body;
   const finalYearEst = (year_est || establishment_year || '').toString().trim();
   
+  // Sanitize company name to prevent "100" or numeric-only strings from sticking
+  const rawCompName = (company_name || '').toString().trim();
+  const cleanCompName = (rawCompName && !/^\d+$/.test(rawCompName))
+    ? rawCompName
+    : ((req.user && req.user.name && !/^\d+$/.test(req.user.name)) ? req.user.name : 'Verified Supplier');
+
   // Use production backend host for image URL if on cloud, otherwise request host
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
   let logo_url = null;
@@ -1111,31 +1233,22 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
     // Verify user exists in database to satisfy foreign key constraint
     let userCheck = await db.query('SELECT id, phone, name, city FROM users WHERE id = $1', [targetUserId]);
     if (!userCheck.rows || userCheck.rows.length === 0) {
-      if (req.user.phone) {
-        const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
-        const pCheck = await db.query('SELECT id FROM users WHERE phone = $1 OR phone = $2 OR phone = $3', [req.user.phone, cleanP, ('+91' + cleanP)]);
-        if (pCheck.rows && pCheck.rows.length > 0) {
-          targetUserId = pCheck.rows[0].id;
-        } else {
-          const newUser = await db.query(
-            'INSERT INTO users (phone, name, role) VALUES ($1, $2, $3) RETURNING id',
-            [cleanP || ('9' + Date.now().toString().slice(-9)), company_name || req.user.name || 'Supplier', 'supplier']
-          );
-          targetUserId = newUser.rows[0].id;
-        }
-      } else {
-        const firstUser = await db.query('SELECT id FROM users LIMIT 1');
-        targetUserId = firstUser.rows.length > 0 ? firstUser.rows[0].id : 1;
-      }
+      const cleanP = (req.user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      try {
+        await db.query(
+          'INSERT INTO users (id, phone, name, role) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+          [targetUserId, cleanP || ('9' + Date.now().toString().slice(-9)), cleanCompName, 'supplier']
+        );
+      } catch(insErr) {}
     }
 
     const finalCity = city || (userCheck.rows && userCheck.rows[0] ? userCheck.rows[0].city : 'Industrial Hub') || 'Industrial Hub';
     const finalCountry = country || 'India';
     const finalAbout = about !== undefined ? about : '';
 
-    // Sync company name & city to users table so identity matches across platform
+    // Sync clean company name & city to users table so identity matches across platform
     try {
-      await db.query('UPDATE users SET name = COALESCE($1, name), city = COALESCE($2, city) WHERE id = $3', [company_name || null, finalCity, targetUserId]);
+      await db.query('UPDATE users SET name = COALESCE($1, name), city = COALESCE($2, city) WHERE id = $3', [cleanCompName, finalCity, targetUserId]);
     } catch(e) {}
 
     // Check if business exists
@@ -1148,12 +1261,12 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
       const effectiveAbout = (about !== undefined) ? about : (existing.rows[0].about || '');
       await db.query(
         'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10 WHERE user_id = $11',
-        [company_name, gst_number, business_type, address, finalCity, category, logo_url, effectiveCountry, effectiveAbout, finalYearEst, targetUserId]
+        [cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, effectiveCountry, effectiveAbout, finalYearEst, targetUserId]
       );
       updatedBusiness = {
         id: existing.rows[0].id,
         user_id: targetUserId,
-        company_name,
+        company_name: cleanCompName,
         gst_number,
         business_type,
         address,
@@ -1168,13 +1281,13 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
     } else {
       const insRes = await db.query(
         'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-        [targetUserId, company_name, gst_number, business_type, address, finalCity, category, logo_url, finalCountry, finalAbout, finalYearEst]
+        [targetUserId, cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, finalCountry, finalAbout, finalYearEst]
       );
       const newId = (insRes.rows && insRes.rows[0]) ? insRes.rows[0].id : targetUserId;
       updatedBusiness = {
         id: newId,
         user_id: targetUserId,
-        company_name,
+        company_name: cleanCompName,
         gst_number,
         business_type,
         address,

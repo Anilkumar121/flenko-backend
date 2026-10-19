@@ -234,7 +234,7 @@
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
                   <span style="font-size: 1.2rem;">🌐</span>
                   <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Your Branded Website is Live</h3>
-                  <span class="badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; box-shadow: 0 1px 3px rgba(217,119,6,0.3);">🛡️ Paid Trusted Seller</span>
+                  <span id="dashPaidTrustedBadge" class="badge" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; box-shadow: 0 1px 3px rgba(217,119,6,0.3);">🛡️ Paid Trusted Seller</span>
                   <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">● Real-time Sync Active</span>
                 </div>
                 <p style="color: #64748b; font-size: 0.85rem; margin: 0;">
@@ -453,8 +453,14 @@
         const isWebEnabled = b.website_enabled === true || b.website_enabled === 'true';
         const sub = b.subdomain;
 
+        // Update Paid badge in dashboard website card
+        const dashPaidBadge = document.getElementById('dashPaidTrustedBadge');
+        if (dashPaidBadge) {
+          dashPaidBadge.style.display = isPaid ? 'inline-block' : 'none';
+        }
+
+        const trustBadge = document.getElementById('sellerTrustBadge');
         if (isPaid) {
-          const trustBadge = document.getElementById('sellerTrustBadge');
           if (trustBadge) {
             trustBadge.innerHTML = '🛡️ Paid Trusted Seller';
             trustBadge.style.color = '#d97706';
@@ -466,6 +472,12 @@
           if (upBtn) {
             upBtn.innerText = 'Plan Details';
             upBtn.style.background = '#028867';
+          }
+        } else {
+          if (trustBadge) {
+            trustBadge.innerHTML = '● Verified Supplier';
+            trustBadge.style.color = '#028867';
+            trustBadge.style.fontWeight = '600';
           }
         }
 
@@ -512,16 +524,27 @@
         }
       }
 
+      function cleanSupplierName(name, fallback = 'Supplier') {
+        if (!name) return fallback;
+        const s = String(name).trim();
+        if (s === '100' || /^\d+$/.test(s) || s.toLowerCase() === 'supplier') return fallback;
+        return s;
+      }
+
       // 2. Instant rendering from local session
       try {
         const localU = auth.getUser();
         if (localU) {
-          document.getElementById('userAvatarText').innerText = localU.name ? localU.name.charAt(0).toUpperCase() : 'U';
-          document.getElementById('welcomeName').innerText = localU.company_name || localU.name || 'Supplier';
+          const validName = cleanSupplierName(localU.company_name || localU.name, 'Supplier');
+          document.getElementById('userAvatarText').innerText = validName.charAt(0).toUpperCase();
+          document.getElementById('welcomeName').innerText = validName;
         }
         const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
         if (localSeller && localSeller.company_name) {
-          document.getElementById('welcomeName').innerText = localSeller.company_name;
+          const validBizName = cleanSupplierName(localSeller.company_name, '');
+          if (validBizName) {
+            document.getElementById('welcomeName').innerText = validBizName;
+          }
         }
         if (localSeller && localSeller.logo_url) {
           const logoImg = document.getElementById('userLogoImg');
@@ -536,15 +559,17 @@
       try {
         const profileData = await auth.getProfile();
         if (profileData && profileData.user) {
-           document.getElementById('userAvatarText').innerText = profileData.user.name ? profileData.user.name.charAt(0).toUpperCase() : 'U';
-           document.getElementById('welcomeName').innerText = (profileData.user.business && profileData.user.business.company_name) || profileData.user.company_name || profileData.user.name || 'Supplier';
-           if (profileData.user.business && profileData.user.business.logo_url) {
+           const servBiz = profileData.user.business || {};
+           const cleanServName = cleanSupplierName(servBiz.company_name || profileData.user.company_name || profileData.user.name, 'Supplier');
+           document.getElementById('userAvatarText').innerText = cleanServName.charAt(0).toUpperCase();
+           document.getElementById('welcomeName').innerText = cleanServName;
+           if (servBiz.logo_url) {
              const logoImg = document.getElementById('userLogoImg');
-             logoImg.src = profileData.user.business.logo_url;
+             logoImg.src = servBiz.logo_url;
              logoImg.style.display = 'block';
              document.getElementById('userAvatarText').style.display = 'none';
            }
-           syncWebsiteUI(profileData.user.business, profileData.user);
+           syncWebsiteUI(servBiz, profileData.user);
         }
       } catch(e) {}
 

@@ -78,6 +78,27 @@ const auth = {
     localStorage.removeItem('flenko_user');
     window.location.href = 'login.html';
   },
+  async syncSellerSession() {
+    try {
+      const u = this.getUser() || {};
+      const b = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      const p = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+      
+      const payload = {
+        user: u,
+        business: b,
+        products: p
+      };
+      const res = await this.fetchWithFallback('/auth/sync-seller-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    } catch(e) {
+      return null;
+    }
+  },
   async saveBusinessProfile(formData) {
     const token = this.getToken();
     let resData = null;
@@ -101,11 +122,36 @@ const auth = {
       if (resData && resData.logo_url) {
         bObj.logo_url = resData.logo_url;
       }
+      // Sanitize company name if numeric like "100"
+      if (bObj.company_name && /^\d+$/.test(bObj.company_name.trim())) {
+        delete bObj.company_name;
+      }
       localStorage.setItem('flenko_seller_profile', JSON.stringify(bObj));
       const u = this.getUser() || {};
       u.business = { ...(u.business || {}), ...bObj };
-      if (bObj.company_name) u.company_name = bObj.company_name;
+      if (bObj.company_name) {
+        u.company_name = bObj.company_name;
+        u.name = bObj.company_name;
+      }
       this.setUser(u);
+
+      // Also update this user in flenko_registered_users list
+      try {
+        let rList = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
+        const uPhone10 = (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+        const idx = rList.findIndex(ru => {
+          const rP10 = (ru.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+          return (uPhone10 && rP10 && uPhone10 === rP10) || String(ru.id) === String(u.id);
+        });
+        if (idx !== -1) {
+          if (bObj.company_name) {
+            rList[idx].name = bObj.company_name;
+            rList[idx].company_name = bObj.company_name;
+          }
+          if (bObj.city) rList[idx].city = bObj.city;
+          localStorage.setItem('flenko_registered_users', JSON.stringify(rList));
+        }
+      } catch(e) {}
     } catch(e) {}
 
     return resData || { success: true };
@@ -427,13 +473,30 @@ const auth = {
     }
 
     try {
-      const res = await this.fetchWithFallback(`/users/me`, {
+      let res = await this.fetchWithFallback(`/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
+        // Attempt auto-healing sync if user was previously stored locally
         const cached = this.getUser();
+        if (cached && (cached.role === 'supplier' || cached.role === 'admin')) {
+          try {
+            await this.syncSellerSession();
+            // Retry fetching profile once after sync
+            const retryRes = await this.fetchWithFallback(`/users/me`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (retryRes.ok) {
+              const retryData = await retryRes.json();
+              if (retryData && retryData.user) {
+                this.setUser(retryData.user);
+                return retryData;
+              }
+            }
+          } catch(syncErr) {}
+        }
         if (cached) return { success: true, user: cached };
-        if (res.status === 401) this.logout();
+        if (res.status === 401 && !token.includes('local')) this.logout();
         return null;
       }
       const data = await res.json();

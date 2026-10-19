@@ -299,9 +299,16 @@
         localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
       } catch(e) {}
 
-      // Merge cleanly: prioritize non-empty values
+      function cleanTextName(v) {
+        if (!v) return '';
+        const s = String(v).trim();
+        if (s === '100' || /^\d+$/.test(s) || s.toLowerCase() === 'supplier') return '';
+        return s;
+      }
+
+      // Merge cleanly: prioritize non-empty, non-numeric values
       const merged = {
-        company_name: (serverBiz && serverBiz.company_name) || localBiz.company_name || loggedUser.company_name || loggedUser.name || '',
+        company_name: cleanTextName(serverBiz && serverBiz.company_name) || cleanTextName(localBiz.company_name) || cleanTextName(loggedUser.company_name) || cleanTextName(loggedUser.name) || '',
         gst_number: (serverBiz && serverBiz.gst_number) || localBiz.gst_number || '',
         business_type: (serverBiz && serverBiz.business_type) || localBiz.business_type || 'Manufacturer',
         category: (serverBiz && serverBiz.category) || localBiz.category || '',
@@ -396,6 +403,14 @@
       try {
         const formData = new FormData();
         const compName = document.getElementById('companyName').value.trim();
+        if (!compName || /^\d+$/.test(compName) || compName.toLowerCase() === 'supplier') {
+          resText.style.color = '#ef4444';
+          resText.innerText = '❌ Please enter a valid company name (not numbers or default ID).';
+          btn.disabled = false;
+          btn.innerText = 'Save Profile Details';
+          return;
+        }
+
         const gstNum = document.getElementById('gstNumber').value.trim();
         const bType = document.getElementById('bizType').value;
         const bCat = document.getElementById('bizCategory').value.trim();
@@ -449,6 +464,13 @@
         user.city = bCity;
         user.business = { ...(user.business || {}), ...currentProfile };
         auth.setUser(user);
+
+        // Auto sync seller session with server to survive container reboots and update Google Sheets
+        try {
+          await auth.syncSellerSession();
+        } catch(syncErr) {
+          console.warn('Sync session error:', syncErr);
+        }
 
         resText.style.color = '#16a34a';
         resText.innerText = '✅ Profile & Storefront Saved Successfully!';

@@ -112,11 +112,16 @@ function buildSellerRecord(user, business, productCount) {
 
   const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
+  const rawBizName = (b.company_name || u.name || '').toString().trim();
+  const rawOwnerName = (u.name || '').toString().trim();
+  const cleanBizName = (rawBizName && !/^\d+$/.test(rawBizName)) ? rawBizName : 'Verified Supplier';
+  const cleanOwnerName = (rawOwnerName && !/^\d+$/.test(rawOwnerName)) ? rawOwnerName : 'Verified Supplier';
+
   return {
     seller_id: sellerId,
     user_id: u.id || b.user_id,
-    business_name: b.company_name || u.name || 'Verified Supplier',
-    owner_name: u.name || 'Corporate Head',
+    business_name: cleanBizName,
+    owner_name: cleanOwnerName,
     phone: u.phone || '',
     email: u.email || '',
     business_type: b.business_type || 'Manufacturer & Wholesaler',

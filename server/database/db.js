@@ -93,6 +93,226 @@ if (!mockDB.reviews || mockDB.reviews.length === 0) {
   ];
 }
 
+// Seed rich default product catalog if empty
+if (!mockDB.products || mockDB.products.length === 0) {
+  mockDB.products = [
+    {
+      id: 101,
+      supplier_id: 1,
+      name: "Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)",
+      price: 24.50,
+      category: "Packaging & Printing",
+      moq: 500,
+      unit: "Pieces",
+      stock_quantity: 50000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "corrugated boxes, shipping cartons, bulk packaging, cartons india",
+      created_at: new Date('2026-10-14T10:00:00.000Z')
+    },
+    {
+      id: 102,
+      supplier_id: 1,
+      name: "Self-Adhesive BOPP Packaging Tape (65 Micron)",
+      price: 45.00,
+      category: "Packaging & Printing",
+      moq: 120,
+      unit: "Rolls",
+      stock_quantity: 12000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "packaging tape, bopp adhesive tape, sealing tape rolls",
+      created_at: new Date('2026-10-14T10:05:00.000Z')
+    },
+    {
+      id: 103,
+      supplier_id: 1,
+      name: "Industrial Stretch Wrapping Film (23 Micron)",
+      price: 180.00,
+      category: "Packaging & Printing",
+      moq: 50,
+      unit: "Rolls",
+      stock_quantity: 8500,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "stretch wrap, pallet wrap, industrial cling film roll",
+      created_at: new Date('2026-10-14T10:10:00.000Z')
+    },
+    {
+      id: 104,
+      supplier_id: 1,
+      name: "Heavy-Duty Hydraulic Scrap Baling Press Machine",
+      price: 385000.00,
+      category: "Industrial Machinery",
+      moq: 1,
+      unit: "Units",
+      stock_quantity: 15,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "hydraulic baling press, scrap metal machine, recycling machinery",
+      created_at: new Date('2026-10-14T10:15:00.000Z')
+    },
+    {
+      id: 105,
+      supplier_id: 1,
+      name: "High-Precision 3-Axis CNC Vertical Machining Center",
+      price: 1250000.00,
+      category: "Industrial Machinery",
+      moq: 1,
+      unit: "Units",
+      stock_quantity: 8,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "cnc machine, vmc milling center, precision metal machining",
+      created_at: new Date('2026-10-14T10:20:00.000Z')
+    },
+    {
+      id: 106,
+      supplier_id: 1,
+      name: "Industrial Rotary Screw Air Compressor (15 HP / 11 kW)",
+      price: 145000.00,
+      category: "Industrial Machinery",
+      moq: 1,
+      unit: "Units",
+      stock_quantity: 25,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "screw compressor, industrial air compressor, factory pneumatic equipment",
+      created_at: new Date('2026-10-14T10:25:00.000Z')
+    },
+    {
+      id: 107,
+      supplier_id: 1,
+      name: "Three-Phase Commercial On-Grid Solar Inverter (50 kW)",
+      price: 185000.00,
+      category: "Electrical & Electronics",
+      moq: 2,
+      unit: "Units",
+      stock_quantity: 40,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "solar inverter, on-grid solar system, commercial solar 50kw",
+      created_at: new Date('2026-10-14T10:30:00.000Z')
+    },
+    {
+      id: 108,
+      supplier_id: 1,
+      name: "Multicore Armoured Flexible Copper Control Cable",
+      price: 285.00,
+      category: "Electrical & Electronics",
+      moq: 100,
+      unit: "Meters",
+      stock_quantity: 25000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "copper control cable, armoured industrial cable, electrical wiring",
+      created_at: new Date('2026-10-14T10:35:00.000Z')
+    },
+    {
+      id: 109,
+      supplier_id: 1,
+      name: "High Purity Titanium Dioxide Rutile Grade (TiO2 98%)",
+      price: 195.00,
+      category: "Chemicals & Dyes",
+      moq: 1000,
+      unit: "Kg",
+      stock_quantity: 80000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "titanium dioxide, tio2 rutile, paint pigment chemical",
+      created_at: new Date('2026-10-14T10:40:00.000Z')
+    },
+    {
+      id: 110,
+      supplier_id: 1,
+      name: "Industrial Caustic Soda Flakes (99.5% NaOH)",
+      price: 42.00,
+      category: "Chemicals & Dyes",
+      moq: 1000,
+      unit: "Kg",
+      stock_quantity: 150000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "caustic soda flakes, sodium hydroxide bulk, industrial chemical",
+      created_at: new Date('2026-10-14T10:45:00.000Z')
+    },
+    {
+      id: 111,
+      supplier_id: 1,
+      name: "Hot-Dip Galvanized Steel ERW Pipes (Class B & C)",
+      price: 78.50,
+      category: "Building & Construction",
+      moq: 100,
+      unit: "Meters",
+      stock_quantity: 30000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "gi pipes, galvanized steel pipes, erw structural steel",
+      created_at: new Date('2026-10-14T10:50:00.000Z')
+    },
+    {
+      id: 112,
+      supplier_id: 1,
+      name: "High-Tensile Grade 8.8 Hex Bolts & Industrial Fasteners",
+      price: 8.50,
+      category: "Hardware & Tools",
+      moq: 1000,
+      unit: "Pieces",
+      stock_quantity: 500000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "hex bolts, industrial fasteners, high tensile nuts bolts",
+      created_at: new Date('2026-10-14T10:55:00.000Z')
+    },
+    {
+      id: 113,
+      supplier_id: 1,
+      name: "Medical Grade Nitrile Examination Gloves (Powder-Free)",
+      price: 3.80,
+      category: "Medical & Pharma",
+      moq: 5000,
+      unit: "Pieces",
+      stock_quantity: 250000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "nitrile gloves, medical examination gloves, powder free hospital supplies",
+      created_at: new Date('2026-10-14T11:00:00.000Z')
+    },
+    {
+      id: 114,
+      supplier_id: 1,
+      name: "100% Combed Compact Cotton Ring-Spun Yarn (30s & 40s)",
+      price: 265.00,
+      category: "Textiles & Apparel",
+      moq: 1000,
+      unit: "Kg",
+      stock_quantity: 60000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "cotton yarn, combed ring spun yarn, knitting textile yarn",
+      created_at: new Date('2026-10-14T11:05:00.000Z')
+    },
+    {
+      id: 115,
+      supplier_id: 1,
+      name: "Monocrystalline Tier-1 Bifacial Solar PV Modules (550W)",
+      price: 10800.00,
+      category: "Renewable Energy",
+      moq: 20,
+      unit: "Pieces",
+      stock_quantity: 5000,
+      country: "India",
+      image_url: "https://images.unsplash.com/photo-1508873696983-2df5293cb395?auto=format&fit=crop&w=400&q=80",
+      seo_tags: "solar panels 550w, bifacial solar modules, tier 1 pv panels",
+      created_at: new Date('2026-10-14T11:10:00.000Z')
+    }
+  ];
+}
+
+if (!mockDB.idCounter || mockDB.idCounter < 105) {
+  mockDB.idCounter = 105;
+}
+
 // Ensure Master Admin exists
 if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009')) {
   mockDB.users.push({
@@ -611,13 +831,26 @@ module.exports = {
     }
     if (text.includes('UPDATE users SET') && text.includes('WHERE id =')) {
       const targetUserId = params[params.length - 1];
-      const user = (mockDB.users || []).find(u => u.id == targetUserId);
-      if (user) {
-        if (params[0]) user.name = params[0];
+      let user = (mockDB.users || []).find(u => String(u.id) === String(targetUserId));
+      if (!user) {
+        user = {
+          id: parseInt(targetUserId) || targetUserId,
+          phone: '9' + Date.now().toString().slice(-9),
+          password: null,
+          name: (params[0] && !/^\d+$/.test(params[0].trim())) ? params[0].trim() : 'Supplier',
+          email: '',
+          city: params[1] || 'Industrial Hub',
+          role: 'supplier',
+          subscription: 'free',
+          created_at: new Date()
+        };
+        mockDB.users.push(user);
+      } else {
+        if (params[0] && !/^\d+$/.test(params[0].trim())) user.name = params[0].trim();
         if (params[1]) user.city = params[1];
       }
       saveMockDB();
-      return { rows: [] };
+      return { rows: [user] };
     }
     if (text.includes('UPDATE users SET')) {
       const targetPhone = (params[3] || '').toString().replace(/[^0-9]/g, '').slice(-10);
@@ -636,9 +869,14 @@ module.exports = {
       const row = mockDB.users.find(u => u.id == params[0]);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('FROM businesses WHERE user_id') || text.includes('FROM businesses WHERE id')) {
+    if (text.includes('FROM businesses WHERE user_id')) {
       const targetId = params[0];
-      const row = mockDB.businesses.find(b => b.user_id == targetId || b.id == targetId);
+      const row = mockDB.businesses.find(b => String(b.user_id) === String(targetId));
+      return { rows: row ? [row] : [] };
+    }
+    if (text.includes('FROM businesses WHERE id')) {
+      const targetId = params[0];
+      const row = mockDB.businesses.find(b => String(b.id) === String(targetId) || String(b.user_id) === String(targetId));
       return { rows: row ? [row] : [] };
     }
     if (text.includes('FROM businesses WHERE LOWER(subdomain)') || text.includes('FROM businesses WHERE subdomain')) {
@@ -680,63 +918,89 @@ module.exports = {
     }
     if (text.includes('UPDATE businesses SET website_enabled')) {
       const targetUserId = params[params.length - 1];
-      let biz = mockDB.businesses.find(b => b.user_id == targetUserId || b.id == targetUserId);
+      let biz = mockDB.businesses.find(b => String(b.user_id) === String(targetUserId) || String(b.id) === String(targetUserId));
       if (biz) {
         biz.website_enabled = true;
         biz.subdomain = params[0];
         biz.website_tagline = params[1] || biz.website_tagline;
-        biz.is_paid_trusted = true;
+        if (params.length > 3 && params[2] !== undefined) {
+          biz.is_paid_trusted = Boolean(params[2]);
+        }
       }
       saveMockDB();
       return { rows: biz ? [biz] : [] };
     }
     if (text.includes('UPDATE businesses SET')) {
       const targetUserId = params[params.length - 1];
-      let biz = mockDB.businesses.find(b => b.user_id == targetUserId || b.id == targetUserId);
-      if (biz) { 
-        biz.company_name = params[0] || biz.company_name; 
-        biz.gst_number = params[1] !== undefined ? params[1] : biz.gst_number; 
-        biz.business_type = params[2] || biz.business_type; 
-        biz.address = params[3] !== undefined ? params[3] : biz.address; 
-        biz.city = params[4] || biz.city; 
-        biz.category = params[5] || biz.category; 
-        biz.logo_url = params[6] || biz.logo_url;
-        if (params.length >= 9) {
-          biz.country = params[7] || biz.country || 'India';
-          biz.about = params[8] !== undefined ? params[8] : biz.about;
-        }
-        if (params.length >= 11) {
-          biz.subdomain = params[9] || biz.subdomain;
-          if (params[10] !== undefined) biz.is_paid_trusted = params[10];
-        }
-        if (text.includes('year_est')) {
-          const parts = text.split('SET')[1].split('WHERE')[0].split(',');
-          const yIdx = parts.findIndex(p => p.includes('year_est'));
-          if (yIdx !== -1 && params[yIdx] !== undefined) {
-            biz.year_est = params[yIdx];
-          }
-        }
+      let biz = null;
+      if (text.includes('WHERE user_id =') || text.includes('WHERE user_id=')) {
+        biz = mockDB.businesses.find(b => String(b.user_id) === String(targetUserId));
       } else {
+        biz = mockDB.businesses.find(b => String(b.id) === String(targetUserId) || String(b.user_id) === String(targetUserId));
+      }
+
+      if (!biz) {
         biz = {
           id: mockDB.idCounter++,
-          user_id: targetUserId,
-          company_name: params[0] || 'Supplier Company',
-          gst_number: params[1] || '',
-          business_type: params[2] || 'Manufacturer',
-          address: params[3] || '',
-          city: params[4] || 'New Delhi',
-          category: params[5] || 'General',
-          logo_url: params[6] || null,
-          country: params[7] || 'India',
-          about: params[8] || '',
-          subdomain: params[9] || null,
+          user_id: parseInt(targetUserId) || targetUserId,
+          company_name: (params[0] && !/^\d+$/.test(params[0].trim())) ? params[0].trim() : 'Verified Supplier',
+          gst_number: '',
+          business_type: 'Manufacturer & Wholesaler',
+          address: '',
+          city: 'Industrial Hub',
+          category: 'General B2B',
+          logo_url: null,
+          country: 'India',
+          about: '',
+          subdomain: null,
           is_paid_trusted: false,
           website_enabled: false,
           is_verified: true,
+          year_est: '',
           created_at: new Date()
         };
         mockDB.businesses.push(biz);
       }
+
+      // Parse SQL SET assignments dynamically to map each column to its exact param
+      const setMatch = text.match(/SET\s+([\s\S]+?)\s+WHERE/i);
+      if (setMatch) {
+        const assignments = setMatch[1].split(',');
+        for (const assign of assignments) {
+          const parts = assign.trim().split('=');
+          if (parts.length === 2) {
+            const col = parts[0].trim();
+            const valExpr = parts[1].trim();
+            const pIdxMatch = valExpr.match(/\$(\d+)/);
+            if (pIdxMatch) {
+              const pIdx = parseInt(pIdxMatch[1]) - 1;
+              if (pIdx >= 0 && pIdx < params.length && params[pIdx] !== undefined) {
+                if (col === 'company_name' && /^\d+$/.test(String(params[pIdx]).trim())) {
+                  // Ignore numeric-only company names like "100"
+                } else {
+                  biz[col] = params[pIdx];
+                }
+              }
+            } else if (valExpr.toLowerCase() === 'true') {
+              biz[col] = true;
+            } else if (valExpr.toLowerCase() === 'false') {
+              biz[col] = false;
+            } else if (valExpr.toLowerCase() === 'null') {
+              biz[col] = null;
+            }
+          }
+        }
+      }
+
+      // Automatically sync updated company name & city to mockDB.users
+      if (biz.company_name && !/^\d+$/.test(biz.company_name.trim())) {
+        const usr = (mockDB.users || []).find(u => String(u.id) === String(targetUserId));
+        if (usr) {
+          usr.name = biz.company_name.trim();
+          if (biz.city) usr.city = biz.city;
+        }
+      }
+
       saveMockDB();
       return { rows: [biz] };
     }

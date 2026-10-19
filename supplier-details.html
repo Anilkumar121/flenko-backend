@@ -244,6 +244,30 @@
       .catalog-card-img {
         height: 120px !important;
       }
+      #companyTab table, #companyTab tbody, #companyTab tr, #companyTab th, #companyTab td {
+        display: block !important;
+        width: 100% !important;
+      }
+      #companyTab tr {
+        padding: 0.6rem 0 !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+      }
+      #companyTab th {
+        background: transparent !important;
+        color: #0284c7 !important;
+        font-size: 0.72rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        padding: 0 0 0.2rem 0 !important;
+        width: 100% !important;
+      }
+      #companyTab td {
+        font-size: 0.92rem !important;
+        font-weight: 600 !important;
+        color: #0f172a !important;
+        padding: 0 0 0.5rem 0 !important;
+        word-break: break-word !important;
+      }
     }
   </style>
 </head>
@@ -306,6 +330,24 @@
         <p id="suppAboutText" style="color: #334155; line-height: 1.6; margin-bottom: 1.25rem; font-size: 0.92rem; max-width: 820px;">
           Apex Packaging Solutions is a leading manufacturer of high-quality industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.
         </p>
+
+        <!-- Verified Credentials & Facility Snapshot (Always visible, perfectly mobile responsive) -->
+        <div class="supp-facility-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1.1rem; margin-bottom: 1.25rem; max-width: 820px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+            <div>
+              <span style="color: #64748b; font-size: 0.72rem; display: block; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">📅 Year Established</span>
+              <strong id="heroEstYear" style="color: #0f172a;">2015</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; font-size: 0.72rem; display: block; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">📜 GST / Tax ID</span>
+              <strong id="heroGstNumber" style="color: #0f172a;">27AADCA9821Z5 (Verified)</strong>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <span style="color: #64748b; font-size: 0.72rem; display: block; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">📍 Registered Factory / Office Address</span>
+              <span id="heroAddress" style="color: #0f172a; font-weight: 600; line-height: 1.4;">Plot 45, MIDC Industrial Area, Andheri East, Mumbai, India</span>
+            </div>
+          </div>
+        </div>
 
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
           <button class="btn btn-primary" onclick="scrollToInquiry()" style="display:flex; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem;">
@@ -731,12 +773,24 @@
       if (tableEstEl) {
         tableEstEl.innerText = estYearVal || 'Verified Entity';
       }
+      if (document.getElementById('heroEstYear')) {
+        document.getElementById('heroEstYear').innerText = estYearVal || 'Verified Entity';
+      }
 
       document.getElementById('tableCategory').innerText = supplier.category || 'Industrial Machinery';
-      document.getElementById('tableGst').innerText = supplier.gst_number || 'GST Verified';
+      const cleanGst = supplier.gst_number || 'GST Verified';
+      document.getElementById('tableGst').innerText = cleanGst;
+      if (document.getElementById('heroGstNumber')) {
+        document.getElementById('heroGstNumber').innerText = cleanGst;
+      }
+
       document.getElementById('tableCity').innerText = supplier.city || 'Industrial Hub';
       document.getElementById('tableCountry').innerText = supplier.country || 'India';
-      document.getElementById('tableAddress').innerText = supplier.address || `${supplier.city || 'Industrial Area'}, ${supplier.country || 'India'}`;
+      const fullAddress = supplier.address || `${supplier.city || 'Industrial Area'}, ${supplier.country || 'India'}`;
+      document.getElementById('tableAddress').innerText = fullAddress;
+      if (document.getElementById('heroAddress')) {
+        document.getElementById('heroAddress').innerText = fullAddress;
+      }
 
       // Populate review modal product dropdown
       const prodSelect = document.getElementById('reviewProductSelect');
