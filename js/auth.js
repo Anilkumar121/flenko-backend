@@ -14,6 +14,7 @@ function detectApiBase() {
 const API_BASE = detectApiBase();
 window.API_BASE = API_BASE;
 window.API_FALLBACK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000/api' : '/api';
+try { localStorage.removeItem('flenko_seller_products'); } catch(e) {}
 
 const auth = {
   async fetchWithFallback(urlPath, options = {}) {
@@ -82,12 +83,10 @@ const auth = {
     try {
       const u = this.getUser() || {};
       const b = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-      const p = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
       
       const payload = {
         user: u,
-        business: b,
-        products: p
+        business: b
       };
       const res = await this.fetchWithFallback('/auth/sync-seller-session', {
         method: 'POST',
@@ -535,20 +534,8 @@ const auth = {
       const data = await res.json();
       products = (data && data.products) ? data.products : [];
     } catch(e) {
-      console.warn('Failed to load products from API, checking local storage', e);
+      console.warn('Failed to load products from API:', e);
     }
-
-    // Merge any client-persisted seller products
-    try {
-      const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-      if (localList.length > 0) {
-        const ids = new Set(products.map(p => p.id));
-        localList.forEach(lp => {
-          if (!ids.has(lp.id)) products.unshift(lp);
-        });
-      }
-    } catch(e) {}
-
     return { products };
   },
   async addProduct(formData) {
@@ -569,12 +556,8 @@ const auth = {
     }
 
     if (resData && resData.success) {
-      // Also cache in local list for quick display
       try {
-        const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-        localList.unshift(resData.product);
-        localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
-        this.syncSellerSession().catch(() => {});
+        localStorage.removeItem('flenko_seller_products');
       } catch(e) {}
       return resData;
     }
@@ -600,13 +583,7 @@ const auth = {
 
     if (resData && resData.success) {
       try {
-        const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-        const idx = localList.findIndex(p => p.id == id);
-        if (idx !== -1) {
-          localList[idx] = { ...localList[idx], ...(resData.product || {}) };
-          localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
-        }
-        this.syncSellerSession().catch(() => {});
+        localStorage.removeItem('flenko_seller_products');
       } catch(e) {}
       return resData;
     }
@@ -615,21 +592,20 @@ const auth = {
   },
   async deleteProduct(id) {
     const token = this.getToken();
+    let resData = null;
     try {
-      await this.fetchWithFallback(`/products/${id}`, {
+      const res = await this.fetchWithFallback(`/products/${id}`, {
         method: 'DELETE',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
+      resData = await res.json();
     } catch(e) {}
 
     try {
-      let localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-      localList = localList.filter(p => p.id != id);
-      localStorage.setItem('flenko_seller_products', JSON.stringify(localList));
-      this.syncSellerSession().catch(() => {});
+      localStorage.removeItem('flenko_seller_products');
     } catch(e) {}
 
-    return { success: true };
+    return resData || { success: true };
   },
   async getBuyerRfqs() {
     const token = this.getToken();

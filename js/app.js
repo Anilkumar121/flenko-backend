@@ -85,43 +85,7 @@ async function renderHomepageProducts() {
     }));
   }
 
-  // Merge any locally added seller products
-  try {
-    const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-    if (localList.length > 0) {
-      const existingIds = new Set(allProducts.map(p => String(p.id)));
-      localList.forEach(lp => {
-        if (!existingIds.has(String(lp.id))) {
-          const pCountry = lp.country || "India";
-          allProducts.unshift({
-            id: lp.id,
-            name: lp.name,
-            category: lp.category || "Wholesale B2B",
-            country: pCountry,
-            flag: getCountryFlag(pCountry),
-            years: "Verified",
-            rating: "5.0",
-            reviews: 1,
-            supplier: { 
-              name: lp.supplier_name || "Verified Supplier", 
-              logo: null,
-              verified: true, 
-              location: (lp.city || "Industrial Hub") + ", " + pCountry
-            },
-            price: (lp.price !== null && lp.price !== undefined && lp.price !== '' && Number(lp.price) > 0) ? parseFloat(lp.price) : null,
-            priceMax: (lp.price !== null && lp.price !== undefined && lp.price !== '' && Number(lp.price) > 0) ? (parseFloat(lp.price) * 1.15) : null,
-            moq: lp.moq || 1,
-            stock: lp.stock_quantity || 500,
-            unit: lp.unit || "Pieces",
-            image: lp.image_url || "assets/images/logo.png",
-            badge: "NEW LISTING",
-            tradeAssurance: true,
-            responseTime: "Active"
-          });
-        }
-      });
-    }
-  } catch(e) {}
+  try { localStorage.removeItem('flenko_seller_products'); } catch(e) {}
 
   // Clean Empty State if no products yet
   if (allProducts.length === 0) {

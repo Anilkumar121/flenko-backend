@@ -1420,31 +1420,7 @@
           }));
         }
 
-        // Merge locally added seller products
-        try {
-          const localList = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-          if (localList.length > 0) {
-            const existingIds = new Set(homeProducts.map(p => String(p.id)));
-            localList.forEach(lp => {
-              if (!existingIds.has(String(lp.id))) {
-                homeProducts.unshift({
-                  id: lp.id,
-                  name: lp.name,
-                  category: lp.category || 'General B2B',
-                  country: lp.country || 'India',
-                  flag: getFlag(lp.country || 'India'),
-                  supplier: { name: lp.supplier_name || 'Verified Supplier', location: (lp.city || 'Industrial Hub') + ', ' + (lp.country || 'India') },
-                  supplier_id: lp.supplier_id || 1,
-                  price: (lp.price !== null && lp.price !== undefined && lp.price !== '' && Number(lp.price) > 0) ? parseFloat(lp.price) : null,
-                  moq: lp.moq || 1,
-                  unit: lp.unit || 'Pieces',
-                  image: lp.image_url || 'assets/images/logo.png',
-                  badge: 'VERIFIED PRO'
-                });
-              }
-            });
-          }
-        } catch(e) {}
+        try { localStorage.removeItem('flenko_seller_products'); } catch(e) {}
 
         window.homeProductsList = homeProducts;
 

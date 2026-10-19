@@ -710,29 +710,7 @@ app.post('/api/auth/sync-seller-session', async (req, res) => {
       }
     }
 
-    // 3. Ensure Products exist
-    if (Array.isArray(products) && products.length > 0 && targetUserId) {
-      const existingProds = await db.query('SELECT name FROM products WHERE supplier_id = $1', [targetUserId]);
-      const existingNames = new Set((existingProds.rows || []).map(p => (p.name || '').toLowerCase().trim()));
-
-      for (const p of products) {
-        const pName = (p.name || '').trim();
-        if (!pName || existingNames.has(pName.toLowerCase())) continue;
-        const pPrice = (p.price !== undefined && p.price !== null && p.price !== '' && !isNaN(Number(p.price))) ? Number(p.price) : null;
-        const pCat = classifyCategory(pName, p.category);
-        const pCountry = (p.country || 'India').trim();
-        const pMoq = parseInt(p.moq) || 1;
-        const pStock = parseInt(p.stock_quantity || p.stock) || 500;
-        const pImg = p.image_url || p.image || 'assets/images/logo.png';
-        const pSeo = `buy ${pName} wholesale, best ${pName} supplier, ${pName} in ${pCountry}`;
-
-        await db.query(
-          'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-          [targetUserId, pName, pPrice, pCat, pMoq, p.unit || 'Pieces', pImg, pSeo, pStock, pCountry]
-        );
-        existingNames.add(pName.toLowerCase());
-      }
-    }
+    // Products are managed strictly via /api/products endpoints. No auto-reinsertion loop here.
 
     // Auto-sync seller updates to Google Sheet
     if (targetUserId) {
@@ -2459,6 +2437,22 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
         );
       }
     } catch(bErr) {}
+
+    // Deduplication check: prevent accidental double-submits
+    try {
+      const dupCheck = await db.query(
+        'SELECT id, name, created_at FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name)) = LOWER($2) ORDER BY id DESC LIMIT 1',
+        [effectiveSupplierId, cleanName]
+      );
+      if (dupCheck.rows && dupCheck.rows.length > 0) {
+        const lastProd = dupCheck.rows[0];
+        const timeDiff = Date.now() - new Date(lastProd.created_at).getTime();
+        if (!isNaN(timeDiff) && timeDiff < 10000) {
+          console.warn(`[Duplicate Prevented] Product '${cleanName}' was already added ${timeDiff}ms ago.`);
+          return res.json({ success: true, product: lastProd, seo_generated: autoSeoTags, category: effectiveCategory, country: effectiveCountry, isDuplicatePrevented: true });
+        }
+      }
+    } catch(dErr) {}
 
     const newProd = await db.query(
       'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',

@@ -157,7 +157,7 @@
       <div class="panel-card">
         <div class="panel-card-header">
           Product Catalog
-          <button class="btn btn-primary" onclick="document.getElementById('addProductModal').style.display='flex'">+ Add New Product</button>
+          <button class="btn btn-primary" onclick="openAddModal()">+ Add New Product</button>
         </div>
         <div class="catalog-grid" id="productGrid">
           <div style="padding: 2rem; grid-column: 1 / -1; text-align: center;">Loading catalog...</div>
@@ -314,14 +314,14 @@
             </div>
           </div>
         `).join('') + `
-          <div class="product-edit-card" style="border: 1px dashed var(--color-text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; cursor: pointer;" onclick="document.getElementById('addProductModal').style.display='flex'">
+          <div class="product-edit-card" style="border: 1px dashed var(--color-text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; cursor: pointer;" onclick="openAddModal()">
             <div style="font-size: 2rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">+</div>
             <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-navy-deep);">Add More Products</div>
           </div>
         `;
       } else {
         grid.innerHTML = `
-          <div class="product-edit-card" style="border: 1px dashed var(--color-text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; cursor: pointer;" onclick="document.getElementById('addProductModal').style.display='flex'">
+          <div class="product-edit-card" style="border: 1px dashed var(--color-text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; cursor: pointer;" onclick="openAddModal()">
             <div style="font-size: 2rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">+</div>
             <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-navy-deep);">Add Your First Product</div>
           </div>
@@ -395,50 +395,86 @@
       });
     }
 
+    function openAddModal() {
+      const form = document.getElementById('addProductForm');
+      if (form) form.reset();
+      const pImg = document.getElementById('pImage');
+      if (pImg) pImg.value = '';
+      const pCat = document.getElementById('pCategoryInput');
+      if (pCat) pCat.value = '';
+      const pPrice = document.getElementById('pPrice');
+      if (pPrice) pPrice.value = '';
+      const pMoq = document.getElementById('pMoq');
+      if (pMoq) pMoq.value = '1';
+      const pStock = document.getElementById('pStock');
+      if (pStock) pStock.value = '500';
+      syncUnitLabels('add');
+      const btn = document.getElementById('addBtn');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = 'Save Product';
+      }
+      document.getElementById('addProductModal').style.display = 'flex';
+    }
+
+    let isAddingProduct = false;
     document.getElementById('addProductForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isAddingProduct) return;
+      isAddingProduct = true;
       const btn = document.getElementById('addBtn');
+      btn.disabled = true;
       btn.innerText = 'Uploading...';
       
-      const pName = document.getElementById('pName').value.trim();
-      const typedCat = document.getElementById('pCategoryInput').value.trim();
-      const pCountry = document.getElementById('pCountry') ? document.getElementById('pCountry').value : 'India';
-      const finalCat = typedCat || 'General B2B';
-      
-      // Register custom category globally so buyers immediately see it
-      if (window.registerCustomCategory) {
-        window.registerCustomCategory(finalCat);
-      }
+      try {
+        const pName = document.getElementById('pName').value.trim();
+        const typedCat = document.getElementById('pCategoryInput').value.trim();
+        const pCountry = document.getElementById('pCountry') ? document.getElementById('pCountry').value : 'India';
+        const finalCat = typedCat || 'General B2B';
+        
+        // Register custom category globally so buyers immediately see it
+        if (window.registerCustomCategory) {
+          window.registerCustomCategory(finalCat);
+        }
 
-      const formData = new FormData();
-      formData.append('name', pName);
-      formData.append('category', finalCat);
-      formData.append('country', pCountry);
-      formData.append('price', document.getElementById('pPrice').value);
-      formData.append('moq', document.getElementById('pMoq').value);
-      formData.append('unit', document.getElementById('pUnit').value);
-      formData.append('stock_quantity', document.getElementById('pStock').value || 500);
-      
-      const imageFile = document.getElementById('pImage').files[0];
-      if (imageFile) {
-        try {
-          const dataUrl = await resizeImageToDataUrl(imageFile, 1200, 1200, 0.85);
-          if (dataUrl) formData.append('image_data', dataUrl);
-        } catch(e) {}
-        formData.append('image', imageFile);
-      }
+        const formData = new FormData();
+        formData.append('name', pName);
+        formData.append('category', finalCat);
+        formData.append('country', pCountry);
+        formData.append('price', document.getElementById('pPrice').value);
+        formData.append('moq', document.getElementById('pMoq').value);
+        formData.append('unit', document.getElementById('pUnit').value);
+        formData.append('stock_quantity', document.getElementById('pStock').value || 500);
+        
+        const imageFile = document.getElementById('pImage').files[0];
+        if (imageFile) {
+          try {
+            const dataUrl = await resizeImageToDataUrl(imageFile, 1200, 1200, 0.85);
+            if (dataUrl) formData.append('image_data', dataUrl);
+          } catch(e) {}
+          formData.append('image', imageFile);
+        }
 
-      const res = await auth.addProduct(formData);
-      if (res && res.success) {
-        alert('Product Added Successfully!\nAuto-SEO Generated:\n\n' + (res.seo_generated || 'SEO Keywords registered'));
-        document.getElementById('addProductModal').style.display = 'none';
-        document.getElementById('addProductForm').reset();
-        populateCategoryDropdowns();
-        await loadProducts();
-      } else {
-        alert('Failed to add product: ' + ((res && res.error) || 'Unknown error'));
+        const res = await auth.addProduct(formData);
+        if (res && res.success) {
+          alert('Product Added Successfully!\nAuto-SEO Generated:\n\n' + (res.seo_generated || 'SEO Keywords registered'));
+          document.getElementById('addProductModal').style.display = 'none';
+          document.getElementById('addProductForm').reset();
+          const pImg = document.getElementById('pImage');
+          if (pImg) pImg.value = '';
+          populateCategoryDropdowns();
+          await loadProducts();
+        } else {
+          alert('Failed to add product: ' + ((res && res.error) || 'Unknown error'));
+        }
+      } catch(err) {
+        console.error('Error adding product:', err);
+        alert('Network error while adding product. Please try again.');
+      } finally {
+        isAddingProduct = false;
+        btn.disabled = false;
+        btn.innerText = 'Save Product';
       }
-      btn.innerText = 'Save Product';
     });
 
     let editingProductId = null;
@@ -459,49 +495,62 @@
       document.getElementById('editProductModal').style.display = 'flex';
     }
 
+    let isEditingProduct = false;
     document.getElementById('editProductForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      if(!editingProductId) return;
+      if(!editingProductId || isEditingProduct) return;
+      isEditingProduct = true;
       const btn = document.getElementById('editBtn');
+      btn.disabled = true;
       btn.innerText = 'Saving...';
       
-      const updatedName = document.getElementById('eName').value.trim();
-      const updatedCat = document.getElementById('eCategoryInput').value.trim();
-      const eCountry = document.getElementById('eCountry') ? document.getElementById('eCountry').value : 'India';
-      const finalCat = updatedCat || 'General B2B';
+      try {
+        const updatedName = document.getElementById('eName').value.trim();
+        const updatedCat = document.getElementById('eCategoryInput').value.trim();
+        const eCountry = document.getElementById('eCountry') ? document.getElementById('eCountry').value : 'India';
+        const finalCat = updatedCat || 'General B2B';
 
-      if (window.registerCustomCategory) {
-        window.registerCustomCategory(finalCat);
-      }
-      
-      const formData = new FormData();
-      formData.append('name', updatedName);
-      formData.append('category', finalCat);
-      formData.append('country', eCountry);
-      formData.append('price', document.getElementById('ePrice').value);
-      formData.append('moq', document.getElementById('eMoq').value);
-      formData.append('unit', document.getElementById('eUnit').value);
-      formData.append('stock_quantity', document.getElementById('eStock').value || 500);
-      
-      const imageFile = document.getElementById('eImage').files[0];
-      if (imageFile) {
-        try {
-          const dataUrl = await resizeImageToDataUrl(imageFile, 1200, 1200, 0.85);
-          if (dataUrl) formData.append('image_data', dataUrl);
-        } catch(e) {}
-        formData.append('image', imageFile);
-      }
+        if (window.registerCustomCategory) {
+          window.registerCustomCategory(finalCat);
+        }
+        
+        const formData = new FormData();
+        formData.append('name', updatedName);
+        formData.append('category', finalCat);
+        formData.append('country', eCountry);
+        formData.append('price', document.getElementById('ePrice').value);
+        formData.append('moq', document.getElementById('eMoq').value);
+        formData.append('unit', document.getElementById('eUnit').value);
+        formData.append('stock_quantity', document.getElementById('eStock').value || 500);
+        
+        const imageFile = document.getElementById('eImage').files[0];
+        if (imageFile) {
+          try {
+            const dataUrl = await resizeImageToDataUrl(imageFile, 1200, 1200, 0.85);
+            if (dataUrl) formData.append('image_data', dataUrl);
+          } catch(e) {}
+          formData.append('image', imageFile);
+        }
 
-      const res = await auth.editProduct(editingProductId, formData);
-      if (res && res.success) {
-        document.getElementById('editProductModal').style.display = 'none';
-        document.getElementById('editProductForm').reset();
-        populateCategoryDropdowns();
-        await loadProducts();
-      } else {
-        alert('Failed to edit product: ' + ((res && res.error) || 'Unknown error'));
+        const res = await auth.editProduct(editingProductId, formData);
+        if (res && res.success) {
+          document.getElementById('editProductModal').style.display = 'none';
+          document.getElementById('editProductForm').reset();
+          const eImg = document.getElementById('eImage');
+          if (eImg) eImg.value = '';
+          populateCategoryDropdowns();
+          await loadProducts();
+        } else {
+          alert('Failed to edit product: ' + ((res && res.error) || 'Unknown error'));
+        }
+      } catch(err) {
+        console.error('Error updating product:', err);
+        alert('Network error while saving product.');
+      } finally {
+        isEditingProduct = false;
+        btn.disabled = false;
+        btn.innerText = 'Update Product';
       }
-      btn.innerText = 'Update Product';
     });
     
     async function deleteProduct(id) {

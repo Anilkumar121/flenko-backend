@@ -934,7 +934,14 @@ module.exports = {
       saveMockDB();
       return { rows: [newProd] };
     }
-    if (text.includes('SELECT * FROM products WHERE supplier_id')) {
+    if (text.includes('FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name))')) {
+      mockDB.products = mockDB.products || [];
+      const suppId = params[0];
+      const targetName = (params[1] || '').toString().trim().toLowerCase();
+      const match = mockDB.products.slice().reverse().find(p => p.supplier_id == suppId && (p.name || '').toString().trim().toLowerCase() === targetName);
+      return { rows: match ? [match] : [] };
+    }
+    if (text.includes('FROM products WHERE supplier_id')) {
       mockDB.products = mockDB.products || [];
       const rows = mockDB.products.filter(p => p.supplier_id == params[0]);
       return { rows };
