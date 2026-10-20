@@ -14,7 +14,6 @@ function detectApiBase() {
 const API_BASE = detectApiBase();
 window.API_BASE = API_BASE;
 window.API_FALLBACK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000/api' : '/api';
-try { localStorage.removeItem('flenko_seller_products'); } catch(e) {}
 
 const auth = {
   async fetchWithFallback(urlPath, options = {}) {
@@ -83,10 +82,16 @@ const auth = {
     try {
       const u = this.getUser() || {};
       const b = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      const cacheKey = `flenko_seller_products_${u.id || u.phone || 'default'}`;
+      let p = [];
+      try {
+        p = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      } catch(e) {}
       
       const payload = {
         user: u,
-        business: b
+        business: b,
+        products: p
       };
       const res = await this.fetchWithFallback('/auth/sync-seller-session', {
         method: 'POST',
@@ -526,6 +531,8 @@ const auth = {
   },
   async getProducts() {
     const token = this.getToken();
+    const user = this.getUser() || {};
+    const cacheKey = `flenko_seller_products_${user.id || user.phone || 'default'}`;
     let products = [];
     try {
       const res = await this.fetchWithFallback(`/products`, {
@@ -533,8 +540,47 @@ const auth = {
       });
       const data = await res.json();
       products = (data && data.products) ? data.products : [];
+
+      if (products.length > 0) {
+        // Cache locally for offline and spin-down persistence
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(products));
+        } catch(e) {}
+      } else {
+        // If server returned 0 products, check if we have cached products from previous sessions
+        let cached = [];
+        try {
+          cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+        } catch(e) {}
+
+        if (cached && cached.length > 0) {
+          console.log(`[Self-Healing] Restoring ${cached.length} products to backend after spin-down...`);
+          try {
+            const syncRes = await this.fetchWithFallback(`/products/sync-bulk`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ products: cached })
+            });
+            const syncData = await syncRes.json();
+            if (syncData && syncData.products && syncData.products.length > 0) {
+              products = syncData.products;
+              localStorage.setItem(cacheKey, JSON.stringify(products));
+            } else {
+              products = cached;
+            }
+          } catch(syncErr) {
+            products = cached;
+          }
+        }
+      }
     } catch(e) {
-      console.warn('Failed to load products from API:', e);
+      console.warn('Failed to load products from API, falling back to cache:', e);
+      try {
+        products = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      } catch(err) {}
     }
     return { products };
   },
@@ -557,7 +603,14 @@ const auth = {
 
     if (resData && resData.success) {
       try {
-        localStorage.removeItem('flenko_seller_products');
+        const user = this.getUser() || {};
+        const cacheKey = `flenko_seller_products_${user.id || user.phone || 'default'}`;
+        let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+        if (resData.product) {
+          cached = cached.filter(p => p.id !== resData.product.id && p.name !== resData.product.name);
+          cached.unshift(resData.product);
+          localStorage.setItem(cacheKey, JSON.stringify(cached));
+        }
       } catch(e) {}
       return resData;
     }
@@ -583,7 +636,18 @@ const auth = {
 
     if (resData && resData.success) {
       try {
-        localStorage.removeItem('flenko_seller_products');
+        const user = this.getUser() || {};
+        const cacheKey = `flenko_seller_products_${user.id || user.phone || 'default'}`;
+        let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+        if (resData.product) {
+          const idx = cached.findIndex(p => p.id == id);
+          if (idx !== -1) {
+            cached[idx] = { ...cached[idx], ...resData.product };
+          } else {
+            cached.unshift(resData.product);
+          }
+          localStorage.setItem(cacheKey, JSON.stringify(cached));
+        }
       } catch(e) {}
       return resData;
     }
@@ -602,7 +666,11 @@ const auth = {
     } catch(e) {}
 
     try {
-      localStorage.removeItem('flenko_seller_products');
+      const user = this.getUser() || {};
+      const cacheKey = `flenko_seller_products_${user.id || user.phone || 'default'}`;
+      let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      cached = cached.filter(p => p.id != id);
+      localStorage.setItem(cacheKey, JSON.stringify(cached));
     } catch(e) {}
 
     return resData || { success: true };

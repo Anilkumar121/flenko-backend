@@ -282,6 +282,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       if (!auth.getToken()) return window.location.href = 'login.html';
+      auth.syncSellerSession().catch(() => {});
       populateCategoryDropdowns();
       await loadProducts();
     });

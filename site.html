@@ -811,7 +811,12 @@
 
     function fallbackDefaultStore() {
       const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-      const localProducts = JSON.parse(localStorage.getItem('flenko_supplier_products') || '[]');
+      const curUser = (typeof auth !== 'undefined' && auth.getUser) ? (auth.getUser() || {}) : {};
+      const sellerKey = `flenko_seller_products_${curUser.id || localSeller.id || curUser.phone || 'default'}`;
+      let localProducts = JSON.parse(localStorage.getItem(sellerKey) || '[]');
+      if (!localProducts || localProducts.length === 0) {
+        localProducts = JSON.parse(localStorage.getItem('flenko_supplier_products') || '[]');
+      }
       const localReviews = JSON.parse(localStorage.getItem('flenko_supplier_reviews') || '[]');
 
       const isMatchingSubdomain = localSeller && localSeller.subdomain && (localSeller.subdomain.toLowerCase() === (activeSubdomain || '').toLowerCase());

@@ -397,6 +397,9 @@
       const token = auth.getToken();
       if (!token) return window.location.href = 'login.html';
 
+      // Background session persistence sync (guarantees account, business and products persist across spin-downs)
+      auth.syncSellerSession().catch(() => {});
+
       // 1. Hook up 1-Click Profile Picture / Logo Upload
       const avatarBox = document.getElementById('userAvatarContainer');
       const avatarInput = document.getElementById('dashAvatarInput');

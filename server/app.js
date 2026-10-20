@@ -710,7 +710,34 @@ app.post('/api/auth/sync-seller-session', async (req, res) => {
       }
     }
 
-    // Products are managed strictly via /api/products endpoints. No auto-reinsertion loop here.
+    // 3. Products self-healing: if products array provided and supplier has 0 products in DB, restore them!
+    if (Array.isArray(products) && products.length > 0 && targetUserId) {
+      try {
+        const curProds = await db.query('SELECT COUNT(*) as cnt FROM products WHERE supplier_id = $1', [targetUserId]);
+        const count = parseInt((curProds.rows && curProds.rows[0] && curProds.rows[0].cnt) || 0, 10);
+        if (count === 0) {
+          console.log(`[Self-Healing] Restoring ${products.length} products for supplier #${targetUserId}...`);
+          for (const p of products) {
+            const pName = (p && p.name ? p.name : '').trim();
+            if (!pName) continue;
+            const pPrice = (p.price !== undefined && p.price !== null && p.price !== '' && !isNaN(Number(p.price))) ? Number(p.price) : null;
+            const pCat = classifyCategory(pName, p.category);
+            const pMoq = parseInt(p.moq) || 1;
+            const pStock = parseInt(p.stock_quantity) || 500;
+            const pUnit = p.unit || 'Pieces';
+            const pCountry = p.country || 'India';
+            const pImg = p.image_url || 'assets/images/logo.png';
+            const pSeo = p.seo_tags || `buy ${pName} wholesale, ${pName} supplier`;
+            await db.query(
+              'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+              [targetUserId, pName, pPrice, pCat, pMoq, pUnit, pImg, pSeo, pStock, pCountry]
+            );
+          }
+        }
+      } catch(pErr) {
+        console.warn('sync-seller-session products restore warning:', pErr.message);
+      }
+    }
 
     // Auto-sync seller updates to Google Sheet
     if (targetUserId) {
@@ -2408,21 +2435,37 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const autoSeoTags = `buy ${cleanName} wholesale, best ${cleanName} supplier, ${cleanName} manufacturers in ${effectiveCountry}, top quality ${effectiveCategory}`;
 
   try {
-    let effectiveSupplierId = (req.user && req.user.id) ? parseInt(req.user.id) : 1;
+    let effectiveSupplierId = (req.user && req.user.id) ? parseInt(req.user.id) : null;
     try {
-      const uCheck = await db.query('SELECT id, name, city FROM users WHERE id = $1', [effectiveSupplierId]);
+      let uCheck = effectiveSupplierId ? await db.query('SELECT id, name, city FROM users WHERE id = $1', [effectiveSupplierId]) : { rows: [] };
       if (!uCheck.rows || uCheck.rows.length === 0) {
         let found = null;
         if (req.user && req.user.phone) {
           const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
-          const pCheck = await db.query('SELECT id FROM users WHERE phone = $1 OR phone = $2', [req.user.phone, cleanP]);
+          const pCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
           if (pCheck.rows && pCheck.rows.length > 0) found = pCheck.rows[0].id;
         }
-        effectiveSupplierId = found || 1;
+        if (found) {
+          effectiveSupplierId = found;
+        } else if (req.user) {
+          // Auto-recreate supplier user record so products are NEVER mistakenly assigned to Master Admin
+          const uName = (req.user.name || req.user.company_name || 'Verified Supplier').trim();
+          const uPhone = (req.user.phone || ('+91' + Date.now().toString().slice(-10))).trim();
+          const uEmail = req.user.email || null;
+          const uCity = req.user.city || 'Industrial Hub';
+          const insUser = await db.query(
+            'INSERT INTO users (phone, name, email, city, role, subscription) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+            [uPhone, uName, uEmail, uCity, 'supplier', req.user.subscription || 'free']
+          );
+          if (insUser.rows && insUser.rows[0]) {
+            effectiveSupplierId = insUser.rows[0].id;
+          }
+        }
       }
     } catch(e) {
-      effectiveSupplierId = 1;
+      console.warn('Error verifying product supplier user:', e.message);
     }
+    if (!effectiveSupplierId) effectiveSupplierId = 1;
 
     // Auto-link business profile if missing
     try {
@@ -2530,6 +2573,84 @@ app.delete('/api/products/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error deleting product:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Route: Bulk Sync Products from Seller Dashboard (Self-Healing across spin-downs)
+app.post('/api/products/sync-bulk', authMiddleware, async (req, res) => {
+  try {
+    const { products } = req.body;
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.json({ success: true, count: 0, products: [] });
+    }
+
+    let effectiveSupplierId = (req.user && req.user.id) ? parseInt(req.user.id) : null;
+    if (!effectiveSupplierId) {
+      return res.status(401).json({ error: 'Valid user session required' });
+    }
+
+    // Ensure user exists
+    const uCheck = await db.query('SELECT id FROM users WHERE id = $1', [effectiveSupplierId]);
+    if (!uCheck.rows || uCheck.rows.length === 0) {
+      const uName = (req.user.name || req.user.company_name || 'Verified Supplier').trim();
+      const uPhone = (req.user.phone || ('+91' + Date.now().toString().slice(-10))).trim();
+      try {
+        await db.query(
+          'INSERT INTO users (id, phone, name, email, city, role, subscription) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING',
+          [effectiveSupplierId, uPhone, uName, req.user.email || null, req.user.city || 'Industrial Hub', 'supplier', req.user.subscription || 'free']
+        );
+      } catch(insErr) {}
+    }
+
+    // Ensure business exists
+    const bCheck = await db.query('SELECT id FROM businesses WHERE user_id = $1', [effectiveSupplierId]);
+    if (!bCheck.rows || bCheck.rows.length === 0) {
+      const compName = (req.user.company_name || req.user.name || 'Verified Supplier').trim();
+      try {
+        await db.query(
+          'INSERT INTO businesses (user_id, company_name, city, is_verified) VALUES ($1, $2, $3, $4)',
+          [effectiveSupplierId, compName, req.user.city || 'Industrial Hub', true]
+        );
+      } catch(bErr) {}
+    }
+
+    // Query existing products for this supplier to avoid duplicates
+    const existRes = await db.query('SELECT id, name FROM products WHERE supplier_id = $1', [effectiveSupplierId]);
+    const existingNames = new Set((existRes.rows || []).map(p => (p.name || '').toLowerCase().trim()));
+
+    let insertedCount = 0;
+    for (const p of products) {
+      const pName = (p && p.name ? p.name : '').trim();
+      if (!pName) continue;
+      if (existingNames.has(pName.toLowerCase())) continue;
+
+      const pPrice = (p.price !== undefined && p.price !== null && p.price !== '' && !isNaN(Number(p.price))) ? Number(p.price) : null;
+      const pCat = classifyCategory(pName, p.category);
+      const pMoq = parseInt(p.moq) || 1;
+      const pStock = parseInt(p.stock_quantity) || 500;
+      const pUnit = p.unit || 'Pieces';
+      const pCountry = p.country || 'India';
+      const pImg = p.image_url || 'assets/images/logo.png';
+      const pSeo = p.seo_tags || `buy ${pName} wholesale, ${pName} supplier`;
+
+      await db.query(
+        'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+        [effectiveSupplierId, pName, pPrice, pCat, pMoq, pUnit, pImg, pSeo, pStock, pCountry]
+      );
+      existingNames.add(pName.toLowerCase());
+      insertedCount++;
+    }
+
+    if (insertedCount > 0) {
+      googleSheetsService.syncSellerToGoogleSheet(effectiveSupplierId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    }
+
+    // Return the updated list of products for this supplier
+    const allProds = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY created_at DESC', [effectiveSupplierId]);
+    res.json({ success: true, count: insertedCount, products: allProds.rows || [] });
+  } catch (err) {
+    console.error('Error in /api/products/sync-bulk:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -3118,6 +3239,16 @@ app.post('/api/admin/google-sheet/sync-all', adminMiddleware, async (req, res) =
   }
 });
 
+// Route: Admin Restore Sellers from Google Sheet backup
+app.post('/api/admin/google-sheet/restore', adminMiddleware, async (req, res) => {
+  try {
+    const result = await googleSheetsService.restoreSellersFromGoogleSheet();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Route: Admin Test Google Sheet Webhook Connection
 app.post('/api/admin/google-sheet/test', adminMiddleware, async (req, res) => {
   try {
@@ -3239,9 +3370,22 @@ setInterval(async () => {
   }
 }, GOOGLE_SHEETS_SYNC_INTERVAL_MS);
 
-// Initial sync 25s after server boot
+// Initial re-hydration and sync after server boot
 setTimeout(async () => {
   try {
+    // 1. If database only has Master Admin, attempt to re-hydrate sellers from Google Sheet cloud backup
+    try {
+      const userCountRes = await db.query('SELECT COUNT(*) as cnt FROM users');
+      const count = parseInt((userCountRes.rows && userCountRes.rows[0] && userCountRes.rows[0].cnt) || 0, 10);
+      if (count <= 1) {
+        console.log('🔄 Checking Google Sheet backup for seller accounts to restore...');
+        await googleSheetsService.restoreSellersFromGoogleSheet();
+      }
+    } catch(rErr) {
+      console.warn('Re-hydration check non-fatal warning:', rErr.message);
+    }
+
+    // 2. Perform startup sync to Google Sheet
     const webhook = await googleSheetsService.getWebhookUrl();
     if (webhook && !webhook.includes('_test') && webhook.startsWith('http')) {
       const result = await googleSheetsService.syncAllSellersToGoogleSheet();
@@ -3250,7 +3394,7 @@ setTimeout(async () => {
       }
     }
   } catch (e) {}
-}, 25000);
+}, 10000);
 
 const PORT = process.env.PORT || 3000;
 if (require.main === module || !process.env.NO_AUTO_LISTEN) {

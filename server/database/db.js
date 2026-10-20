@@ -73,14 +73,34 @@ mockDB.reviews = mockDB.reviews || [];
 mockDB.products = mockDB.products || [];
 
 
-if (!mockDB.idCounter || mockDB.idCounter < 2) {
-  mockDB.idCounter = 2;
+// Preserve all registered users, businesses and products across restarts
+mockDB.users = mockDB.users || [];
+mockDB.businesses = mockDB.businesses || [];
+mockDB.products = mockDB.products || [];
+
+// Calculate safe idCounter higher than any existing id to prevent collision
+let maxExistingId = 1;
+[mockDB.users, mockDB.businesses, mockDB.products, mockDB.leads, mockDB.rfqs, mockDB.quotations].forEach(list => {
+  if (Array.isArray(list)) {
+    list.forEach(item => {
+      const parsedId = parseInt(item && item.id, 10);
+      if (!isNaN(parsedId) && parsedId > maxExistingId) {
+        maxExistingId = parsedId;
+      }
+    });
+  }
+});
+if (!mockDB.idCounter || mockDB.idCounter <= maxExistingId) {
+  mockDB.idCounter = maxExistingId + 1;
 }
 
-// Ensure Master Admin exists
-mockDB.users = (mockDB.users || []).filter(u => u.role === 'admin' && (u.id === 1 || (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009'));
-if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009')) {
-  mockDB.users.push({
+// Ensure Master Admin exists WITHOUT wiping out any registered sellers or buyers
+const hasMasterAdmin = mockDB.users.some(u => 
+  u.id === 1 || (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === '8368074009'
+);
+
+if (!hasMasterAdmin) {
+  mockDB.users.unshift({
     id: 1,
     phone: '8368074009',
     password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f',
@@ -89,12 +109,9 @@ if (!mockDB.users.some(u => (u.phone || '').toString().replace(/[^0-9]/g, '').sl
     city: 'Mumbai, Maharashtra',
     role: 'admin',
     subscription: 'vip',
-    created_at: new Date()
+    created_at: new Date('2026-10-13T10:41:26.946Z')
   });
 }
-
-// Businesses catalog initialized empty without demo records
-mockDB.businesses = mockDB.businesses || [];
 
 
 function saveMockDB() {
@@ -1078,14 +1095,17 @@ module.exports = {
     if (text.includes("SELECT supplier_id, name, category FROM products")) {
       return { rows: mockDB.products || [] };
     }
-    if (text.includes('DELETE FROM users WHERE id')) {
-      const idx = mockDB.users.findIndex(u => u.id == params[0]);
+    if (text.includes('DELETE FROM users WHERE id') || text.includes('DELETE FROM users WHERE phone')) {
+      const isPhone = text.includes('phone');
+      const idx = mockDB.users.findIndex(u => isPhone ? (u.phone == params[0]) : (u.id == params[0]));
       if (idx !== -1) {
+        const deletedUser = mockDB.users[idx];
         const deleted = mockDB.users.splice(idx, 1);
+        const delId = deletedUser.id;
         // Cascading mock deletes
-        mockDB.businesses = mockDB.businesses.filter(b => b.user_id != params[0]);
-        mockDB.products = mockDB.products.filter(p => p.supplier_id != params[0]);
-        mockDB.leads = mockDB.leads.filter(l => l.supplier_id != params[0]);
+        mockDB.businesses = mockDB.businesses.filter(b => b.user_id != delId);
+        mockDB.products = mockDB.products.filter(p => p.supplier_id != delId);
+        mockDB.leads = mockDB.leads.filter(l => l.supplier_id != delId);
         saveMockDB();
         return { rows: deleted };
       }

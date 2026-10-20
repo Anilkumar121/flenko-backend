@@ -455,6 +455,9 @@
             <button class="btn btn-primary" style="background: #0F4C9B; font-size: 0.85rem; padding: 0.45rem 1rem; font-weight: 600;" onclick="syncGoogleSheetNow()">
               ⚡ Sync to Google Sheet
             </button>
+            <button class="btn btn-outline" style="border-color: #028867; color: #028867; padding: 0.45rem 0.95rem; font-size: 0.85rem; font-weight: 600;" onclick="restoreGoogleSheetNow()">
+              📥 Restore from Sheet
+            </button>
             <button class="btn btn-outline" style="border-color: #cbd5e1; padding: 0.45rem 0.95rem; font-size: 0.85rem;" onclick="loadAllAdminUsers()">
               🔄 Refresh Users
             </button>
@@ -1309,6 +1312,30 @@
         alert('Network error while initiating Google Sheet sync.');
       } finally {
         if (btn) { btn.disabled = false; btn.innerText = '⚡ Sync All Sellers Now'; }
+      }
+    }
+
+    async function restoreGoogleSheetNow() {
+      const token = auth.getToken();
+      if (!confirm('Kya aap Google Sheet backup se saare suppliers restore karna chahte hain?')) return;
+
+      try {
+        const res = await auth.fetchWithFallback('/admin/google-sheet/restore', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          alert(`✅ Restore Complete!\n\n${data.count || 0} seller accounts were successfully restored from Google Sheet.`);
+          loadAllAdminUsers();
+        } else {
+          alert('Restore Info: ' + ((data && data.error) || data.message || 'Google Sheet returned no sellers or webhook is updating.'));
+        }
+      } catch(err) {
+        alert('Error restoring from Google Sheet: ' + err.message);
       }
     }
 

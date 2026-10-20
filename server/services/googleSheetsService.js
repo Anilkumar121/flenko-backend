@@ -551,6 +551,47 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  try {
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
+    if (action === 'get_all' || action === 'export') {
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+      var data = sheet.getDataRange().getValues();
+      var sellers = [];
+      if (data && data.length > 1) {
+        for (var r = 1; r < data.length; r++) {
+          var row = data[r];
+          if (!row[0] && !row[1] && !row[3]) continue;
+          sellers.push({
+            seller_id: row[0],
+            company_name: row[1],
+            owner_name: row[2],
+            phone: row[3],
+            email: row[4],
+            business_type: row[5],
+            category: row[6],
+            year_est: row[7],
+            gst_number: row[8],
+            city: row[9],
+            country: row[10],
+            address: row[11],
+            subscription: row[12],
+            is_paid_trusted: row[13],
+            website_url: row[14],
+            products_count: row[15],
+            about: row[16],
+            registered_at: row[17],
+            last_updated: row[18]
+          });
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        count: sellers.length,
+        sellers: sellers
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) {}
+
   return ContentService.createTextOutput(JSON.stringify({
     status: "online",
     service: "Flenko Seller Sync Webhook",
@@ -558,6 +599,79 @@ function doGet(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 `;
+}
+
+async function restoreSellersFromGoogleSheet() {
+  try {
+    const webhookUrl = await getWebhookUrl();
+    if (!webhookUrl || !webhookUrl.startsWith('http')) return { success: false, reason: 'no_webhook' };
+
+    const fetchUrl = webhookUrl + (webhookUrl.includes('?') ? '&action=get_all' : '?action=get_all');
+    const res = await fetch(fetchUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!res.ok) return { success: false, status: res.status };
+
+    const data = await res.json();
+    if (!data || !Array.isArray(data.sellers) || data.sellers.length === 0) {
+      return { success: true, count: 0, message: 'No sellers in sheet to restore' };
+    }
+
+    let restoredCount = 0;
+    for (const s of data.sellers) {
+      const cleanPhone = (s.phone || '').toString().replace(/[^0-9]/g, '');
+      const cleanPhone10 = cleanPhone.slice(-10);
+      const cleanEmail = (s.email || '').toString().trim().toLowerCase();
+      const compName = (s.company_name || s.business_name || s.name || 'Verified Supplier').trim();
+      const ownerName = (s.owner_name || s.name || compName).trim();
+
+      if (!cleanPhone10 && !cleanEmail) continue;
+
+      // Check if user already exists
+      let existingUser = null;
+      if (cleanPhone10) {
+        const uRes = await db.query('SELECT * FROM users WHERE phone LIKE $1', ['%' + cleanPhone10]);
+        if (uRes.rows && uRes.rows.length > 0) existingUser = uRes.rows[0];
+      }
+      if (!existingUser && cleanEmail) {
+        const eRes = await db.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+        if (eRes.rows && eRes.rows.length > 0) existingUser = eRes.rows[0];
+      }
+
+      let targetUserId = existingUser ? existingUser.id : null;
+      if (!existingUser) {
+        const phoneFormatted = cleanPhone10 ? ('+91' + cleanPhone10) : ('9' + Date.now().toString().slice(-9));
+        const insUser = await db.query(
+          'INSERT INTO users (phone, name, email, city, role, subscription) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+          [phoneFormatted, ownerName, cleanEmail || null, s.city || 'Industrial Hub', 'supplier', s.subscription || 'free']
+        );
+        if (insUser.rows && insUser.rows[0]) {
+          targetUserId = insUser.rows[0].id;
+          restoredCount++;
+        }
+      }
+
+      if (targetUserId) {
+        const bCheck = await db.query('SELECT id FROM businesses WHERE user_id = $1', [targetUserId]);
+        if (!bCheck.rows || bCheck.rows.length === 0) {
+          await db.query(
+            'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, is_paid_trusted, country, about, year_est, is_verified) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
+            [targetUserId, compName, s.gst_number || '', s.business_type || 'Manufacturer', s.address || '', s.city || 'Industrial Hub', s.category || 'General B2B', s.is_paid_trusted === 'YES' || s.is_paid_trusted === true, s.country || 'India', s.about || '', s.year_est || '', true]
+          );
+        }
+      }
+    }
+
+    if (restoredCount > 0) {
+      console.log(`📊 [Google Sheets Re-hydration] Successfully restored ${restoredCount} sellers into database.`);
+    }
+    return { success: true, count: restoredCount };
+  } catch (err) {
+    console.warn('[Google Sheets Restore warning]:', err.message);
+    return { success: false, error: err.message };
+  }
 }
 
 module.exports = {
@@ -569,6 +683,7 @@ module.exports = {
   syncSellerToGoogleSheet,
   getAllSellersRecords,
   syncAllSellersToGoogleSheet,
+  restoreSellersFromGoogleSheet,
   testWebhookConnection,
   generateSellersCsv,
   getAppsScriptTemplate

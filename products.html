@@ -727,6 +727,15 @@
         }
       }
 
+      if (rawList && rawList.length > 0) {
+        try { localStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList)); } catch(e) {}
+      } else {
+        try {
+          const cached = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
+          if (cached && cached.length > 0) rawList = cached;
+        } catch(e) {}
+      }
+
       const getCountryFlag = (cName) => {
         if (!cName) return '📍';
         const match = (window.FLENKO_COUNTRIES || []).find(c => c.name.toLowerCase() === cName.toLowerCase() || c.code.toLowerCase() === cName.toLowerCase());

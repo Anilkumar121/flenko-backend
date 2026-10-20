@@ -127,6 +127,47 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  try {
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
+    if (action === 'get_all' || action === 'export') {
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+      var data = sheet.getDataRange().getValues();
+      var sellers = [];
+      if (data && data.length > 1) {
+        for (var r = 1; r < data.length; r++) {
+          var row = data[r];
+          if (!row[0] && !row[1] && !row[3]) continue;
+          sellers.push({
+            seller_id: row[0],
+            company_name: row[1],
+            owner_name: row[2],
+            phone: row[3],
+            email: row[4],
+            business_type: row[5],
+            category: row[6],
+            year_est: row[7],
+            gst_number: row[8],
+            city: row[9],
+            country: row[10],
+            address: row[11],
+            subscription: row[12],
+            is_paid_trusted: row[13],
+            website_url: row[14],
+            products_count: row[15],
+            about: row[16],
+            registered_at: row[17],
+            last_updated: row[18]
+          });
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        count: sellers.length,
+        sellers: sellers
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) {}
+
   return ContentService.createTextOutput(JSON.stringify({
     status: "online",
     service: "Flenko Seller Sync Webhook",
