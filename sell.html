@@ -282,6 +282,12 @@
       const countryCode = document.getElementById('regCountryCode') ? document.getElementById('regCountryCode').value : '+91';
       let rawPhone = document.getElementById('regPhone').value.replace(/[^0-9]/g, '');
       if (rawPhone.startsWith('0')) rawPhone = rawPhone.replace(/^0+/, '');
+
+      if (!rawPhone || rawPhone.length < 10) {
+        regStatusMsg.innerText = '❌ Kripya 10 anko ka valid mobile number dalein (Please enter valid 10-digit mobile number)';
+        regStatusMsg.style.color = '#ef4444';
+        return;
+      }
       const fullPhone = rawPhone ? (countryCode + rawPhone) : '';
 
       const sellerData = {

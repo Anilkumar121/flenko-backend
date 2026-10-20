@@ -539,6 +539,16 @@ module.exports = {
       saveMockDB();
       return { rows: [] };
     }
+    if (text.includes('UPDATE users SET role = $1 WHERE id = $2')) {
+      const user = (mockDB.users || []).find(u => u.id == params[1]);
+      if (user) { user.role = params[0]; saveMockDB(); return { rows: [user] }; }
+      return { rows: [] };
+    }
+    if (text.includes('UPDATE users SET phone = $1 WHERE id = $2')) {
+      const user = (mockDB.users || []).find(u => u.id == params[1]);
+      if (user) { user.phone = params[0]; saveMockDB(); return { rows: [user] }; }
+      return { rows: [] };
+    }
     if (text.includes('UPDATE users SET name = $1 WHERE id = $2')) {
       const user = (mockDB.users || []).find(u => u.id == params[1]);
       if (user) { user.name = params[0]; }

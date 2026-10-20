@@ -409,7 +409,10 @@ app.post('/api/auth/register', async (req, res) => {
   const cleanName = (name || '').toString().trim() || 'Flenko Member';
 
   // Allow registration with mobile or valid email address
-  if ((!cleanPhone || digitsOnly.length < 5) && !cleanEmail) {
+  if (digitsOnly.length > 0 && digitsOnly.length < 10) {
+    return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number' });
+  }
+  if (!cleanPhone && !cleanEmail) {
     return res.status(400).json({ error: 'Please enter a valid mobile number or email address' });
   }
   if (!cleanPass || cleanPass.length < 4) {
@@ -691,6 +694,18 @@ app.post('/api/auth/sync-seller-session', async (req, res) => {
       if (cleanCompName && (!existingUser.name || /^\d+$/.test(existingUser.name) || existingUser.name === 'Supplier')) {
         await db.query('UPDATE users SET name = $1 WHERE id = $2', [cleanCompName, existingUser.id]);
         existingUser.name = cleanCompName;
+      }
+      if (existingUser.role !== 'admin') {
+        const targetRole = (user && user.role) ? user.role : (business ? 'supplier' : existingUser.role);
+        if (targetRole && targetRole !== existingUser.role) {
+          await db.query('UPDATE users SET role = $1 WHERE id = $2', [targetRole, existingUser.id]);
+          existingUser.role = targetRole;
+        }
+      }
+      if (cleanPhone && cleanPhone.length >= 10 && (!existingUser.phone || existingUser.phone.length < 10 || existingUser.phone === '100')) {
+        const fullPhone = cleanPhone.length === 10 ? ('+91' + cleanPhone) : ('+' + cleanPhone);
+        await db.query('UPDATE users SET phone = $1 WHERE id = $2', [fullPhone, existingUser.id]);
+        existingUser.phone = fullPhone;
       }
     }
 
@@ -2502,8 +2517,9 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry]
     );
 
-    // Auto-sync seller product count to Google Sheets
+    // Auto-sync seller product count and products catalog to Google Sheets
     googleSheetsService.syncSellerToGoogleSheet(effectiveSupplierId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
 
     res.json({ success: true, product: newProd.rows[0], seo_generated: autoSeoTags, category: effectiveCategory, country: effectiveCountry });
   } catch (error) {
@@ -2550,6 +2566,7 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
     }
     const suppId = (updated.rows && updated.rows[0] && updated.rows[0].supplier_id) || req.user.id;
     googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
 
     res.json({ success: true, product: updated.rows[0], category: effectiveCategory, country: effectiveCountry });
   } catch (error) {
@@ -2568,6 +2585,7 @@ app.delete('/api/products/:id', authMiddleware, async (req, res) => {
 
     const suppId = (deleted.rows && deleted.rows[0] && deleted.rows[0].supplier_id) || req.user.id;
     googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
 
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
@@ -2643,6 +2661,7 @@ app.post('/api/products/sync-bulk', authMiddleware, async (req, res) => {
 
     if (insertedCount > 0) {
       googleSheetsService.syncSellerToGoogleSheet(effectiveSupplierId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+      googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
     }
 
     // Return the updated list of products for this supplier
@@ -3239,11 +3258,18 @@ app.post('/api/admin/google-sheet/sync-all', adminMiddleware, async (req, res) =
   }
 });
 
-// Route: Admin Restore Sellers from Google Sheet backup
+// Route: Admin Restore Sellers and Products from Google Sheet cloud backup
 app.post('/api/admin/google-sheet/restore', adminMiddleware, async (req, res) => {
   try {
-    const result = await googleSheetsService.restoreSellersFromGoogleSheet();
-    res.json(result);
+    const sResult = await googleSheetsService.restoreSellersFromGoogleSheet();
+    const pResult = await googleSheetsService.restoreProductsFromGoogleSheet();
+    res.json({
+      success: true,
+      count: (sResult.count || 0) + (pResult.count || 0),
+      sellers: sResult.count || 0,
+      products: pResult.count || 0,
+      message: `Restored ${sResult.count || 0} seller accounts and ${pResult.count || 0} products from Google Sheet.`
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -3385,13 +3411,26 @@ setTimeout(async () => {
       console.warn('Re-hydration check non-fatal warning:', rErr.message);
     }
 
-    // 2. Perform startup sync to Google Sheet
+    // 2. Restore products from Google Sheet cloud backup if database has 0 products
+    try {
+      const prodCountRes = await db.query('SELECT COUNT(*) as cnt FROM products');
+      const pCount = parseInt((prodCountRes.rows && prodCountRes.rows[0] && prodCountRes.rows[0].cnt) || 0, 10);
+      if (pCount === 0) {
+        console.log('🔄 Checking Google Sheet backup for products to restore...');
+        await googleSheetsService.restoreProductsFromGoogleSheet();
+      }
+    } catch(pErr) {
+      console.warn('Product re-hydration check non-fatal warning:', pErr.message);
+    }
+
+    // 3. Perform startup sync to Google Sheet
     const webhook = await googleSheetsService.getWebhookUrl();
     if (webhook && !webhook.includes('_test') && webhook.startsWith('http')) {
       const result = await googleSheetsService.syncAllSellersToGoogleSheet();
       if (result && result.success) {
         console.log(`📊 [Google Sheets Startup Sync] Auto-synced ${result.count} sellers on boot.`);
       }
+      googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
     }
   } catch (e) {}
 }, 10000);

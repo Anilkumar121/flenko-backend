@@ -10,10 +10,34 @@
       "role": "admin",
       "subscription": "vip",
       "created_at": "2026-10-13T10:41:26.946Z"
+    },
+    {
+      "id": 2,
+      "phone": "+918800703079",
+      "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "name": "Rakshit Enterprise",
+      "email": "rakshitdahaag@gmail.com",
+      "city": "Delhi",
+      "role": "supplier",
+      "subscription": "vip",
+      "created_at": "2026-10-20T17:00:00.000Z"
     }
   ],
   "otp_requests": [],
-  "businesses": [],
+  "businesses": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "company_name": "Rakshit Enterprise",
+      "city": "Delhi",
+      "country": "India",
+      "category": "General B2B",
+      "business_type": "Manufacturer & Wholesaler",
+      "is_verified": true,
+      "is_paid_trusted": true,
+      "created_at": "2026-10-20T17:00:00.000Z"
+    }
+  ],
   "leads": [],
   "products": [],
   "rfqs": [],

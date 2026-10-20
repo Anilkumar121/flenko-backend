@@ -1329,7 +1329,7 @@
         });
         const data = await res.json();
         if (data && data.success) {
-          alert(`✅ Restore Complete!\n\n${data.count || 0} seller accounts were successfully restored from Google Sheet.`);
+          alert(`✅ Restore Complete!\n\n${data.sellers || 0} seller accounts and ${data.products || 0} products were successfully restored from Google Sheet.`);
           loadAllAdminUsers();
         } else {
           alert('Restore Info: ' + ((data && data.error) || data.message || 'Google Sheet returned no sellers or webhook is updating.'));

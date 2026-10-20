@@ -3,17 +3,18 @@
 // Universal API Base with auto-detection & fallback
 function detectApiBase() {
   if (typeof window === 'undefined') return 'https://flenko-backend.onrender.com/api';
-  if (window.location.protocol === 'file:') return 'http://localhost:3000/api';
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return window.location.port === '3000' ? '/api' : 'http://localhost:3000/api';
   }
-  // On flenko.com and live domain, the active 24/7 backend is hosted on Render
+  // Live 24/7 cloud backend on Render (used for live domain, and for local file:/// browsing)
   return 'https://flenko-backend.onrender.com/api';
 }
 
 const API_BASE = detectApiBase();
 window.API_BASE = API_BASE;
-window.API_FALLBACK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000/api' : '/api';
+window.API_FALLBACK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+  ? 'http://localhost:3000/api' 
+  : (window.location.protocol === 'file:' ? 'https://flenko-backend.onrender.com/api' : '/api');
 
 const auth = {
   async fetchWithFallback(urlPath, options = {}) {

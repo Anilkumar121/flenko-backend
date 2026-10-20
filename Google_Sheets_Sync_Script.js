@@ -23,9 +23,73 @@
 
 function doPost(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
     var contents = e.postData.contents;
     var data = JSON.parse(contents);
+
+    // 1. Handle Products Sync to a separate "Products" Tab
+    if (data.type === 'products_sync' || (data.products && Array.isArray(data.products))) {
+      var prodSheet = ss.getSheetByName("Products");
+      if (!prodSheet) {
+        prodSheet = ss.insertSheet("Products");
+      }
+      var pHeaders = [
+        "Product ID", "Supplier ID", "Supplier Phone", "Product Name", "Price (INR)",
+        "Category", "MOQ", "Unit", "Country", "Image URL", "Stock Quantity", "Last Updated"
+      ];
+      if (prodSheet.getLastRow() === 0) {
+        prodSheet.appendRow(pHeaders);
+        var pHeaderRange = prodSheet.getRange(1, 1, 1, pHeaders.length);
+        pHeaderRange.setFontWeight("bold");
+        pHeaderRange.setBackground("#0F4C9B");
+        pHeaderRange.setFontColor("#FFFFFF");
+        prodSheet.setFrozenRows(1);
+        prodSheet.autoResizeColumns(1, pHeaders.length);
+      }
+      var prods = data.products || [];
+      var pRows = prodSheet.getDataRange().getValues();
+      for (var pi = 0; pi < prods.length; pi++) {
+        var p = prods[pi];
+        var pRowData = [
+          p.id || "",
+          p.supplier_id || "",
+          p.supplier_phone || "",
+          p.name || "",
+          p.price || "",
+          p.category || "General B2B",
+          p.moq || 1,
+          p.unit || "Pieces",
+          p.country || "India",
+          p.image_url || "",
+          p.stock_quantity || 500,
+          new Date().toLocaleString()
+        ];
+        var pTargetName = String(p.name || "").trim().toLowerCase();
+        var pTargetSupp = String(p.supplier_id || "").trim();
+        var pFoundRow = -1;
+        for (var pr = 1; pr < pRows.length; pr++) {
+          if (String(pRows[pr][0]).trim() === String(p.id) || 
+             (String(pRows[pr][1]).trim() === pTargetSupp && String(pRows[pr][3]).trim().toLowerCase() === pTargetName)) {
+            pFoundRow = pr + 1;
+            break;
+          }
+        }
+        if (pFoundRow > 0) {
+          prodSheet.getRange(pFoundRow, 1, 1, pRowData.length).setValues([pRowData]);
+        } else {
+          prodSheet.appendRow(pRowData);
+          pRows.push(pRowData);
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        count: prods.length,
+        type: "products_synced"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2. Handle Sellers Sync (Default Sheet or "Sellers" tab)
+    var sheet = ss.getSheetByName("Sellers") || ss.getActiveSheet();
     
     // Standard Column Headers
     var headers = [
@@ -129,7 +193,41 @@ function doPost(e) {
 function doGet(e) {
   try {
     var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
-    if (action === 'get_all' || action === 'export') {
+    if (action === 'get_all_products' || action === 'export_products') {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var prodSheet = ss.getSheetByName("Products");
+      if (!prodSheet || prodSheet.getLastRow() <= 1) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          count: 0,
+          products: []
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var pData = prodSheet.getDataRange().getValues();
+      var products = [];
+      for (var pr = 1; pr < pData.length; pr++) {
+        var prow = pData[pr];
+        if (!prow[3]) continue;
+        products.push({
+          id: prow[0] || pr,
+          supplier_id: prow[1] || 1,
+          supplier_phone: prow[2] || "",
+          name: prow[3],
+          price: prow[4] !== "" ? prow[4] : null,
+          category: prow[5] || "General B2B",
+          moq: prow[6] || 1,
+          unit: prow[7] || "Pieces",
+          country: prow[8] || "India",
+          image_url: prow[9] || "assets/images/logo.png",
+          stock_quantity: prow[10] || 500
+        });
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        count: products.length,
+        products: products
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
       var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
       var data = sheet.getDataRange().getValues();
       var sellers = [];
