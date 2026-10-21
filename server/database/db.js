@@ -3,11 +3,15 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 require('dotenv').config();
 
-const hasDatabaseUrl = Boolean(process.env.DATABASE_URL || (process.env.DB_HOST && process.env.DB_NAME));
+// Production Neon PostgreSQL Cloud Database (Permanent 24/7 Cloud Storage)
+const NEON_PRODUCTION_DB_URL = "postgresql://neondb_owner:npg_57EUoLrbXgRl@ep-silent-lab-b5zuu1tu-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require";
 
-const poolConfig = process.env.DATABASE_URL
+const activeDatabaseUrl = (process.env.DATABASE_URL || '').trim() || NEON_PRODUCTION_DB_URL;
+const hasDatabaseUrl = Boolean(activeDatabaseUrl || (process.env.DB_HOST && process.env.DB_NAME));
+
+const poolConfig = activeDatabaseUrl
   ? { 
-      connectionString: process.env.DATABASE_URL, 
+      connectionString: activeDatabaseUrl, 
       ssl: { rejectUnauthorized: false },
       connectionTimeoutMillis: 10000,
       idleTimeoutMillis: 30000,
@@ -361,10 +365,17 @@ function scheduleReconnect() {
 }
 
 // Initial connection attempt
-checkAndConnectDb();
+let initialConnectPromise = checkAndConnectDb();
 
 module.exports = {
   query: async (text, params = []) => {
+    // If initial connection attempt is still resolving, wait for it before evaluating useMock
+    if (initialConnectPromise && !isConnectedToPostgres && !lastDbError) {
+      try {
+        await initialConnectPromise;
+      } catch (e) {}
+    }
+
     if (!useMock && isConnectedToPostgres) {
       try {
         return await pool.query(text, params);
@@ -1257,6 +1268,12 @@ module.exports = {
 };
 
 async function getDbStatus() {
+  if (initialConnectPromise && !isConnectedToPostgres && !lastDbError) {
+    try {
+      await initialConnectPromise;
+    } catch(e) {}
+  }
+
   let stats = {
     usersCount: 0,
     businessesCount: 0,
@@ -1296,7 +1313,8 @@ async function getDbStatus() {
     connected: isLivePg,
     mode: isLivePg ? 'postgresql' : (hasDatabaseUrl ? 'reconnecting' : 'ephemeral_mock'),
     storageType: isLivePg ? 'Cloud PostgreSQL (Persistent & 24/7 Safe)' : 'Ephemeral Server Memory / db.json (Resets on restart)',
-    databaseUrlSet: Boolean(process.env.DATABASE_URL),
+    databaseUrlSet: Boolean(activeDatabaseUrl),
+    databaseHost: activeDatabaseUrl ? (activeDatabaseUrl.split('@')[1] || '').split('/')[0] : 'None',
     lastConnectedAt,
     lastDbError,
     stats,
