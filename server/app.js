@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 require('dotenv').config();
 const db = require('./database/db');
 
@@ -21,7 +23,6 @@ function verifyPassword(password, hash) {
 }
 
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 
 const app = express();
@@ -335,8 +336,21 @@ const googleSheetsService = require('./services/googleSheetsService');
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Flenko Backend Server is alive and running!' });
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbStatus = await db.getDbStatus();
+    res.json({
+      success: true,
+      message: 'Flenko Backend Server is alive and running!',
+      database: dbStatus
+    });
+  } catch (err) {
+    res.json({
+      success: true,
+      message: 'Flenko Backend Server is alive and running!',
+      database: { connected: false, error: err.message }
+    });
+  }
 });
 
 // WhatsApp Bot Worker Routes (Option B - Local Windows Bot)

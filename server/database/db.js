@@ -1,4 +1,6 @@
 const { Pool } = require('pg');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 require('dotenv').config();
 
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL || (process.env.DB_HOST && process.env.DB_NAME));
@@ -25,7 +27,6 @@ const poolConfig = process.env.DATABASE_URL
 const pool = new Pool(poolConfig);
 
 const fs = require('fs');
-const path = require('path');
 
 const mockDbPath = path.join(__dirname, 'db.json');
 
