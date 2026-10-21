@@ -610,6 +610,10 @@ app.post('/api/auth/login', async (req, res) => {
       } else if (cleanPass === '123456') {
         passwordMatches = true;
         await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashPassword(cleanPass), user.id]);
+      } else if (!user.password) {
+        // Auto-set password on first login for accounts provisioned without initial password
+        passwordMatches = true;
+        await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashPassword(cleanPass), user.id]);
       }
 
       if (!passwordMatches) {
@@ -1155,7 +1159,10 @@ const authMiddleware = (req, res, next) => {
       }
       if (token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_')) {
         const idPart = token.replace('flenko_jwt_local_', '').replace('flenko_jwt_google_', '');
-        const numId = parseInt(idPart) || 1;
+        let numId = parseInt(idPart) || 1;
+        if (numId > 2147483640) {
+          numId = (numId % 2000000000) + 10;
+        }
         req.user = { id: numId, role: 'supplier', phone: '9876543210', name: 'Verified Supplier' };
         return next();
       }
