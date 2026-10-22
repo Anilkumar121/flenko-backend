@@ -174,6 +174,10 @@ async function ensureTables() {
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_tagline TEXT`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website_theme VARCHAR(50) DEFAULT 'modern'`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS year_est VARCHAR(20)`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS slug VARCHAR(255)`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS seo_title VARCHAR(255)`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS seo_description TEXT`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_indexed BOOLEAN DEFAULT TRUE`,
     `CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER,
@@ -191,6 +195,19 @@ async function ensureTables() {
     `ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 500`,
     `ALTER TABLE products ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India'`,
     `ALTER TABLE products ADD COLUMN IF NOT EXISTS seo_tags TEXT`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS slug VARCHAR(255)`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS seo_title VARCHAR(255)`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS seo_description TEXT`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_service BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_indexed BOOLEAN DEFAULT TRUE`,
+    `CREATE TABLE IF NOT EXISTS url_redirects (
+      id SERIAL PRIMARY KEY,
+      old_path VARCHAR(255) UNIQUE NOT NULL,
+      new_path VARCHAR(255) NOT NULL,
+      status_code INTEGER DEFAULT 301,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
     `CREATE TABLE IF NOT EXISTS leads (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER,

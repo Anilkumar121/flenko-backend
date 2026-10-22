@@ -6,6 +6,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 require('dotenv').config();
 const db = require('./database/db');
+const seoService = require('./services/seoService');
 
 // Password security helpers
 function hashPassword(password) {
@@ -29,6 +30,24 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// 301 Permanent Redirects Middleware (Programmatic SEO & Canonical Architecture)
+app.use(async (req, res, next) => {
+  try {
+    const rawPath = req.path;
+    if (rawPath.startsWith('/api/') || rawPath.startsWith('/assets/') || rawPath.startsWith('/css/') || rawPath.startsWith('/js/')) {
+      return next();
+    }
+    const redRes = await db.query('SELECT new_path, status_code FROM url_redirects WHERE old_path = $1', [rawPath]);
+    if (redRes && redRes.rows && redRes.rows.length > 0) {
+      const { new_path, status_code } = redRes.rows[0];
+      return res.redirect(status_code || 301, new_path);
+    }
+  } catch (err) {
+    // Non-fatal if table not initialized yet
+  }
+  next();
+});
 
 // Upload Directories
 const uploadDir = path.join(__dirname, '../assets/images/products');
@@ -85,107 +104,337 @@ app.use('/assets', express.static(path.join(__dirname, '../assets')));
 app.use('/css', express.static(path.join(__dirname, '../css')));
 app.use('/js', express.static(path.join(__dirname, '../js')));
 
-// Dynamic Robots.txt Endpoint
+// Dynamic Robots.txt Endpoint (Indexable Public Directory, Shielding Internal Dashboard Routes)
 app.get('/robots.txt', (req, res) => {
-  const robotsPath = path.join(__dirname, '../robots.txt');
-  if (fs.existsSync(robotsPath)) {
-    res.header('Content-Type', 'text/plain');
-    return res.sendFile(robotsPath);
-  }
   res.header('Content-Type', 'text/plain');
-  res.send("User-agent: *\nAllow: /\nDisallow: /admin-dashboard.html\nDisallow: /supplier-leads.html\nDisallow: /api/\nSitemap: https://flenko.com/sitemap.xml\n");
+  res.send(`User-agent: *
+Allow: /
+Allow: /products/
+Allow: /suppliers/
+Allow: /wholesale/
+Allow: /services/
+Allow: /categories.html
+Allow: /products.html
+Allow: /business-directory.html
+Disallow: /admin-dashboard.html
+Disallow: /supplier-dashboard.html
+Disallow: /supplier-leads.html
+Disallow: /supplier-products.html
+Disallow: /buyer-dashboard.html
+Disallow: /cart.html
+Disallow: /checkout.html
+Disallow: /api/
+
+Sitemap: https://flenko.com/sitemap.xml
+`);
 });
 
-// Dynamic Sitemap.xml Endpoint (Live PostgreSQL Products + Silos)
-app.get('/sitemap.xml', async (req, res) => {
+// Dynamic XML Sitemap Index (Linking Sub-Sitemaps for Products, Suppliers, Categories & Core Pages)
+app.get('/sitemap.xml', (req, res) => {
   res.header('Content-Type', 'application/xml');
+  const baseUrl = process.env.SITE_URL || 'https://flenko.com';
+  const today = new Date().toISOString().split('T')[0];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${baseUrl}/sitemap-products.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-suppliers.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-categories.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-pages.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+  res.send(xml);
+});
+
+// Dynamic Products XML Sitemap
+app.get('/sitemap-products.xml', async (req, res) => {
+  res.header('Content-Type', 'application/xml');
+  const baseUrl = process.env.SITE_URL || 'https://flenko.com';
+  const today = new Date().toISOString().split('T')[0];
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Core pages
-    const coreUrls = [
-      { loc: 'https://flenko.com/', priority: '1.0', changefreq: 'daily' },
-      { loc: 'https://flenko.com/products.html', priority: '0.95', changefreq: 'hourly' },
-      { loc: 'https://flenko.com/categories.html', priority: '0.90', changefreq: 'daily' },
-      { loc: 'https://flenko.com/business-directory.html', priority: '0.90', changefreq: 'daily' },
-      { loc: 'https://flenko.com/rfq.html', priority: '0.85', changefreq: 'daily' },
-      { loc: 'https://flenko.com/sell.html', priority: '0.85', changefreq: 'weekly' },
-      { loc: 'https://flenko.com/pricing.html', priority: '0.80', changefreq: 'monthly' }
-    ];
-
-    // High Priority Industrial Categories
-    const categories = [
-      'Packaging & Paper',
-      'Industrial Machinery & Plants',
-      'Electronics & Electrical Goods',
-      'Chemicals, Dyes & Solvents',
-      'Textiles, Fabrics & Garments',
-      'Building & Construction Materials',
-      'Metals, Alloys & Minerals',
-      'Medical, Pharma & Healthcare',
-      'Agriculture & Farming Supplies',
-      'Automotive Spares & Equipment',
-      'Office Supplies & Stationery',
-      'Security Systems & CCTV',
-      'Renewable Energy & Solar',
-      'Sports & Fitness Goods',
-      'Jewelry & Fashion Accessories',
-      'Luggage, Bags & Cases'
-    ];
-
-    // Major Indian Manufacturing Cities
-    const cities = [
-      'Delhi', 'Mumbai', 'Ahmedabad', 'Surat', 'Pune', 'Rajkot',
-      'Ludhiana', 'Bengaluru', 'Chennai', 'Coimbatore', 'Jaipur',
-      'Kanpur', 'Indore', 'Hyderabad', 'Vadodara', 'Kolkata'
-    ];
-
-    // Fetch active products from DB
-    let dbProducts = [];
-    try {
-      const prodRes = await db.query('SELECT id, name, category, created_at FROM products ORDER BY id DESC LIMIT 1000');
-      dbProducts = (prodRes && prodRes.rows) ? prodRes.rows : [];
-    } catch(err) {
-      console.warn('Sitemap DB query warning:', err.message);
+    const result = await db.query('SELECT slug, name, image_url, created_at FROM products WHERE is_indexed IS NOT FALSE ORDER BY id DESC LIMIT 5000');
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
+    for (const p of result.rows || []) {
+      const slug = p.slug || seoService.slugify(p.name);
+      if (!slug) continue;
+      const lastmod = p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : today;
+      xml += `  <url>\n    <loc>${baseUrl}/products/${encodeURIComponent(slug)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.90</priority>\n`;
+      if (p.image_url && p.image_url.startsWith('http')) {
+        xml += `    <image:image>\n      <image:loc>${seoService.escapeHtml(p.image_url)}</image:loc>\n      <image:title>${seoService.escapeHtml(p.name || '')}</image:title>\n    </image:image>\n`;
+      }
+      xml += `  </url>\n`;
     }
+    xml += `</urlset>`;
+    res.send(xml);
+  } catch (err) {
+    res.status(500).send('Error generating products sitemap');
+  }
+});
 
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
-
-    // 1. Core Pages
-    for (const p of coreUrls) {
-      xml += `  <url>\n    <loc>${p.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
+// Dynamic Suppliers XML Sitemap
+app.get('/sitemap-suppliers.xml', async (req, res) => {
+  res.header('Content-Type', 'application/xml');
+  const baseUrl = process.env.SITE_URL || 'https://flenko.com';
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const result = await db.query('SELECT slug, company_name, logo_url, created_at FROM businesses WHERE is_indexed IS NOT FALSE ORDER BY id DESC LIMIT 5000');
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+    for (const b of result.rows || []) {
+      const slug = b.slug || seoService.slugify(b.company_name);
+      if (!slug) continue;
+      const lastmod = b.created_at ? new Date(b.created_at).toISOString().split('T')[0] : today;
+      xml += `  <url>\n    <loc>${baseUrl}/suppliers/${encodeURIComponent(slug)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
     }
+    xml += `</urlset>`;
+    res.send(xml);
+  } catch (err) {
+    res.status(500).send('Error generating suppliers sitemap');
+  }
+});
 
-    // 2. Categories
+// Dynamic Categories & Wholesales XML Sitemap
+app.get('/sitemap-categories.xml', async (req, res) => {
+  res.header('Content-Type', 'application/xml');
+  const baseUrl = process.env.SITE_URL || 'https://flenko.com';
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const result = await db.query('SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != \'\'');
+    let categories = (result.rows || []).map(r => r.category);
+    if (categories.length === 0) {
+      categories = [
+        'Packaging & Paper', 'Industrial Machinery & Plants', 'Electronics & Electrical Goods',
+        'Chemicals, Dyes & Solvents', 'Textiles, Fabrics & Garments', 'Building & Construction Materials',
+        'Metals, Alloys & Minerals', 'Medical, Pharma & Healthcare', 'Agriculture & Farming Supplies'
+      ];
+    }
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
     for (const cat of categories) {
-      xml += `  <url>\n    <loc>https://flenko.com/products.html?cat=${encodeURIComponent(cat)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
+      const slug = seoService.slugify(cat);
+      if (!slug) continue;
+      xml += `  <url>\n    <loc>${baseUrl}/wholesale/${encodeURIComponent(slug)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.80</priority>\n  </url>\n`;
+    }
+    xml += `</urlset>`;
+    res.send(xml);
+  } catch (err) {
+    res.status(500).send('Error generating categories sitemap');
+  }
+});
+
+// Dynamic Core Pages XML Sitemap
+app.get('/sitemap-pages.xml', (req, res) => {
+  res.header('Content-Type', 'application/xml');
+  const baseUrl = process.env.SITE_URL || 'https://flenko.com';
+  const today = new Date().toISOString().split('T')[0];
+  const pages = [
+    { loc: `${baseUrl}/`, priority: '1.0', changefreq: 'daily' },
+    { loc: `${baseUrl}/products.html`, priority: '0.95', changefreq: 'hourly' },
+    { loc: `${baseUrl}/categories.html`, priority: '0.90', changefreq: 'daily' },
+    { loc: `${baseUrl}/business-directory.html`, priority: '0.90', changefreq: 'daily' },
+    { loc: `${baseUrl}/rfq.html`, priority: '0.85', changefreq: 'daily' },
+    { loc: `${baseUrl}/sell.html`, priority: '0.85', changefreq: 'weekly' },
+    { loc: `${baseUrl}/pricing.html`, priority: '0.80', changefreq: 'monthly' }
+  ];
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+  for (const p of pages) {
+    xml += `  <url>\n    <loc>${p.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
+  }
+  xml += `</urlset>`;
+  res.send(xml);
+});
+
+// =========================================================================
+// PROGRAMMATIC SEO: SERVER-RENDERED (SSR) CRAWLABLE LANDING PAGES
+// =========================================================================
+
+// SSR Crawlable Product Landing Page
+app.get('/products/:slug', async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    let prodRes;
+    if (/^\d+$/.test(slug)) {
+      prodRes = await db.query('SELECT * FROM products WHERE id = $1', [parseInt(slug, 10)]);
+    } else {
+      prodRes = await db.query('SELECT * FROM products WHERE slug = $1', [slug]);
     }
 
-    // 3. Indian Manufacturing City Hubs
-    for (const city of cities) {
-      xml += `  <url>\n    <loc>https://flenko.com/products.html?country=India&amp;city=${encodeURIComponent(city)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.80</priority>\n  </url>\n`;
+    if (!prodRes.rows || prodRes.rows.length === 0) {
+      return res.status(404).send(`<!DOCTYPE html><html><head><title>Product Not Found | Flenko B2B</title><link rel="stylesheet" href="/css/styles.css"></head><body style="font-family:sans-serif; text-align:center; padding:4rem;"><h1 style="color:#0F4C9B;">Product Not Found</h1><p>The product you are looking for has been moved or is no longer available.</p><a href="/products.html" style="background:#0F4C9B; color:white; padding:10px 20px; border-radius:6px; text-decoration:none;">Browse All Wholesale Products</a></body></html>`);
     }
 
-    // 4. Live DB Products
-    for (const item of dbProducts) {
-      const cleanName = encodeURIComponent((item.name || '').trim());
-      if (cleanName) {
-        const itemDate = item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : today;
-        xml += `  <url>\n    <loc>https://flenko.com/products.html?q=${cleanName}</loc>\n    <lastmod>${itemDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.80</priority>\n  </url>\n`;
+    const product = prodRes.rows[0];
+
+    // If accessed by numeric ID and has a slug, 301 redirect to canonical slug URL
+    if (/^\d+$/.test(slug) && product.slug) {
+      return res.redirect(301, `/products/${product.slug}`);
+    }
+
+    // Fetch genuine supplier
+    let supplier = null;
+    if (product.supplier_id) {
+      const suppRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [product.supplier_id]);
+      if (suppRes.rows && suppRes.rows.length > 0) {
+        supplier = suppRes.rows[0];
       }
     }
 
-    xml += '</urlset>';
-    res.send(xml);
-  } catch(e) {
-    console.error('Error generating dynamic sitemap:', e);
-    const staticSitemap = path.join(__dirname, '../sitemap.xml');
-    if (fs.existsSync(staticSitemap)) {
-      return res.sendFile(staticSitemap);
+    // Fetch related products in same category
+    let relatedProducts = [];
+    if (product.category) {
+      const relRes = await db.query('SELECT * FROM products WHERE category = $1 AND id != $2 ORDER BY id DESC LIMIT 4', [product.category, product.id]);
+      relatedProducts = relRes.rows || [];
     }
-    res.status(500).send('Error generating sitemap');
+
+    const html = seoService.renderProductPageHtml({
+      product,
+      supplier,
+      relatedProducts,
+      isService: !!product.is_service
+    });
+
+    res.header('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('Error rendering product SEO page:', err);
+    res.status(500).send('Internal Server Error');
   }
+});
+
+// SSR Crawlable Service Landing Page
+app.get('/services/:slug', async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    let prodRes;
+    if (/^\d+$/.test(slug)) {
+      prodRes = await db.query('SELECT * FROM products WHERE id = $1', [parseInt(slug, 10)]);
+    } else {
+      prodRes = await db.query('SELECT * FROM products WHERE slug = $1', [slug]);
+    }
+
+    if (!prodRes.rows || prodRes.rows.length === 0) {
+      return res.status(404).redirect('/products.html');
+    }
+
+    const product = prodRes.rows[0];
+    let supplier = null;
+    if (product.supplier_id) {
+      const suppRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [product.supplier_id]);
+      if (suppRes.rows && suppRes.rows.length > 0) {
+        supplier = suppRes.rows[0];
+      }
+    }
+
+    const html = seoService.renderProductPageHtml({
+      product,
+      supplier,
+      relatedProducts: [],
+      isService: true
+    });
+
+    res.header('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// SSR Crawlable Verified Supplier Profile Page
+app.get('/suppliers/:slug', async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    let bizRes;
+    if (/^\d+$/.test(slug)) {
+      const numId = parseInt(slug, 10);
+      bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [numId]);
+      if (!bizRes.rows || bizRes.rows.length === 0) {
+        bizRes = await db.query('SELECT * FROM businesses WHERE id = $1', [numId]);
+      }
+    } else {
+      bizRes = await db.query('SELECT * FROM businesses WHERE slug = $1', [slug]);
+    }
+
+    if (!bizRes.rows || bizRes.rows.length === 0) {
+      return res.status(404).send(`<!DOCTYPE html><html><head><title>Supplier Not Found | Flenko B2B</title><link rel="stylesheet" href="/css/styles.css"></head><body style="font-family:sans-serif; text-align:center; padding:4rem;"><h1 style="color:#0F4C9B;">Supplier Profile Not Found</h1><p>This supplier storefront may have been moved or updated.</p><a href="/business-directory.html" style="background:#0F4C9B; color:white; padding:10px 20px; border-radius:6px; text-decoration:none;">Browse All Verified Suppliers</a></body></html>`);
+    }
+
+    const supplier = bizRes.rows[0];
+
+    // If accessed by numeric ID and has a slug, 301 redirect to canonical slug URL
+    if (/^\d+$/.test(slug) && supplier.slug) {
+      return res.redirect(301, `/suppliers/${supplier.slug}`);
+    }
+
+    // Fetch genuine products for this supplier (NO fake demo mock products!)
+    const prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [supplier.user_id]);
+    const products = prodRes.rows || [];
+
+    const html = seoService.renderSupplierPageHtml({
+      supplier,
+      products
+    });
+
+    res.header('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('Error rendering supplier SEO page:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// SSR Crawlable Category Landing Page (/wholesale/:categorySlug)
+app.get('/wholesale/:categorySlug', async (req, res) => {
+  try {
+    const catSlug = req.params.categorySlug;
+    const allCatsRes = await db.query('SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != \'\'');
+    let matchedCategory = null;
+    for (const row of allCatsRes.rows || []) {
+      if (seoService.slugify(row.category) === catSlug) {
+        matchedCategory = row.category;
+        break;
+      }
+    }
+
+    if (!matchedCategory) {
+      matchedCategory = catSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    const prodRes = await db.query('SELECT * FROM products WHERE LOWER(category) = LOWER($1) ORDER BY id DESC LIMIT 50', [matchedCategory]);
+    const products = prodRes.rows || [];
+
+    const suppRes = await db.query('SELECT * FROM businesses WHERE LOWER(category) = LOWER($1) ORDER BY id DESC LIMIT 20', [matchedCategory]);
+    const suppliers = suppRes.rows || [];
+
+    const html = seoService.renderCategoryPageHtml({
+      categoryName: matchedCategory,
+      products,
+      suppliers
+    });
+
+    res.header('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('Error rendering category SEO page:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Alias for Category Suppliers (/suppliers/category/:categorySlug)
+app.get('/suppliers/category/:categorySlug', (req, res) => {
+  res.redirect(301, `/wholesale/${req.params.categorySlug}`);
+});
+
+// Alias for City + Category Suppliers (/suppliers/:categorySlug/:citySlug)
+app.get('/suppliers/:categorySlug/:citySlug', (req, res) => {
+  res.redirect(301, `/wholesale/${req.params.categorySlug}`);
 });
 
 // Subdomain Detection Middleware for Seller Branded Websites (e.g. xyz.flenko.com or xyz.localhost)
@@ -1293,19 +1542,48 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
     } catch(e) {}
 
     // Check if business exists
-    const existing = await db.query('SELECT id, logo_url, country, about FROM businesses WHERE user_id = $1', [targetUserId]);
+    const existing = await db.query('SELECT id, company_name, slug, logo_url, country, about FROM businesses WHERE user_id = $1', [targetUserId]);
     
     let updatedBusiness = null;
+    let supplierSlug = null;
+
     if (existing.rows && existing.rows.length > 0) {
-      if (!logo_url) logo_url = existing.rows[0].logo_url;
-      const effectiveCountry = country || existing.rows[0].country || 'India';
-      const effectiveAbout = (about !== undefined) ? about : (existing.rows[0].about || '');
+      const curBiz = existing.rows[0];
+      if (!logo_url) logo_url = curBiz.logo_url;
+      const effectiveCountry = country || curBiz.country || 'India';
+      const effectiveAbout = (about !== undefined) ? about : (curBiz.about || '');
+
+      // Manage SEO Slug & 301 Redirect
+      if (!curBiz.slug) {
+        supplierSlug = await seoService.generateUniqueSupplierSlug(db, cleanCompName, curBiz.id);
+      } else if (cleanCompName && curBiz.company_name && seoService.slugify(cleanCompName) !== seoService.slugify(curBiz.company_name)) {
+        const newSlug = await seoService.generateUniqueSupplierSlug(db, cleanCompName, curBiz.id);
+        try {
+          await db.query(
+            'INSERT INTO url_redirects (old_path, new_path, status_code) VALUES ($1, $2, 301) ON CONFLICT (old_path) DO UPDATE SET new_path = $2',
+            [`/suppliers/${curBiz.slug}`, `/suppliers/${newSlug}`]
+          );
+        } catch(rErr) {}
+        supplierSlug = newSlug;
+      } else {
+        supplierSlug = curBiz.slug;
+      }
+
+      const suppMeta = seoService.generateSupplierMetadata({
+        company_name: cleanCompName,
+        city: finalCity,
+        category: category || 'General B2B',
+        business_type: business_type || 'Manufacturer & Wholesaler',
+        country: effectiveCountry,
+        slug: supplierSlug
+      });
+
       await db.query(
-        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10 WHERE user_id = $11',
-        [cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, effectiveCountry, effectiveAbout, finalYearEst, targetUserId]
+        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10, slug = $11, seo_title = $12, seo_description = $13 WHERE user_id = $14',
+        [cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, effectiveCountry, effectiveAbout, finalYearEst, supplierSlug, suppMeta.title, suppMeta.description, targetUserId]
       );
       updatedBusiness = {
-        id: existing.rows[0].id,
+        id: curBiz.id,
         user_id: targetUserId,
         company_name: cleanCompName,
         gst_number,
@@ -1316,13 +1594,26 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         logo_url,
         country: effectiveCountry,
         about: effectiveAbout,
-        year_est: finalYearEst
+        year_est: finalYearEst,
+        slug: supplierSlug,
+        seo_title: suppMeta.title,
+        seo_description: suppMeta.description
       };
       res.json({ success: true, message: 'Business updated successfully', business: updatedBusiness, logo_url });
     } else {
+      supplierSlug = await seoService.generateUniqueSupplierSlug(db, cleanCompName);
+      const suppMeta = seoService.generateSupplierMetadata({
+        company_name: cleanCompName,
+        city: finalCity,
+        category: category || 'General B2B',
+        business_type: business_type || 'Manufacturer & Wholesaler',
+        country: finalCountry,
+        slug: supplierSlug
+      });
+
       const insRes = await db.query(
-        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-        [targetUserId, cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, finalCountry, finalAbout, finalYearEst]
+        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est, slug, seo_title, seo_description, is_indexed) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id',
+        [targetUserId, cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, finalCountry, finalAbout, finalYearEst, supplierSlug, suppMeta.title, suppMeta.description, true]
       );
       const newId = (insRes.rows && insRes.rows[0]) ? insRes.rows[0].id : targetUserId;
       updatedBusiness = {
@@ -1337,7 +1628,10 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         logo_url,
         country: finalCountry,
         about: finalAbout,
-        year_est: finalYearEst
+        year_est: finalYearEst,
+        slug: supplierSlug,
+        seo_title: suppMeta.title,
+        seo_description: suppMeta.description
       };
       res.json({ success: true, message: 'Business created successfully', business: updatedBusiness, logo_url });
     }
@@ -1374,19 +1668,42 @@ app.get('/api/public/businesses', async (req, res) => {
 app.get('/api/public/suppliers/:id', async (req, res) => {
   try {
     const rawId = req.params.id;
-    const suppId = parseInt(rawId, 10);
-    if (isNaN(suppId)) {
-      return res.status(400).json({ error: 'Invalid supplier ID' });
+    let business = null;
+    let targetUserId = null;
+
+    if (/^\d+$/.test(rawId)) {
+      const suppId = parseInt(rawId, 10);
+      // Prioritize user_id because products.supplier_id stores users.id
+      let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [suppId]);
+      if (bizRes.rows && bizRes.rows.length > 0) {
+        business = bizRes.rows[0];
+        targetUserId = business.user_id;
+      } else {
+        bizRes = await db.query('SELECT * FROM businesses WHERE id = $1', [suppId]);
+        if (bizRes.rows && bizRes.rows.length > 0) {
+          business = bizRes.rows[0];
+          targetUserId = business.user_id;
+        } else {
+          targetUserId = suppId;
+        }
+      }
+    } else {
+      // Slug lookup (e.g. /api/public/suppliers/apex-packaging or rakshit-enterprise)
+      let bizRes = await db.query('SELECT * FROM businesses WHERE slug = $1', [rawId]);
+      if (bizRes.rows && bizRes.rows.length > 0) {
+        business = bizRes.rows[0];
+        targetUserId = business.user_id;
+      }
     }
 
-    // Try finding in businesses by user_id OR id
-    let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1 OR id = $1', [suppId]);
-    let business = (bizRes.rows && bizRes.rows.length > 0) ? bizRes.rows[0] : null;
-
     // Fetch user details
-    const targetUserId = business ? business.user_id : suppId;
-    let userRes = await db.query('SELECT id, name, phone, email, city, role, subscription, created_at FROM users WHERE id = $1', [targetUserId]);
-    let user = (userRes.rows && userRes.rows.length > 0) ? userRes.rows[0] : null;
+    let user = null;
+    if (targetUserId) {
+      let userRes = await db.query('SELECT id, name, phone, email, city, role, subscription, created_at FROM users WHERE id = $1', [targetUserId]);
+      if (userRes.rows && userRes.rows.length > 0) {
+        user = userRes.rows[0];
+      }
+    }
 
     if (!business && !user) {
       return res.status(404).json({ error: 'Supplier not found' });
@@ -1395,7 +1712,7 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         id: user.id,
         user_id: user.id,
         company_name: user.name || 'Verified Supplier',
-        category: 'Industrial Machinery',
+        category: 'General B2B',
         business_type: 'Manufacturer & Wholesaler',
         city: user.city || 'Industrial Hub',
         country: 'India',
@@ -1406,57 +1723,12 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
       };
     }
 
-    // Fetch supplier's products
-    let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId]);
+    // Fetch genuine supplier's products from database (NO fake mock products!)
+    let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId || business.user_id]);
     let products = prodRes.rows || [];
 
-    // Fallback products for supplier 1 if empty
-    if (products.length === 0 && suppId === 1) {
-      products = [
-        {
-          id: 101,
-          supplier_id: 1,
-          name: 'Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)',
-          price: 24.50,
-          category: 'Packaging & Printing',
-          moq: 500,
-          unit: 'Boxes',
-          stock_quantity: 50000,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80',
-          description: 'High-burst strength corrugated packaging boxes designed for logistics, e-commerce, and export cargo.'
-        },
-        {
-          id: 102,
-          supplier_id: 1,
-          name: 'Custom Printed BOPP Packaging Tape (65 Micron)',
-          price: 45.00,
-          category: 'Packaging & Printing',
-          moq: 120,
-          unit: 'Rolls',
-          stock_quantity: 12000,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80',
-          description: 'Industrial-grade tamper-evident adhesive tapes with custom logo printing for brand protection.'
-        },
-        {
-          id: 103,
-          supplier_id: 1,
-          name: 'Industrial Stretch Wrapping Film (23 Micron)',
-          price: 180.00,
-          category: 'Packaging & Printing',
-          moq: 50,
-          unit: 'Rolls',
-          stock_quantity: 8500,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80',
-          description: 'Puncture-resistant linear low-density polyethylene (LLDPE) cast stretch film for pallet containment.'
-        }
-      ];
-    }
-
     // Fetch supplier's reviews
-    let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId]);
+    let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId || business.user_id]);
     let reviews = revRes.rows || [];
 
     // Calculate rating stats
@@ -1506,8 +1778,9 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         user_id: targetUserId,
         seller_code: `FLK-SUP-${targetUserId}`,
         company_name: business.company_name || (user ? user.name : 'Supplier'),
+        slug: business.slug || null,
         business_type: business.business_type || 'Manufacturer & Wholesaler',
-        category: business.category || 'Packaging & Printing',
+        category: business.category || 'General B2B',
         gst_number: business.gst_number || 'GST Verified',
         city: business.city || (user ? user.city : 'Industrial Hub'),
         country: business.country || 'India',
@@ -2417,16 +2690,23 @@ app.post('/api/admin/payments/:id/flag-fraud', authMiddleware, async (req, res) 
   }
 });
 
-// Route: Get Single Product (Public)
+// Route: Get Single Product (Public - Supports ID or Slug)
 app.get('/api/public/products/:id', async (req, res) => {
   try {
-    const prods = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
-    if (prods.rows.length === 0) return res.status(404).json({ error: 'Product not found' });
+    const rawId = req.params.id;
+    let prods;
+    if (/^\d+$/.test(rawId)) {
+      prods = await db.query('SELECT * FROM products WHERE id = $1', [parseInt(rawId, 10)]);
+    } else {
+      prods = await db.query('SELECT * FROM products WHERE slug = $1', [rawId]);
+    }
+    if (!prods.rows || prods.rows.length === 0) return res.status(404).json({ error: 'Product not found' });
     
     const product = prods.rows[0];
-    const supplierRes = await db.query('SELECT company_name, city FROM businesses WHERE user_id = $1', [product.supplier_id]);
+    const supplierRes = await db.query('SELECT id, user_id, company_name, city, country, logo_url, slug FROM businesses WHERE user_id = $1', [product.supplier_id]);
     if (supplierRes.rows.length > 0) {
        product.supplier = supplierRes.rows[0];
+       product.supplier_slug = supplierRes.rows[0].slug;
     }
     res.json({ product });
   } catch (error) {
@@ -2533,9 +2813,27 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       }
     } catch(dErr) {}
 
+    // Auto-SEO Slug & Metadata Generation
+    const productSlug = await seoService.generateUniqueProductSlug(db, cleanName);
+    let supplierBiz = null;
+    try {
+      const sBizRes = await db.query('SELECT company_name, city FROM businesses WHERE user_id = $1', [effectiveSupplierId]);
+      if (sBizRes.rows && sBizRes.rows.length > 0) supplierBiz = sBizRes.rows[0];
+    } catch(sbErr) {}
+    const meta = seoService.generateProductMetadata({
+      name: cleanName,
+      category: effectiveCategory,
+      country: effectiveCountry,
+      price: cleanPrice,
+      moq: cleanMoq,
+      unit: unit || 'Pieces',
+      slug: productSlug,
+      image_url
+    }, supplierBiz);
+
     const newProd = await db.query(
-      'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-      [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry]
+      'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country, slug, seo_title, seo_description, is_indexed) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
+      [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry, productSlug, meta.title, meta.description, true]
     );
 
     // Auto-sync seller product count and products catalog to Google Sheets
@@ -2562,18 +2860,51 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
   const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
   
   try {
-    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7 WHERE id = $8 RETURNING *';
-    let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productId];
+    // Manage SEO slug and redirect if title changed
+    let productSlug = null;
+    try {
+      const curRes = await db.query('SELECT slug, name, supplier_id FROM products WHERE id = $1', [productId]);
+      if (curRes.rows && curRes.rows.length > 0) {
+        const curProd = curRes.rows[0];
+        if (!curProd.slug) {
+          productSlug = await seoService.generateUniqueProductSlug(db, cleanName, productId);
+        } else if (cleanName && curProd.name && seoService.slugify(cleanName) !== seoService.slugify(curProd.name)) {
+          const newSlug = await seoService.generateUniqueProductSlug(db, cleanName, productId);
+          try {
+            await db.query(
+              'INSERT INTO url_redirects (old_path, new_path, status_code) VALUES ($1, $2, 301) ON CONFLICT (old_path) DO UPDATE SET new_path = $2',
+              [`/products/${curProd.slug}`, `/products/${newSlug}`]
+            );
+          } catch(rErr) {}
+          productSlug = newSlug;
+        } else {
+          productSlug = curProd.slug;
+        }
+      }
+    } catch(sErr) {}
+
+    const meta = seoService.generateProductMetadata({
+      name: cleanName,
+      category: effectiveCategory,
+      country: effectiveCountry,
+      price: cleanPrice,
+      moq: cleanMoq,
+      unit: unit || 'Pieces',
+      slug: productSlug
+    });
+
+    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, slug = $8, seo_title = $9, seo_description = $10 WHERE id = $11 RETURNING *';
+    let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productSlug, meta.title, meta.description, productId];
 
     if (req.file) {
       const dataUri = fileToDataUri(req.file);
       const image_url = dataUri || `${backendHost}/assets/images/products/${req.file.filename}`;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productId];
+      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11 WHERE id = $12 RETURNING *';
+      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, productId];
     } else if (req.body.image_data) {
       const image_url = req.body.image_data;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8 WHERE id = $9 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productId];
+      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11 WHERE id = $12 RETURNING *';
+      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, productId];
     }
 
     const updated = await db.query(updateQuery, params);
@@ -2705,7 +3036,8 @@ app.get('/api/public/products', async (req, res) => {
                COALESCE(b.company_name, u.name, 'Verified Supplier') AS supplier_name, 
                b.logo_url AS supplier_logo, 
                COALESCE(b.city, u.city, 'Industrial Hub') AS city,
-               COALESCE(p.country, b.country, 'India') AS country
+               COALESCE(p.country, b.country, 'India') AS country,
+               b.slug AS supplier_slug
         FROM products p
         LEFT JOIN businesses b ON p.supplier_id = b.user_id
         LEFT JOIN users u ON p.supplier_id = u.id
@@ -3401,6 +3733,122 @@ app.post('/api/admin/clean-demo-data', async (req, res) => {
   }
 });
 
+// =========================================================================
+// ADMIN SEO & PROGRAMMATIC INDEXING ENGINE API ENDPOINTS
+// =========================================================================
+
+// Admin: Get SEO Overview, Health & Indexing Stats
+app.get('/api/admin/seo/overview', adminMiddleware, async (req, res) => {
+  try {
+    const prodCountRes = await db.query('SELECT COUNT(*) as cnt FROM products');
+    const indexedProdRes = await db.query('SELECT COUNT(*) as cnt FROM products WHERE is_indexed IS NOT FALSE');
+    const bizCountRes = await db.query('SELECT COUNT(*) as cnt FROM businesses');
+    const indexedBizRes = await db.query('SELECT COUNT(*) as cnt FROM businesses WHERE is_indexed IS NOT FALSE');
+    let redCount = 0;
+    try {
+      const redCountRes = await db.query('SELECT COUNT(*) as cnt FROM url_redirects');
+      redCount = parseInt((redCountRes.rows && redCountRes.rows[0] && redCountRes.rows[0].cnt) || 0, 10);
+    } catch(e) {}
+
+    const productsRes = await db.query('SELECT id, name, slug, seo_title, seo_description, is_indexed, created_at FROM products ORDER BY id DESC LIMIT 50');
+    const suppliersRes = await db.query('SELECT id, company_name, slug, seo_title, seo_description, is_indexed, created_at FROM businesses ORDER BY id DESC LIMIT 50');
+    let redirectsList = [];
+    try {
+      const redRes = await db.query('SELECT * FROM url_redirects ORDER BY id DESC LIMIT 30');
+      redirectsList = redRes.rows || [];
+    } catch(e) {}
+
+    res.json({
+      success: true,
+      stats: {
+        total_products: parseInt((prodCountRes.rows && prodCountRes.rows[0] && prodCountRes.rows[0].cnt) || 0, 10),
+        indexed_products: parseInt((indexedProdRes.rows && indexedProdRes.rows[0] && indexedProdRes.rows[0].cnt) || 0, 10),
+        total_suppliers: parseInt((bizCountRes.rows && bizCountRes.rows[0] && bizCountRes.rows[0].cnt) || 0, 10),
+        indexed_suppliers: parseInt((indexedBizRes.rows && indexedBizRes.rows[0] && indexedBizRes.rows[0].cnt) || 0, 10),
+        total_redirects: redCount,
+        sitemaps: [
+          { name: 'Sitemap Index', url: '/sitemap.xml', status: 'Active (200 OK)' },
+          { name: 'Products Sitemap', url: '/sitemap-products.xml', status: 'Active (200 OK)' },
+          { name: 'Suppliers Sitemap', url: '/sitemap-suppliers.xml', status: 'Active (200 OK)' },
+          { name: 'Categories Sitemap', url: '/sitemap-categories.xml', status: 'Active (200 OK)' },
+          { name: 'Pages Sitemap', url: '/sitemap-pages.xml', status: 'Active (200 OK)' }
+        ]
+      },
+      products: productsRes.rows || [],
+      suppliers: suppliersRes.rows || [],
+      redirects: redirectsList
+    });
+  } catch (err) {
+    console.error('Error fetching admin SEO overview:', err);
+    res.status(500).json({ error: 'Failed to fetch SEO overview: ' + err.message });
+  }
+});
+
+// Admin: Update Product SEO Metadata & Slug
+app.put('/api/admin/seo/product/:id', adminMiddleware, async (req, res) => {
+  try {
+    const prodId = parseInt(req.params.id, 10);
+    const { slug, seo_title, seo_description, is_indexed } = req.body;
+    
+    // Check old slug for redirect
+    const oldRes = await db.query('SELECT slug FROM products WHERE id = $1', [prodId]);
+    const oldSlug = (oldRes.rows && oldRes.rows[0]) ? oldRes.rows[0].slug : null;
+
+    if (slug && oldSlug && slug !== oldSlug) {
+      await db.query(
+        'INSERT INTO url_redirects (old_path, new_path, status_code) VALUES ($1, $2, 301) ON CONFLICT (old_path) DO UPDATE SET new_path = $2',
+        [`/products/${oldSlug}`, `/products/${slug}`]
+      );
+    }
+
+    await db.query(
+      'UPDATE products SET slug = COALESCE($1, slug), seo_title = COALESCE($2, seo_title), seo_description = COALESCE($3, seo_description), is_indexed = COALESCE($4, is_indexed) WHERE id = $5',
+      [slug || null, seo_title || null, seo_description || null, is_indexed !== undefined ? is_indexed : null, prodId]
+    );
+
+    res.json({ success: true, message: 'Product SEO metadata updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update product SEO: ' + err.message });
+  }
+});
+
+// Admin: Update Supplier SEO Metadata & Slug
+app.put('/api/admin/seo/supplier/:id', adminMiddleware, async (req, res) => {
+  try {
+    const suppId = parseInt(req.params.id, 10);
+    const { slug, seo_title, seo_description, is_indexed } = req.body;
+
+    const oldRes = await db.query('SELECT slug FROM businesses WHERE id = $1', [suppId]);
+    const oldSlug = (oldRes.rows && oldRes.rows[0]) ? oldRes.rows[0].slug : null;
+
+    if (slug && oldSlug && slug !== oldSlug) {
+      await db.query(
+        'INSERT INTO url_redirects (old_path, new_path, status_code) VALUES ($1, $2, 301) ON CONFLICT (old_path) DO UPDATE SET new_path = $2',
+        [`/suppliers/${oldSlug}`, `/suppliers/${slug}`]
+      );
+    }
+
+    await db.query(
+      'UPDATE businesses SET slug = COALESCE($1, slug), seo_title = COALESCE($2, seo_title), seo_description = COALESCE($3, seo_description), is_indexed = COALESCE($4, is_indexed) WHERE id = $5',
+      [slug || null, seo_title || null, seo_description || null, is_indexed !== undefined ? is_indexed : null, suppId]
+    );
+
+    res.json({ success: true, message: 'Supplier SEO metadata updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update supplier SEO: ' + err.message });
+  }
+});
+
+// Admin: Trigger Full SEO Slugs & Meta Regeneration
+app.post('/api/admin/seo/regenerate-all', adminMiddleware, async (req, res) => {
+  try {
+    await seoService.backfillSeoSlugs(db);
+    res.json({ success: true, message: 'All product and supplier SEO slugs, canonical tags, and structured data were regenerated successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to regenerate SEO data: ' + err.message });
+  }
+});
+
 // Automated Background Periodic Sync: Syncs all sellers to Google Sheets every 15 minutes
 const GOOGLE_SHEETS_SYNC_INTERVAL_MS = 15 * 60 * 1000;
 setInterval(async () => {
@@ -3453,6 +3901,9 @@ setTimeout(async () => {
       }
       googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
     }
+
+    // 4. Backfill any missing SEO slugs for 100% crawlability
+    seoService.backfillSeoSlugs(db).catch(e => console.warn('[SEO Engine] Boot backfill notice:', e.message));
   } catch (e) {}
 }, 10000);
 

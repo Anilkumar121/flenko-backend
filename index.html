@@ -1463,7 +1463,7 @@
               </div>
               <div class="flenko-card-body">
                 <h3 class="flenko-card-title" title="${p.name}">
-                  <a href="products.html?q=${encodeURIComponent(p.name)}">${p.name}</a>
+                  <a href="${p.slug ? `/products/${p.slug}` : `products.html?q=${encodeURIComponent(p.name)}`}">${p.name}</a>
                 </h3>
                 <div class="flenko-price-main" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
                   ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
@@ -1477,10 +1477,10 @@
                 </div>
                 <div class="flenko-supplier-box">
                   <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
-                    <a href="supplier-details.html?id=${p.supplier_id || 1}" class="flenko-supp-name" style="text-decoration:none; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="View Supplier Storefront">
+                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" class="flenko-supp-name" style="text-decoration:none; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="View Supplier Storefront">
                       ${p.supplier ? p.supplier.name : 'Verified Supplier'}
                     </a>
-                    <a href="supplier-details.html?id=${p.supplier_id || 1}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
+                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
                       #FLK-SUP-${p.supplier_id || 1}
                     </a>
                   </div>

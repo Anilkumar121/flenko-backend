@@ -297,7 +297,7 @@
       <span>/</span>
       <a href="business-directory.html" style="color: #64748b; text-decoration: none;">Suppliers</a>
       <span>/</span>
-      <span id="breadcrumbSupplierName" style="color: #0f172a; font-weight: 600;">Apex Packaging Solutions</span>
+      <span id="breadcrumbSupplierName" style="color: #0f172a; font-weight: 600;">Supplier Storefront</span>
     </div>
   </div>
 
@@ -311,24 +311,24 @@
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
-              <h1 id="suppHeroName" style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin: 0;">Apex Packaging Solutions</h1>
+              <h1 id="suppHeroName" style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin: 0;">Verified Supplier</h1>
               <span id="suppVerifiedBadge" class="badge badge-teal" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">Verified Supplier ✓</span>
               <span id="suppPaidTrustedBadge" class="badge" style="display:none; font-size: 0.72rem; padding: 0.2rem 0.55rem; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-weight: 700; border-radius: 4px; box-shadow: 0 1px 4px rgba(217,119,6,0.3);">🛡️ Paid Trusted Seller</span>
               <span class="seller-id-pill" id="sellerIdDisplay" title="Click to copy Seller ID" onclick="copySellerId()">
-                <span>🆔</span> <span id="sellerCodeText">FLK-SUP-1</span> <small style="font-size:0.7rem; color:#60a5fa;">(Copy)</small>
+                <span>🆔</span> <span id="sellerCodeText">FLK-SUP-...</span> <small style="font-size:0.7rem; color:#60a5fa;">(Copy)</small>
               </span>
             </div>
             <div class="meta-tags" style="margin-bottom: 0;">
-              <div>📍 <span id="suppLocationText">Mumbai, Maharashtra, India</span></div>
-              <div>🏢 <span id="suppBizTypeText">Manufacturer & Wholesaler</span></div>
-              <div>🏷️ <span id="suppCategoryText">Packaging & Printing</span></div>
-              <div>⭐ <span id="suppRatingScore" style="font-weight:700; color:#b45309;">4.8/5</span> (<span id="suppReviewCount">2</span> reviews)</div>
+              <div>📍 <span id="suppLocationText">India</span></div>
+              <div>🏢 <span id="suppBizTypeText">Manufacturer &amp; Wholesaler</span></div>
+              <div>🏷️ <span id="suppCategoryText">General B2B</span></div>
+              <div>⭐ <span id="suppRatingScore" style="font-weight:700; color:#b45309;">4.8/5</span> (<span id="suppReviewCount">1</span> reviews)</div>
             </div>
           </div>
         </div>
 
         <p id="suppAboutText" style="color: #334155; line-height: 1.6; margin-bottom: 1.25rem; font-size: 0.92rem; max-width: 820px;">
-          Apex Packaging Solutions is a leading manufacturer of high-quality industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.
+          Verified B2B manufacturer and wholesale supplier on Flenko Marketplace. Direct B2B pricing, verified facilities, and Trade Assurance.
         </p>
 
         <!-- Verified Credentials & Facility Snapshot (Always visible, perfectly mobile responsive) -->
@@ -336,15 +336,15 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
             <div>
               <span style="color: #64748b; font-size: 0.72rem; display: block; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">📅 Year Established</span>
-              <strong id="heroEstYear" style="color: #0f172a;">2015</strong>
+              <strong id="heroEstYear" style="color: #0f172a;">Verified Facility</strong>
             </div>
             <div>
               <span style="color: #64748b; font-size: 0.72rem; display: block; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">📜 GST / Tax ID</span>
-              <strong id="heroGstNumber" style="color: #0f172a;">27AADCA9821Z5 (Verified)</strong>
+              <strong id="heroGstNumber" style="color: #0f172a;">GST Verified</strong>
             </div>
             <div style="grid-column: 1 / -1;">
               <span style="color: #64748b; font-size: 0.72rem; display: block; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">📍 Registered Factory / Office Address</span>
-              <span id="heroAddress" style="color: #0f172a; font-weight: 600; line-height: 1.4;">Plot 45, MIDC Industrial Area, Andheri East, Mumbai, India</span>
+              <span id="heroAddress" style="color: #0f172a; font-weight: 600; line-height: 1.4;">Industrial Area, India</span>
             </div>
           </div>
         </div>
@@ -584,14 +584,16 @@
     let allSupplierProducts = [];
     let allSupplierReviews = [];
 
-    // Extract supplier id from URL query: supplier-details.html?id=...
+    // Extract supplier id or slug from URL query: supplier-details.html?id=... or ?slug=...
     function getSupplierIdFromUrl() {
       const urlParams = new URLSearchParams(window.location.search);
+      const slug = urlParams.get('slug') || urlParams.get('store');
+      if (slug) return slug;
       const id = urlParams.get('id');
       if (id && !isNaN(parseInt(id, 10))) {
         return parseInt(id, 10);
       }
-      return 1;
+      return id || 1;
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -635,7 +637,7 @@
     }
 
     function fallbackLocalSupplier(id) {
-      // Look up in localStorage flenko_seller_profile
+      // Look up in localStorage flenko_seller_profile if it matches the current user
       let localBiz = {};
       try {
         localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
@@ -644,77 +646,21 @@
       supplierData = {
         id: id,
         seller_code: `FLK-SUP-${id}`,
-        company_name: localBiz.company_name || 'Apex Packaging Solutions',
+        company_name: localBiz.company_name || 'Verified Supplier',
         business_type: localBiz.business_type || 'Manufacturer & Wholesaler',
-        category: localBiz.category || 'Packaging & Printing',
-        gst_number: localBiz.gst_number || '27AADCA9821Z5',
-        city: localBiz.city || 'Mumbai',
+        category: localBiz.category || 'General B2B',
+        gst_number: localBiz.gst_number || '',
+        city: localBiz.city || 'India',
         country: localBiz.country || 'India',
-        address: localBiz.address || 'Plot 45, MIDC Industrial Area, Andheri East, Mumbai',
-        about: localBiz.about || 'Apex Packaging Solutions is a leading manufacturer of high-quality industrial packaging materials, corrugated boxes, and shipping supplies.',
+        address: localBiz.address || 'Industrial Area, India',
+        about: localBiz.about || 'Verified B2B manufacturer and wholesale supplier on Flenko Marketplace.',
         logo_url: localBiz.logo_url || 'assets/images/logo.png',
         is_verified: true
       };
 
-      allSupplierProducts = [
-        {
-          id: 101,
-          name: 'Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)',
-          price: 24.50,
-          category: 'Packaging & Printing',
-          moq: 500,
-          unit: 'Boxes',
-          stock_quantity: 50000,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80',
-          description: 'High-burst strength corrugated packaging boxes designed for logistics, e-commerce, and export cargo.'
-        },
-        {
-          id: 102,
-          name: 'Custom Printed BOPP Packaging Tape (65 Micron)',
-          price: 45.00,
-          category: 'Packaging & Printing',
-          moq: 120,
-          unit: 'Rolls',
-          stock_quantity: 12000,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80',
-          description: 'Industrial-grade tamper-evident adhesive tapes with custom logo printing for brand protection.'
-        },
-        {
-          id: 103,
-          name: 'Industrial Stretch Wrapping Film (23 Micron)',
-          price: 180.00,
-          category: 'Packaging & Printing',
-          moq: 50,
-          unit: 'Rolls',
-          stock_quantity: 8500,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80',
-          description: 'Puncture-resistant linear low-density polyethylene (LLDPE) cast stretch film for pallet containment.'
-        }
-      ];
-
-      allSupplierReviews = [
-        {
-          id: 1,
-          reviewer_name: 'Rajesh K. (Procurement Head)',
-          product_name: 'Heavy-Duty Corrugated Boxes',
-          rating: 5,
-          comment: 'Top quality material and on-time bulk delivery. Highly recommend for large packaging orders.',
-          created_at: new Date(Date.now() - 3 * 86400000)
-        },
-        {
-          id: 2,
-          reviewer_name: 'Sunil Mehta (Operations Director)',
-          product_name: 'General Supplier Review',
-          rating: 5,
-          comment: 'Very professional response to our RFQ. Excellent wholesale prices and custom printing options.',
-          created_at: new Date(Date.now() - 7 * 86400000)
-        }
-      ];
-
-      renderSupplierUI(supplierData, { rating: '5.0', review_count: 2, total_products: 3 });
+      allSupplierProducts = [];
+      allSupplierReviews = [];
+      renderSupplierUI(supplierData, { rating: '5.0', review_count: 0, total_products: 0 });
     }
 
     function renderSupplierUI(supplier, stats) {

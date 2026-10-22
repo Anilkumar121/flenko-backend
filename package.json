@@ -4,7 +4,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node server/app.js",
-    "build": "node -c app.js server/app.js server/database/db.js"
+    "build": "node -c app.js server/app.js server/database/db.js server/services/seoService.js"
   },
   "dependencies": {
     "@neon/config": "^1.9.3",

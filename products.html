@@ -1026,17 +1026,19 @@
                 <span style="color:#028867; font-weight:600; font-size:0.72rem;">✓ ${p.stock || 500} ${p.unit} In Stock</span>
               </div>
 
-              <h3 class="flenko-card-title" title="${p.name}">
-                ${p.name}
-              </h3>
+              <a href="${p.slug ? `/products/${p.slug}` : `/products/${p.id}`}" style="text-decoration:none; color:inherit;">
+                <h3 class="flenko-card-title" title="${p.name}">
+                  ${p.name}
+                </h3>
+              </a>
 
               <div class="flenko-supplier-meta">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
-                  <a href="supplier-details.html?id=${p.supplier_id || 1}" style="font-weight:600; color:#0284c7; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; display:inline-flex; align-items:center; gap:3px;" title="View Supplier Storefront & Products">
+                  <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" style="font-weight:600; color:#0284c7; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; display:inline-flex; align-items:center; gap:3px;" title="View Supplier Storefront & Products">
                     ${p.flag || '📍'} ${p.supplier ? p.supplier.name : 'Supplier'}
                     ${(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? `<span title="Paid Trusted Supplier" style="color:#d97706; font-size:0.75rem;">🛡️</span>` : ''}
                   </a>
-                  <a href="supplier-details.html?id=${p.supplier_id || 1}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
+                  <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
                     #FLK-SUP-${p.supplier_id || 1}
                   </a>
                 </div>
