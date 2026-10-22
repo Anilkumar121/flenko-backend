@@ -27,7 +27,7 @@
             <input type="hidden" id="inqProductId" value="">
 
             <!-- Product Summary Card -->
-            <div style="display:flex; gap:1rem; padding:0.85rem; background:#f1f5f9; border-radius:8px; margin-bottom:1.25rem; align-items:center; border:1px solid #e2e8f0;">
+            <div style="display:flex; gap:1rem; padding:0.85rem; background:#f1f5f9; border-radius:8px; margin-bottom:0.75rem; align-items:center; border:1px solid #e2e8f0;">
               <img id="inqProductImg" src="assets/images/logo.png" alt="Product" style="width:58px; height:58px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; background:#fff; flex-shrink:0;">
               <div style="flex:1; min-width:0;">
                 <h4 id="inqProductName" style="font-size:0.9rem; font-weight:700; color:#0F172A; margin:0 0 0.25rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Product Name</h4>
@@ -37,6 +37,16 @@
                   <span style="color:#0284c7; font-weight:600;">🛡️ Trade Assurance</span>
                 </div>
               </div>
+            </div>
+
+            <!-- Direct Quick Contact Bar (Call & WhatsApp) -->
+            <div id="inqDirectActionsRow" style="display:none; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:1.15rem;">
+              <a id="inqDirectCallLink" href="tel:" class="btn" style="background:#0F4C9B; color:#ffffff; font-size:0.82rem; font-weight:700; padding:0.55rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; border-radius:6px;">
+                📞 Call Supplier
+              </a>
+              <a id="inqDirectWaLink" href="#" target="_blank" class="btn" style="background:#25D366; color:#ffffff; font-size:0.82rem; font-weight:700; padding:0.55rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; border-radius:6px; box-shadow:0 1px 4px rgba(37,211,102,0.35);">
+                💬 WhatsApp Chat
+              </a>
             </div>
 
             <!-- Quantity & Unit -->
@@ -114,8 +124,22 @@
             <p style="color:#64748b; font-size:0.9rem; max-width:440px; margin:0 auto 1.5rem; line-height:1.5;">
               Your wholesale requirement has been delivered directly to <strong id="successSupplierName" style="color:#0F4C9B;">Supplier</strong>. They have been notified via SMS/WhatsApp to reply promptly.
             </p>
-            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem 1rem; max-width:350px; margin:0 auto 1.5rem; font-size:0.8rem; color:#1e40af;">
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem 1rem; max-width:350px; margin:0 auto 1rem; font-size:0.8rem; color:#1e40af;">
               Reference Inquiry ID: <strong id="successRefId">#INQ-94827</strong>
+            </div>
+            
+            <div id="successDirectActionsRow" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.85rem 1rem; margin:0 auto 1.5rem; max-width:400px; text-align:center;">
+              <p style="font-size:0.82rem; color:#166534; font-weight:700; margin:0 0 0.5rem;">
+                ⚡ Need immediate answer? Call or WhatsApp this seller directly:
+              </p>
+              <div style="display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap;">
+                <a id="successCallLink" href="tel:" class="btn" style="background:#0F4C9B; color:#fff; text-decoration:none; font-size:0.8rem; font-weight:700; padding:0.45rem 0.9rem; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
+                  📞 Direct Call
+                </a>
+                <a id="successWaLink" href="#" target="_blank" class="btn" style="background:#25D366; color:#fff; text-decoration:none; font-size:0.8rem; font-weight:700; padding:0.45rem 0.9rem; border-radius:6px; display:inline-flex; align-items:center; gap:4px; box-shadow:0 1px 4px rgba(37,211,102,0.35);">
+                  💬 WhatsApp
+                </a>
+              </div>
             </div>
             <div style="display:flex; justify-content:center; gap:0.75rem;">
               <button type="button" onclick="window.location.href='buyer-dashboard.html'" class="btn btn-primary" style="padding:0.55rem 1.25rem; font-size:0.85rem;">
@@ -152,6 +176,34 @@
     document.getElementById('inqProductImg').src = prod.image || prod.image_url || 'assets/images/logo.png';
     document.getElementById('inqSupplierName').innerText = (prod.supplier && prod.supplier.name) || prod.supplier_name || 'Verified Supplier';
     document.getElementById('inqMoqInfo').innerText = `MOQ: ${prod.moq || 1} ${prod.unit || 'Pieces'}`;
+
+    // Wire Direct Call & WhatsApp buttons for this supplier
+    const suppPhone = String(prod.supplier_phone || prod.phone || (prod.supplier && prod.supplier.phone) || '').trim();
+    const cleanDigits = suppPhone.replace(/[^0-9]/g, '');
+    const waDigits = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
+    const waText = encodeURIComponent(`Hi, I am interested in wholesale order for "${prod.name || 'this product'}" on Flenko. Please share best quotation and details.`);
+    const waUrl = waDigits ? `https://wa.me/${waDigits}?text=${waText}` : '#';
+    const callUrl = suppPhone ? (suppPhone.startsWith('+') ? `tel:${suppPhone}` : `tel:+91${cleanDigits.slice(-10)}`) : '#';
+
+    const directRow = document.getElementById('inqDirectActionsRow');
+    const directCallLink = document.getElementById('inqDirectCallLink');
+    const directWaLink = document.getElementById('inqDirectWaLink');
+    const succRow = document.getElementById('successDirectActionsRow');
+    const succCallLink = document.getElementById('successCallLink');
+    const succWaLink = document.getElementById('successWaLink');
+
+    if (suppPhone && cleanDigits.length >= 10) {
+      if (directRow) directRow.style.display = 'grid';
+      if (directCallLink) { directCallLink.href = callUrl; directCallLink.innerText = `📞 Call: ${suppPhone}`; }
+      if (directWaLink) directWaLink.href = waUrl;
+
+      if (succRow) succRow.style.display = 'block';
+      if (succCallLink) { succCallLink.href = callUrl; succCallLink.innerText = `📞 Call: ${suppPhone}`; }
+      if (succWaLink) succWaLink.href = waUrl;
+    } else {
+      if (directRow) directRow.style.display = 'none';
+      if (succRow) succRow.style.display = 'none';
+    }
     
     // Select unit
     const unitSelect = document.getElementById('inqUnit');

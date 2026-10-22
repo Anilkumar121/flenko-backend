@@ -283,10 +283,15 @@ app.get('/products/:slug', async (req, res) => {
       return res.redirect(301, `/products/${product.slug}`);
     }
 
-    // Fetch genuine supplier
+    // Fetch genuine supplier with verified phone & whatsapp
     let supplier = null;
     if (product.supplier_id) {
-      const suppRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [product.supplier_id]);
+      const suppRes = await db.query(`
+        SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
+        FROM businesses b 
+        LEFT JOIN users u ON b.user_id = u.id 
+        WHERE b.user_id = $1 OR b.id = $1
+      `, [product.supplier_id]);
       if (suppRes.rows && suppRes.rows.length > 0) {
         supplier = suppRes.rows[0];
       }
@@ -337,7 +342,12 @@ app.get('/services/:slug', async (req, res) => {
     }
     let supplier = null;
     if (product.supplier_id) {
-      const suppRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [product.supplier_id]);
+      const suppRes = await db.query(`
+        SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
+        FROM businesses b 
+        LEFT JOIN users u ON b.user_id = u.id 
+        WHERE b.user_id = $1 OR b.id = $1
+      `, [product.supplier_id]);
       if (suppRes.rows && suppRes.rows.length > 0) {
         supplier = suppRes.rows[0];
       }
@@ -364,12 +374,19 @@ app.get('/suppliers/:slug', async (req, res) => {
     let bizRes;
     if (/^\d+$/.test(slug)) {
       const numId = parseInt(slug, 10);
-      bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [numId]);
-      if (!bizRes.rows || bizRes.rows.length === 0) {
-        bizRes = await db.query('SELECT * FROM businesses WHERE id = $1', [numId]);
-      }
+      bizRes = await db.query(`
+        SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
+        FROM businesses b 
+        LEFT JOIN users u ON b.user_id = u.id 
+        WHERE b.user_id = $1 OR b.id = $1
+      `, [numId]);
     } else {
-      bizRes = await db.query('SELECT * FROM businesses WHERE slug = $1', [slug]);
+      bizRes = await db.query(`
+        SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
+        FROM businesses b 
+        LEFT JOIN users u ON b.user_id = u.id 
+        WHERE b.slug = $1
+      `, [slug]);
     }
 
     if (!bizRes.rows || bizRes.rows.length === 0) {
@@ -1546,10 +1563,12 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
   }
 });
 
-// Route: Create/Update Business Profile (Supports Company Logo Upload, City, Country & About)
+// Route: Create/Update Business Profile (Supports Company Logo Upload, City, Country, Phone & WhatsApp)
 app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (req, res) => {
-  const { company_name, gst_number, business_type, address, city, category, country, about, year_est, establishment_year } = req.body;
+  const { company_name, gst_number, business_type, address, city, category, country, about, year_est, establishment_year, phone, whatsapp } = req.body;
   const finalYearEst = (year_est || establishment_year || '').toString().trim();
+  const cleanPhone = phone ? phone.toString().trim() : '';
+  const cleanWa = whatsapp ? whatsapp.toString().trim() : (cleanPhone || '');
   
   // Sanitize company name to prevent "100" or numeric-only strings from sticking
   const rawCompName = (company_name || '').toString().trim();
@@ -1627,9 +1646,13 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         slug: supplierSlug
       });
 
+      if (cleanPhone) {
+        try { await db.query('UPDATE users SET phone = $1 WHERE id = $2', [cleanPhone, targetUserId]); } catch(e) {}
+      }
+
       await db.query(
-        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10, slug = $11, seo_title = $12, seo_description = $13 WHERE user_id = $14',
-        [cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, effectiveCountry, effectiveAbout, finalYearEst, supplierSlug, suppMeta.title, suppMeta.description, targetUserId]
+        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10, slug = $11, seo_title = $12, seo_description = $13, phone = COALESCE(NULLIF($14, \'\'), phone), whatsapp = COALESCE(NULLIF($15, \'\'), whatsapp) WHERE user_id = $16',
+        [cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, effectiveCountry, effectiveAbout, finalYearEst, supplierSlug, suppMeta.title, suppMeta.description, cleanPhone, cleanWa, targetUserId]
       );
       updatedBusiness = {
         id: curBiz.id,
@@ -1646,10 +1669,15 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         year_est: finalYearEst,
         slug: supplierSlug,
         seo_title: suppMeta.title,
-        seo_description: suppMeta.description
+        seo_description: suppMeta.description,
+        phone: cleanPhone || curBiz.phone,
+        whatsapp: cleanWa || curBiz.whatsapp
       };
       res.json({ success: true, message: 'Business updated successfully', business: updatedBusiness, logo_url });
     } else {
+      if (cleanPhone) {
+        try { await db.query('UPDATE users SET phone = $1 WHERE id = $2', [cleanPhone, targetUserId]); } catch(e) {}
+      }
       supplierSlug = await seoService.generateUniqueSupplierSlug(db, cleanCompName);
       const suppMeta = seoService.generateSupplierMetadata({
         company_name: cleanCompName,
@@ -1661,8 +1689,8 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
       });
 
       const insRes = await db.query(
-        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est, slug, seo_title, seo_description, is_indexed) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id',
-        [targetUserId, cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, finalCountry, finalAbout, finalYearEst, supplierSlug, suppMeta.title, suppMeta.description, true]
+        'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est, slug, seo_title, seo_description, is_indexed, phone, whatsapp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id',
+        [targetUserId, cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, finalCountry, finalAbout, finalYearEst, supplierSlug, suppMeta.title, suppMeta.description, true, cleanPhone, cleanWa]
       );
       const newId = (insRes.rows && insRes.rows[0]) ? insRes.rows[0].id : targetUserId;
       updatedBusiness = {
@@ -1680,7 +1708,9 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         year_est: finalYearEst,
         slug: supplierSlug,
         seo_title: suppMeta.title,
-        seo_description: suppMeta.description
+        seo_description: suppMeta.description,
+        phone: cleanPhone,
+        whatsapp: cleanWa
       };
       res.json({ success: true, message: 'Business created successfully', business: updatedBusiness, logo_url });
     }
@@ -1850,8 +1880,11 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
         website_url: business.subdomain ? `https://flenko.com/site.html?store=${business.subdomain}` : null,
         member_since: business.created_at || (user ? user.created_at : new Date('2022-01-01')),
+        phone: business.phone || (user ? user.phone : null),
+        whatsapp: business.whatsapp || business.phone || (user ? user.phone : null),
         contact: {
-          phone: user ? user.phone : null,
+          phone: business.phone || (user ? user.phone : null),
+          whatsapp: business.whatsapp || business.phone || (user ? user.phone : null),
           email: user ? user.email : null
         }
       },
@@ -2023,8 +2056,11 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
         website_enabled: business.website_enabled !== false,
         website_tagline: business.website_tagline || `Certified Manufacturer & Wholesale Supplier of ${business.category || 'Industrial Goods'}`,
         website_url: `https://flenko.com/site.html?store=${business.subdomain || `flk${targetUserId}`}`,
+        phone: business.phone || (user ? user.phone : null),
+        whatsapp: business.whatsapp || business.phone || (user ? user.phone : null),
         contact: {
-          phone: user ? user.phone : null,
+          phone: business.phone || (user ? user.phone : null),
+          whatsapp: business.whatsapp || business.phone || (user ? user.phone : null),
           email: user ? user.email : null
         }
       },
@@ -2765,10 +2801,19 @@ app.get('/api/public/products/:id', async (req, res) => {
     if (product && product.supplier_id) {
        db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE user_id = $1', [product.supplier_id]).catch(() => {});
     }
-    const supplierRes = await db.query('SELECT id, user_id, company_name, city, country, logo_url, slug FROM businesses WHERE user_id = $1', [product.supplier_id]);
+    const supplierRes = await db.query(`
+      SELECT b.id, b.user_id, b.company_name, b.city, b.country, b.logo_url, b.slug,
+             COALESCE(b.phone, u.phone) AS phone,
+             COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp
+      FROM businesses b
+      LEFT JOIN users u ON b.user_id = u.id
+      WHERE b.user_id = $1 OR b.id = $1
+    `, [product.supplier_id]);
     if (supplierRes.rows.length > 0) {
        product.supplier = supplierRes.rows[0];
        product.supplier_slug = supplierRes.rows[0].slug;
+       product.supplier_phone = supplierRes.rows[0].phone;
+       product.supplier_whatsapp = supplierRes.rows[0].whatsapp;
     }
     res.json({ product });
   } catch (error) {
@@ -3099,7 +3144,9 @@ app.get('/api/public/products', async (req, res) => {
                b.logo_url AS supplier_logo, 
                COALESCE(b.city, u.city, 'Industrial Hub') AS city,
                COALESCE(p.country, b.country, 'India') AS country,
-               b.slug AS supplier_slug
+               b.slug AS supplier_slug,
+               COALESCE(b.phone, u.phone, '') AS supplier_phone,
+               COALESCE(b.whatsapp, b.phone, u.phone, '') AS supplier_whatsapp
         FROM products p
         LEFT JOIN businesses b ON p.supplier_id = b.user_id
         LEFT JOIN users u ON p.supplier_id = u.id
@@ -3112,15 +3159,20 @@ app.get('/api/public/products', async (req, res) => {
       console.warn('Public products query fallback:', qErr.message);
       const rawProds = await db.query('SELECT * FROM products ORDER BY created_at DESC');
       const rawBiz = await db.query('SELECT * FROM businesses');
+      const rawUsers = await db.query('SELECT id, phone FROM users');
       const bizMap = {};
       (rawBiz.rows || []).forEach(b => { bizMap[b.user_id] = b; });
+      const userMap = {};
+      (rawUsers.rows || []).forEach(u => { userMap[u.id] = u; });
       prods = {
         rows: (rawProds.rows || []).map(p => ({
           ...p,
           supplier_name: bizMap[p.supplier_id] ? bizMap[p.supplier_id].company_name : ('Supplier #' + p.supplier_id),
           supplier_logo: bizMap[p.supplier_id] ? bizMap[p.supplier_id].logo_url : null,
           city: bizMap[p.supplier_id] ? bizMap[p.supplier_id].city : 'Industrial Hub',
-          country: p.country || (bizMap[p.supplier_id] ? bizMap[p.supplier_id].country : 'India')
+          country: p.country || (bizMap[p.supplier_id] ? bizMap[p.supplier_id].country : 'India'),
+          supplier_phone: (bizMap[p.supplier_id] && bizMap[p.supplier_id].phone) || (userMap[p.supplier_id] && userMap[p.supplier_id].phone) || '',
+          supplier_whatsapp: (bizMap[p.supplier_id] && (bizMap[p.supplier_id].whatsapp || bizMap[p.supplier_id].phone)) || (userMap[p.supplier_id] && userMap[p.supplier_id].phone) || ''
         }))
       };
     }

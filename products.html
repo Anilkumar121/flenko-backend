@@ -758,6 +758,8 @@
             location: (p.city || "Industrial Hub") + (p.country ? ", " + p.country : ", India") 
           },
           supplier_id: p.supplier_id || 1,
+          supplier_phone: p.supplier_phone || (p.supplier && p.supplier.phone) || '',
+          supplier_whatsapp: p.supplier_whatsapp || (p.supplier && (p.supplier.whatsapp || p.supplier.phone)) || '',
           price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
           priceMax: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? (parseFloat(p.price) * 1.15) : null,
           moq: p.moq || 1,
@@ -1049,14 +1051,24 @@
                 </div>
               </div>
 
-              <div style="display:flex; gap:0.4rem; margin-top:0.75rem;">
-                <button class="btn btn-orange" style="flex:1; padding:0.45rem 0.5rem; font-size:0.78rem;" onclick="openProductInquiry('${p.id}')">
-                  Contact Supplier
-                </button>
-                <button class="btn btn-secondary" style="padding:0.45rem 0.6rem; font-size:0.78rem; border-color:#cbd5e1;" onclick="openProductInquiry('${p.id}')" title="Chat / Send Inquiry">
-                  💬
-                </button>
+              <!-- Direct Quick Call & WhatsApp Buttons -->
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.4rem; margin-top:0.65rem;">
+                ${sPhone ? `
+                  <a href="${callUrl}" class="btn" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; padding:0.42rem 0.3rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:3px; border-radius:6px;" title="Direct Call Supplier">
+                    📞 Call
+                  </a>
+                  <a href="${waUrl}" target="_blank" class="btn" style="background:#25D366; color:#ffffff; border:none; font-size:0.75rem; font-weight:700; padding:0.42rem 0.3rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:3px; border-radius:6px; box-shadow:0 1px 3px rgba(37,211,102,0.3);" title="Chat on WhatsApp">
+                    💬 WhatsApp
+                  </a>
+                ` : `
+                  <button class="btn btn-secondary" style="grid-column:1/-1; padding:0.42rem 0.5rem; font-size:0.75rem; font-weight:700;" onclick="openProductInquiry('${p.id}')">
+                    💬 Contact Supplier
+                  </button>
+                `}
               </div>
+              <button class="btn btn-orange" style="width:100%; padding:0.42rem 0.5rem; font-size:0.78rem; margin-top:0.35rem; font-weight:700;" onclick="openProductInquiry('${p.id}')">
+                ✉️ Send Wholesale RFQ
+              </button>
             </div>
           </article>
         `).join("");

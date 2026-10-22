@@ -359,7 +359,10 @@
           <button class="btn btn-outline" onclick="openReviewModal()" style="display:flex; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem;">
             ⭐ Write a Review
           </button>
-          <a id="sellerWhatsAppBtn" href="#" target="_blank" class="btn" style="background:#25D366; color:white; border:none; display:none; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem; text-decoration:none; border-radius:6px; font-weight:600;">
+          <a id="heroDirectCallBtn" href="tel:" class="btn btn-primary" style="display:none; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem; background: #0F4C9B; border:none; text-decoration:none; font-weight:700;">
+            📞 Call Supplier
+          </a>
+          <a id="sellerWhatsAppBtn" href="#" target="_blank" class="btn" style="background:#25D366; color:white; border:none; display:none; align-items:center; gap:0.4rem; padding: 0.6rem 1.25rem; text-decoration:none; border-radius:6px; font-weight:700; box-shadow:0 2px 6px rgba(37,211,102,0.3);">
             💬 WhatsApp Chat
           </a>
         </div>
@@ -375,6 +378,16 @@
           Send a direct requirement to <strong id="suppFormTargetName">Verified Supplier</strong>. The seller will contact you with wholesale pricing.
         </p>
         
+        <!-- Quick Direct Contact (Call & WhatsApp) -->
+        <div id="stickyDirectContactRow" style="display:none; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+          <a id="stickyDirectCallBtn" href="tel:" class="btn btn-primary" style="background:#0F4C9B; color:white; border:none; text-decoration:none; font-weight:700; font-size:0.82rem; padding:0.55rem; border-radius:6px; text-align:center; display:inline-flex; align-items:center; justify-content:center; gap:4px;">
+            📞 Call Now
+          </a>
+          <a id="stickyDirectWaBtn" href="#" target="_blank" class="btn btn-primary" style="background:#25D366; color:white; border:none; text-decoration:none; font-weight:700; font-size:0.82rem; padding:0.55rem; border-radius:6px; text-align:center; display:inline-flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 1px 3px rgba(37,211,102,0.3);">
+            💬 WhatsApp
+          </a>
+        </div>
+
         <form id="supplierInquiryForm" onsubmit="submitSupplierDirectInquiry(event)">
           <div class="form-group" style="margin-bottom: 0.75rem;">
             <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.2rem;">Product / Service Needed *</label>
@@ -699,6 +712,42 @@
         }
       }
 
+      // Direct Call & WhatsApp buttons for this supplier
+      const suppPhone = String(supplier.phone || supplier.whatsapp || (supplier.contact && supplier.contact.phone) || '').trim();
+      const cleanDigits = suppPhone.replace(/[^0-9]/g, '');
+      const waDigits = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
+      const waText = encodeURIComponent(`Hi ${supplier.company_name || 'Supplier'}, I found your business on Flenko. I would like to inquire about your products.`);
+      const waUrl = waDigits ? `https://wa.me/${waDigits}?text=${waText}` : '#';
+      const callUrl = suppPhone ? (suppPhone.startsWith('+') ? `tel:${suppPhone}` : `tel:+91${cleanDigits.slice(-10)}`) : '#';
+
+      const heroCallBtn = document.getElementById('heroDirectCallBtn');
+      const heroWaBtn = document.getElementById('sellerWhatsAppBtn');
+      const stickyDirectRow = document.getElementById('stickyDirectContactRow');
+      const stickyCallBtn = document.getElementById('stickyDirectCallBtn');
+      const stickyWaBtn = document.getElementById('stickyDirectWaBtn');
+
+      if (suppPhone && cleanDigits.length >= 10) {
+        if (heroCallBtn) {
+          heroCallBtn.href = callUrl;
+          heroCallBtn.innerText = `📞 Call: ${suppPhone}`;
+          heroCallBtn.style.display = 'inline-flex';
+        }
+        if (heroWaBtn) {
+          heroWaBtn.href = waUrl;
+          heroWaBtn.style.display = 'inline-flex';
+        }
+        if (stickyDirectRow) stickyDirectRow.style.display = 'grid';
+        if (stickyCallBtn) {
+          stickyCallBtn.href = callUrl;
+          stickyCallBtn.innerText = `📞 Call: ${suppPhone}`;
+        }
+        if (stickyWaBtn) stickyWaBtn.href = waUrl;
+      } else {
+        if (heroCallBtn) heroCallBtn.style.display = 'none';
+        if (heroWaBtn) heroWaBtn.style.display = 'none';
+        if (stickyDirectRow) stickyDirectRow.style.display = 'none';
+      }
+
       const ratingVal = stats.rating || '4.8';
       const revCount = stats.review_count !== undefined ? stats.review_count : (allSupplierReviews.length || 0);
       document.getElementById('suppRatingScore').innerText = `${ratingVal}/5`;
@@ -795,6 +844,14 @@
                 MOQ: <strong>${moq} ${unit}</strong> &bull; <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
               </div>
               <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.4rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.35rem;">
+                  <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:0.38rem; font-weight:700;" onclick="callSupplierFromCard('${escapedName}')">
+                    📞 Call
+                  </button>
+                  <button type="button" class="btn" style="background:#25D366; color:white; border:none; font-size:0.75rem; padding:0.38rem; font-weight:700; border-radius:6px; box-shadow:0 1px 3px rgba(37,211,102,0.3);" onclick="whatsappSupplierFromCard('${escapedName}')">
+                    💬 WhatsApp
+                  </button>
+                </div>
                 <button class="btn btn-primary" style="width: 100%; font-size: 0.85rem; padding: 0.5rem;" onclick="selectProductForInquiry('${escapedName}')">
                   ✉️ Contact for Price
                 </button>
@@ -884,6 +941,26 @@
       renderProducts(filtered);
     }
 
+        window.callSupplierFromCard = function(prodName) {
+      const p = (supplierData && (supplierData.phone || (supplierData.contact && supplierData.contact.phone))) || '';
+      if (p) {
+        const clean = p.replace(/[^0-9]/g, '');
+        window.location.href = p.startsWith('+') ? `tel:${p}` : `tel:+91${clean.slice(-10)}`;
+      } else {
+        selectProductForInquiry(prodName);
+      }
+    };
+    window.whatsappSupplierFromCard = function(prodName) {
+      const p = (supplierData && (supplierData.phone || supplierData.whatsapp || (supplierData.contact && supplierData.contact.phone))) || '';
+      if (p) {
+        const clean = p.replace(/[^0-9]/g, '');
+        const waNum = clean.length === 10 ? ('91' + clean) : clean;
+        const msg = encodeURIComponent(`Hi, I am interested in wholesale quotation for "${prodName}" on Flenko.`);
+        window.open(`https://wa.me/${waNum}?text=${msg}`, '_blank');
+      } else {
+        selectProductForInquiry(prodName);
+      }
+    };
     function selectProductForInquiry(name) {
       const input = document.getElementById('suppInqProduct');
       if (input) {

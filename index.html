@@ -1412,6 +1412,8 @@
             flag: getFlag(p.country || 'India'),
             supplier: { name: p.supplier_name || ('Verified Supplier #' + p.supplier_id), location: (p.city || 'Industrial Hub') + ', ' + (p.country || 'India') },
             supplier_id: p.supplier_id || 1,
+            supplier_phone: p.supplier_phone || '',
+            supplier_whatsapp: p.supplier_whatsapp || '',
             price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
             moq: p.moq || 1,
             unit: p.unit || 'Pieces',
@@ -1454,7 +1456,14 @@
             </div>
           `;
         } else {
-          homeGrid.innerHTML = homeProducts.slice(0, 16).map(p => `
+          homeGrid.innerHTML = homeProducts.slice(0, 16).map(p => {
+            const sPhone = (p.supplier_phone || (p.supplier && p.supplier.phone) || '').toString().trim();
+            const cleanDigits = sPhone.replace(/[^0-9]/g, '');
+            const waDigits = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
+            const waText = encodeURIComponent(`Hi, I am interested in wholesale order for "${p.name}". Please share best price and MOQ.`);
+            const waUrl = waDigits ? `https://wa.me/${waDigits}?text=${waText}` : '#';
+            const callUrl = sPhone ? (sPhone.startsWith('+') ? `tel:${sPhone}` : `tel:+91${cleanDigits.slice(-10)}`) : '#';
+            return `
             <article class="flenko-card">
               <div class="flenko-card-img-wrap" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
                 <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='assets/images/logo.png'">
@@ -1486,17 +1495,28 @@
                   </div>
                   <div class="flenko-supp-loc">📍 ${p.supplier ? p.supplier.location : 'India'}</div>
                 </div>
-                <div class="flenko-card-actions" style="display:flex; gap:0.4rem; margin-top:0.75rem;">
-                  <button type="button" class="btn btn-orange" style="flex:1; font-size:0.8rem; font-weight:700; padding:0.48rem;" onclick="openHomeInquiry('${p.id}')">
-                    Contact Supplier
-                  </button>
-                  <button type="button" class="btn btn-secondary" style="padding:0.48rem 0.6rem; font-size:0.8rem;" onclick="openHomeInquiry('${p.id}')" title="Get Best Quotation">
-                    💬
-                  </button>
+                <!-- Direct Quick Call & WhatsApp Buttons -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.35rem; margin-top:0.65rem;">
+                  ${sPhone ? `
+                    <a href="${callUrl}" class="btn" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; padding:0.4rem 0.2rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:2px; border-radius:6px;" title="Direct Call">
+                      📞 Call
+                    </a>
+                    <a href="${waUrl}" target="_blank" class="btn" style="background:#25D366; color:#ffffff; border:none; font-size:0.75rem; font-weight:700; padding:0.4rem 0.2rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:2px; border-radius:6px; box-shadow:0 1px 3px rgba(37,211,102,0.3);" title="WhatsApp">
+                      💬 WhatsApp
+                    </a>
+                  ` : `
+                    <button type="button" class="btn btn-secondary" style="grid-column:1/-1; padding:0.4rem 0.5rem; font-size:0.75rem; font-weight:700;" onclick="openHomeInquiry('${p.id}')">
+                      💬 Contact Supplier
+                    </button>
+                  `}
                 </div>
+                <button type="button" class="btn btn-orange" style="width:100%; font-size:0.78rem; font-weight:700; padding:0.42rem; margin-top:0.35rem;" onclick="openHomeInquiry('${p.id}')">
+                  ✉️ Send Wholesale RFQ
+                </button>
               </div>
             </article>
-          `).join('');
+          `;
+          }).join('');
         }
       }
     });

@@ -234,6 +234,19 @@
 
             <div class="im-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               <div class="form-group">
+                <label class="form-label">📞 Direct Calling Phone Number (for Buyers)</label>
+                <input type="tel" id="bizPhone" class="form-control" placeholder="e.g. 9876543210 (Default: Account Phone)">
+                <small style="color:#64748b; font-size:0.75rem;">Buyers can tap 'Call Now' on your products to dial this number directly.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">💬 WhatsApp Business Number (for Inquiries)</label>
+                <input type="tel" id="bizWhatsapp" class="form-control" placeholder="e.g. 9876543210 (Default: Same as Phone)">
+                <small style="color:#64748b; font-size:0.75rem;">Buyers can tap 'WhatsApp' to send instant product inquiries.</small>
+              </div>
+            </div>
+
+            <div class="im-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+              <div class="form-group">
                 <label class="form-label">GST / Tax Identification Number</label>
                 <input type="text" id="gstNumber" class="form-control" placeholder="e.g. 27AADCA1234Z1 (Optional)">
               </div>
@@ -317,6 +330,8 @@
         address: (serverBiz && serverBiz.address) || localBiz.address || '',
         about: (serverBiz && serverBiz.about) || localBiz.about || '',
         year_est: (serverBiz && serverBiz.year_est) || localBiz.year_est || '',
+        phone: (serverBiz && serverBiz.phone) || localBiz.phone || loggedUser.phone || '',
+        whatsapp: (serverBiz && serverBiz.whatsapp) || localBiz.whatsapp || (serverBiz && serverBiz.phone) || localBiz.phone || loggedUser.phone || '',
         logo_url: (serverBiz && serverBiz.logo_url) || localBiz.logo_url || null
       };
 
@@ -329,6 +344,8 @@
       document.getElementById('address').value = merged.address;
       document.getElementById('bizAbout').value = merged.about;
       if (document.getElementById('bizEstYear')) document.getElementById('bizEstYear').value = merged.year_est;
+      if (document.getElementById('bizPhone')) document.getElementById('bizPhone').value = merged.phone;
+      if (document.getElementById('bizWhatsapp')) document.getElementById('bizWhatsapp').value = merged.whatsapp;
       
       if (merged.logo_url) {
         document.getElementById('logoPreview').src = merged.logo_url;
@@ -429,6 +446,10 @@
         formData.append('about', bAbout);
         formData.append('address', addr);
         formData.append('year_est', yearEst);
+        const bPhone = (document.getElementById('bizPhone') ? document.getElementById('bizPhone').value.trim() : '');
+        const bWa = (document.getElementById('bizWhatsapp') ? document.getElementById('bizWhatsapp').value.trim() : '');
+        formData.append('phone', bPhone);
+        formData.append('whatsapp', bWa);
         
         const logoFile = document.getElementById('companyLogoFile').files[0];
         if (logoFile) {
@@ -451,6 +472,8 @@
         currentProfile.about = bAbout;
         currentProfile.address = addr;
         currentProfile.year_est = yearEst;
+        currentProfile.phone = bPhone;
+        currentProfile.whatsapp = bWa;
         if (selectedLogoDataUrl) {
           currentProfile.logo_url = selectedLogoDataUrl;
         } else if (data && data.logo_url) {

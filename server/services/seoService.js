@@ -438,6 +438,13 @@ function renderProductPageHtml({ product, supplier, relatedProducts = [] }) {
     { name: product.name, url: `/products/${product.slug}` }
   ];
 
+  const suppPhone = (supplier && (supplier.phone || supplier.whatsapp)) ? String(supplier.phone || supplier.whatsapp).trim() : '';
+  const cleanPhoneDigits = suppPhone.replace(/[^0-9]/g, '');
+  const waNumber = cleanPhoneDigits.length === 10 ? ('91' + cleanPhoneDigits) : cleanPhoneDigits;
+  const waText = encodeURIComponent(`Hi, I am interested in wholesale order for "${product.name}" on Flenko. Please share best price and MOQ.`);
+  const waUrl = waNumber ? `https://wa.me/${waNumber}?text=${waText}` : '#';
+  const callUrl = suppPhone ? (suppPhone.startsWith('+') ? `tel:${suppPhone}` : `tel:+91${cleanPhoneDigits.slice(-10)}`) : '#';
+
   const productSchema = buildProductSchema(product, supplier, meta.canonical);
   const breadcrumbSchema = buildBreadcrumbSchema(breadcrumbs);
 
@@ -570,13 +577,21 @@ function renderProductPageHtml({ product, supplier, relatedProducts = [] }) {
             </tbody>
           </table>
 
-          <!-- Action Buttons -->
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.75rem; flex-wrap: wrap;">
-            <button class="btn-quote" onclick="triggerQuickInquiry('${escapeHtml(product.name)}', '${supplier ? (supplier.phone || '') : ''}')">
-              💬 Contact Supplier / Get Best Quotation
+          <!-- Action Buttons (Call, WhatsApp, RFQ) -->
+          <div style="display: flex; gap: 0.65rem; margin-top: 1.5rem; flex-wrap: wrap; align-items: stretch;">
+            ${suppPhone ? `
+              <a href="${callUrl}" class="btn-quote" style="background: #0F4C9B; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.65rem 1.15rem; font-weight: 700; border-radius: 8px;">
+                📞 Call: ${escapeHtml(suppPhone)}
+              </a>
+              <a href="${waUrl}" target="_blank" rel="noopener noreferrer" style="background: #25D366; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.65rem 1.15rem; font-weight: 700; border-radius: 8px; box-shadow: 0 2px 6px rgba(37,211,102,0.35);">
+                💬 WhatsApp Seller
+              </a>
+            ` : ''}
+            <button class="btn-quote" style="background: #e06d10; color: #fff; border: none; padding: 0.65rem 1.15rem; font-weight: 700; border-radius: 8px; cursor: pointer;" onclick="triggerQuickInquiry('${escapeHtml(product.name)}', '${escapeHtml(suppPhone)}')">
+              ✉️ Send Wholesale RFQ
             </button>
-            <a href="/rfq.html?product=${encodeURIComponent(product.name)}" class="btn-outline-blue">
-              📋 Post Custom RFQ Requirement
+            <a href="/rfq.html?product=${encodeURIComponent(product.name)}" class="btn-outline-blue" style="display: inline-flex; align-items: center; padding: 0.65rem 1rem;">
+              📋 Custom Inquiry
             </a>
           </div>
 
@@ -618,6 +633,13 @@ function renderSupplierPageHtml({ supplier, products = [], reviews = [] }) {
     { name: supplier.category || 'General', url: `/suppliers/category/${slugify(supplier.category || 'General')}` },
     { name: supplier.company_name, url: `/suppliers/${supplier.slug}` }
   ];
+
+  const suppPhone = (supplier && (supplier.phone || supplier.whatsapp)) ? String(supplier.phone || supplier.whatsapp).trim() : '';
+  const cleanPhoneDigits = suppPhone.replace(/[^0-9]/g, '');
+  const waNumber = cleanPhoneDigits.length === 10 ? ('91' + cleanPhoneDigits) : cleanPhoneDigits;
+  const waText = encodeURIComponent(`Hi ${supplier.company_name || 'Supplier'}, I found your storefront on Flenko. I would like to inquire about your wholesale products.`);
+  const waUrl = waNumber ? `https://wa.me/${waNumber}?text=${waText}` : '#';
+  const callUrl = suppPhone ? (suppPhone.startsWith('+') ? `tel:${suppPhone}` : `tel:+91${cleanPhoneDigits.slice(-10)}`) : '#';
 
   const supplierSchema = buildSupplierSchema(supplier, meta.canonical);
   const breadcrumbSchema = buildBreadcrumbSchema(breadcrumbs);
@@ -708,9 +730,17 @@ function renderSupplierPageHtml({ supplier, products = [], reviews = [] }) {
           </div>
         </div>
 
-        <div>
-          <button class="btn-quote" style="width: 100%;" onclick="triggerQuickInquiry('Supplier Inquiry: ${escapeHtml(supplier.company_name)}', '${supplier.phone || ''}')">
-            💬 Send Direct Inquiry
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 190px;">
+          ${suppPhone ? `
+            <a href="${callUrl}" class="btn-quote" style="background: #0F4C9B; color: #fff; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.65rem 1rem; font-weight: 700; border-radius: 8px;">
+              📞 Call: ${escapeHtml(suppPhone)}
+            </a>
+            <a href="${waUrl}" target="_blank" rel="noopener noreferrer" style="background: #25D366; color: #fff; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.65rem 1rem; font-weight: 700; border-radius: 8px; box-shadow: 0 2px 6px rgba(37,211,102,0.35);">
+              💬 Chat on WhatsApp
+            </a>
+          ` : ''}
+          <button class="btn-quote" style="width: 100%; background: #e06d10; color: #fff; border: none; padding: 0.65rem 1rem; font-weight: 700; border-radius: 8px; cursor: pointer;" onclick="triggerQuickInquiry('Supplier Inquiry: ${escapeHtml(supplier.company_name)}', '${escapeHtml(suppPhone)}')">
+            ✉️ Send Direct RFQ
           </button>
         </div>
       </div>
