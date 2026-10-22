@@ -395,7 +395,7 @@
           <img id="navLogoImg" src="assets/images/logo.png" alt="Company Logo">
         </div>
         <div>
-          <div class="brand-title" id="navCompanyName">Apex Packaging Solutions</div>
+          <div class="brand-title" id="navCompanyName">Verified Storefront</div>
           <div class="brand-subdomain-pill" id="navSubdomainBadge">Official Verified Storefront</div>
         </div>
       </a>
@@ -515,10 +515,10 @@
       <div>
         <span style="font-size:0.8rem; font-weight:700; color:#0284c7; text-transform:uppercase; letter-spacing:0.5px;">About Our Company</span>
         <h2 style="font-size:1.85rem; font-weight:800; color:#0f172a; margin:0.35rem 0 1rem;" id="aboutCompanyHeader">
-          Apex Packaging Solutions
+          Verified Enterprise
         </h2>
         <p style="line-height:1.7; font-size:0.95rem; color:#334155; margin-bottom:1.5rem;" id="aboutCompanyParagraph">
-          Apex Packaging Solutions is a leading manufacturing and export enterprise offering precision industrial products, custom branding solutions, and bulk supply agreements. Our manufacturing unit operates under rigorous quality controls, ensuring on-time fulfillment for commercial and enterprise buyers.
+          Verified manufacturing and export enterprise offering precision industrial products, custom branding solutions, and bulk supply agreements on Flenko Marketplace. Our manufacturing unit operates under rigorous quality controls, ensuring on-time fulfillment for commercial and enterprise buyers.
         </p>
         
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
@@ -629,7 +629,7 @@
   <footer class="site-footer">
     <div class="footer-container">
       <div>
-        <h3 style="color:#ffffff; margin-top:0; font-size:1.2rem; margin-bottom:0.4rem;" id="footerCompName">Apex Packaging Solutions</h3>
+        <h3 style="color:#ffffff; margin-top:0; font-size:1.2rem; margin-bottom:0.4rem;" id="footerCompName">Verified Enterprise</h3>
         <p style="font-size:0.85rem; line-height:1.6; max-width:420px; color:#cbd5e1; margin-bottom:0.75rem;" id="footerAboutText">
           Certified industrial manufacturing and supply partner backed by Flenko Trade Assurance protection.
         </p>
@@ -663,7 +663,7 @@
     </div>
 
     <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:1.5rem; text-align:center; font-size:0.75rem; color:#64748b;">
-      &copy; <span id="currentYear"></span> <span id="footerCopyName">Apex Packaging Solutions</span>. All Rights Reserved. &bull; Powered by Flenko B2B Storefront Engine.
+      &copy; <span id="currentYear"></span> <span id="footerCopyName">Verified Enterprise</span>. All Rights Reserved. &bull; Powered by Flenko B2B Storefront Engine.
     </div>
   </footer>
 
@@ -758,7 +758,7 @@
 
   <script src="js/auth.js"></script>
   <script>
-    let activeSubdomain = 'apexpackaging';
+    let activeSubdomain = 'store';
     let supplierInfo = null;
     let siteProducts = [];
     let siteReviews = [];
@@ -782,7 +782,7 @@
       if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'admin') {
         return parts[0];
       }
-      return 'apexpackaging';
+      return 'store';
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -823,17 +823,17 @@
 
       supplierInfo = {
         id: (isMatchingSubdomain && localSeller.id) ? localSeller.id : 1,
-        company_name: (isMatchingSubdomain && localSeller.company_name) ? localSeller.company_name : (localSeller.company_name || 'Apex Packaging Solutions'),
-        category: (isMatchingSubdomain && localSeller.category) ? localSeller.category : 'Packaging & Printing',
+        company_name: (isMatchingSubdomain && localSeller.company_name) ? localSeller.company_name : (localSeller.company_name || 'Verified Supplier Storefront'),
+        category: (isMatchingSubdomain && localSeller.category) ? localSeller.category : 'General B2B',
         business_type: (isMatchingSubdomain && localSeller.business_type) ? localSeller.business_type : 'Manufacturer & Wholesaler',
-        gst_number: (isMatchingSubdomain && localSeller.gst_number) ? localSeller.gst_number : '27AADCA9821Z5',
-        city: (isMatchingSubdomain && localSeller.city) ? localSeller.city : 'Mumbai',
+        gst_number: (isMatchingSubdomain && localSeller.gst_number) ? localSeller.gst_number : '',
+        city: (isMatchingSubdomain && localSeller.city) ? localSeller.city : 'India',
         country: (isMatchingSubdomain && localSeller.country) ? localSeller.country : 'India',
-        address: (isMatchingSubdomain && localSeller.address) ? localSeller.address : 'Plot 45, MIDC Industrial Area, Andheri East, Mumbai - 400069',
-        about: (isMatchingSubdomain && localSeller.about) ? localSeller.about : 'Apex Packaging Solutions is a leading manufacturer of high-grade industrial packaging materials, corrugated boxes, and shipping supplies. We specialize in custom packaging designs tailored to your business needs, ensuring safe and efficient logistics for your products.',
-        website_tagline: (isMatchingSubdomain && localSeller.website_tagline) ? localSeller.website_tagline : 'Leading Industrial Packaging, Corrugated Box & Tape Manufacturer',
-        year_est: (isMatchingSubdomain && localSeller.year_est) ? localSeller.year_est : (localSeller.year_est || '2015'),
-        subdomain: activeSubdomain || (localSeller.subdomain) || 'apexpackaging',
+        address: (isMatchingSubdomain && localSeller.address) ? localSeller.address : 'Industrial Area, India',
+        about: (isMatchingSubdomain && localSeller.about) ? localSeller.about : 'Verified manufacturer and wholesale supplier on Flenko Marketplace. Direct B2B pricing, verified facilities, and Trade Assurance.',
+        website_tagline: (isMatchingSubdomain && localSeller.website_tagline) ? localSeller.website_tagline : 'Certified Manufacturer & Wholesale Partner',
+        year_est: (isMatchingSubdomain && localSeller.year_est) ? localSeller.year_est : (localSeller.year_est || 'Established Entity'),
+        subdomain: activeSubdomain || (localSeller.subdomain) || 'store',
         is_paid_trusted: Boolean(
           localSeller &&
           localSeller.subscription &&

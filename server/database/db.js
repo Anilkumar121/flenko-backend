@@ -304,7 +304,7 @@ async function ensureTables() {
   }
   console.log('✅ PostgreSQL schema verified and synchronized successfully.');
 
-  // Auto-seed default Master Admin and demo Apex store if PostgreSQL is fresh & empty
+  // Auto-seed default Master Admin if PostgreSQL is fresh & empty
   try {
     const userCountRes = await pool.query('SELECT COUNT(*) as count FROM users');
     if (userCountRes.rows && parseInt(userCountRes.rows[0].count) === 0) {

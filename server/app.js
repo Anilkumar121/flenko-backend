@@ -1688,7 +1688,7 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         }
       }
     } else {
-      // Slug lookup (e.g. /api/public/suppliers/apex-packaging or rakshit-enterprise)
+      // Slug lookup (e.g. /api/public/suppliers/rana-pratap-construction or rakshit-enterprise)
       let bizRes = await db.query('SELECT * FROM businesses WHERE slug = $1', [rawId]);
       if (bizRes.rows && bizRes.rows.length > 0) {
         business = bizRes.rows[0];
