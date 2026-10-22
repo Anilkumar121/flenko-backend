@@ -273,6 +273,11 @@ app.get('/products/:slug', async (req, res) => {
 
     const product = prodRes.rows[0];
 
+    // Real-time seller profile view increment on product view
+    if (product && product.supplier_id) {
+      db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE user_id = $1', [product.supplier_id]).catch(() => {});
+    }
+
     // If accessed by numeric ID and has a slug, 301 redirect to canonical slug URL
     if (/^\d+$/.test(slug) && product.slug) {
       return res.redirect(301, `/products/${product.slug}`);
@@ -325,6 +330,11 @@ app.get('/services/:slug', async (req, res) => {
     }
 
     const product = prodRes.rows[0];
+
+    // Real-time seller profile view increment on product view
+    if (product && product.supplier_id) {
+      db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE user_id = $1', [product.supplier_id]).catch(() => {});
+    }
     let supplier = null;
     if (product.supplier_id) {
       const suppRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [product.supplier_id]);
@@ -367,6 +377,11 @@ app.get('/suppliers/:slug', async (req, res) => {
     }
 
     const supplier = bizRes.rows[0];
+
+    // Real-time seller profile view increment
+    if (supplier && supplier.id) {
+      db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE id = $1', [supplier.id]).catch(() => {});
+    }
 
     // If accessed by numeric ID and has a slug, 301 redirect to canonical slug URL
     if (/^\d+$/.test(slug) && supplier.slug) {
@@ -1491,7 +1506,41 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
       }
     }
 
-    res.json({ user });
+    // fetch live product count
+    let productsCount = 0;
+    try {
+      const prodCountRes = await db.query('SELECT COUNT(*) as cnt FROM products WHERE supplier_id = $1', [user.id]);
+      productsCount = parseInt((prodCountRes.rows && prodCountRes.rows[0] && prodCountRes.rows[0].cnt) || 0, 10);
+    } catch(e) {}
+
+    // calculate real-time dynamic profile completeness score (0% - 100%)
+    let completeness = 20; // base registered account
+    if (user.phone && user.phone.length >= 10) completeness += 10;
+    if (user.city && user.city !== 'Industrial Hub') completeness += 10;
+    if (user.business) {
+      const b = user.business;
+      if (b.company_name && b.company_name !== 'Supplier' && b.company_name !== 'Verified Supplier') completeness += 15;
+      if (b.category && b.category !== 'General') completeness += 10;
+      if (b.business_type) completeness += 10;
+      if (b.about && b.about.length > 20) completeness += 10;
+      if (b.logo_url) completeness += 5;
+      if (b.gst_number || b.year_est) completeness += 5;
+    }
+    if (productsCount > 0) completeness += 15;
+    if (completeness > 100) completeness = 100;
+
+    const profileViews = (user.business && user.business.profile_views !== undefined && user.business.profile_views !== null) 
+      ? parseInt(user.business.profile_views, 10) 
+      : 0;
+
+    res.json({
+      user,
+      stats: {
+        products_count: productsCount,
+        profile_completeness: completeness,
+        profile_views: profileViews
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
@@ -1723,6 +1772,11 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
       };
     }
 
+    // Real-time seller profile view increment
+    if (business && business.id) {
+      db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE id = $1', [business.id]).catch(() => {});
+    }
+
     // Fetch genuine supplier's products from database (NO fake mock products!)
     let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId || business.user_id]);
     let products = prodRes.rows || [];
@@ -1844,6 +1898,11 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
 
     if (!business) {
       return res.status(404).json({ error: 'Seller website not found' });
+    }
+
+    // Real-time seller website view increment
+    if (business && business.id) {
+      db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE id = $1', [business.id]).catch(() => {});
     }
 
     const targetUserId = business.user_id || business.id;
@@ -2703,6 +2762,9 @@ app.get('/api/public/products/:id', async (req, res) => {
     if (!prods.rows || prods.rows.length === 0) return res.status(404).json({ error: 'Product not found' });
     
     const product = prods.rows[0];
+    if (product && product.supplier_id) {
+       db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE user_id = $1', [product.supplier_id]).catch(() => {});
+    }
     const supplierRes = await db.query('SELECT id, user_id, company_name, city, country, logo_url, slug FROM businesses WHERE user_id = $1', [product.supplier_id]);
     if (supplierRes.rows.length > 0) {
        product.supplier = supplierRes.rows[0];

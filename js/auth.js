@@ -470,12 +470,6 @@ const auth = {
   async getProfile() {
     const token = this.getToken();
     if (!token) return null;
-    
-    // Fast path: if token is local or offline token, return cached user immediately
-    if (token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_') || token.includes('_local')) {
-      const cached = this.getUser();
-      if (cached) return { success: true, user: cached };
-    }
 
     try {
       let res = await this.fetchWithFallback(`/users/me`, {

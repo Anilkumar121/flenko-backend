@@ -196,6 +196,7 @@
     <a href="supplier-products.html">📋 Products</a>
     <a href="supplier-quotes.html">🧾 RFQs</a>
     <a href="supplier-profile.html">💼 Profile</a>
+    <a href="#" id="mobileSubnavStorefrontLink" target="_blank" style="display:none; color: #028867; font-weight: 700;">🏬 Storefront ↗</a>
     <a href="site.html" id="mobileSubnavWebsiteLink" target="_blank" style="display:none; color: #0F4C9B; font-weight: 700;">🌐 My Store ↗</a>
   </div>
 
@@ -216,6 +217,7 @@
         <a href="supplier-leads.html">✉️ Messages & Leads</a>
         <a href="supplier-products.html">📋 Manage Products</a>
         <a href="supplier-profile.html">💼 Company Profile</a>
+        <a id="sideNavStorefrontLink" href="#" target="_blank" style="display:none; color: #028867; font-weight: 700;">🏬 View Public Storefront ↗</a>
         <a href="site.html" id="sideNavWebsiteLink" target="_blank" style="display:none; color: #0F4C9B; font-weight: 700;">🌐 My Branded Website ↗</a>
       </nav>
       <div style="padding: 1rem; background: rgba(22,133,107,0.1); text-align: center; margin: 1rem;">
@@ -285,11 +287,11 @@
       </div>
 
       <div class="panel-card">
-        <div class="panel-card-body" style="display: flex; gap: 2rem; align-items: center;">
-          <div style="flex: 1;">
-            <h3 style="font-size: 1.125rem; color: var(--color-navy-deep); margin-bottom: 0.25rem;">Complete your catalog to get 5x more buyer visibility</h3>
-            <p style="font-size: 0.875rem; color: var(--color-text-muted);">Profile Completeness: <strong>40%</strong></p>
-            <div class="progress-bar-bg"><div class="progress-bar-fill"></div></div>
+        <div class="panel-card-body" style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 260px;">
+            <h3 id="completenessHeading" style="font-size: 1.125rem; color: var(--color-navy-deep); margin-bottom: 0.25rem;">Complete your catalog to get 5x more buyer visibility</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-muted);">Profile Completeness: <strong id="profileCompletenessVal">40%</strong></p>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="profileCompletenessBar" style="width: 40%; transition: width 0.6s ease-in-out;"></div></div>
           </div>
           <button class="btn btn-primary" style="background: var(--color-teal); border: none;" onclick="window.location.href='supplier-products.html'">Add Products</button>
         </div>
@@ -301,11 +303,11 @@
           <p>Total Leads</p>
         </div>
         <div class="im-stat-box">
-          <h2>0</h2>
+          <h2 id="profileViewCount">0</h2>
           <p>Profile Views</p>
         </div>
         <div class="im-stat-box">
-          <h2>0</h2>
+          <h2 id="productsLiveCount">0</h2>
           <p>Products Live</p>
         </div>
       </div>
@@ -534,6 +536,123 @@
         return s;
       }
 
+      function updateCompletenessAndViewsUI(userData, bizData, statsData, productsList) {
+        const u = userData || {};
+        const b = bizData || u.business || {};
+        const stats = statsData || {};
+
+        // 1. Live Products Count
+        let prodCount = 0;
+        if (Array.isArray(productsList)) {
+          prodCount = productsList.length;
+        } else if (stats.products_count !== undefined && stats.products_count !== null) {
+          prodCount = parseInt(stats.products_count, 10) || 0;
+        } else {
+          try {
+            const locProds = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+            if (Array.isArray(locProds)) prodCount = locProds.length;
+          } catch(e) {}
+        }
+        const pCountEl = document.getElementById('productsLiveCount');
+        if (pCountEl) pCountEl.innerText = prodCount;
+        const pBoxes = document.querySelectorAll('.im-stat-box h2');
+        if (pBoxes && pBoxes[2]) pBoxes[2].innerText = prodCount;
+
+        // 2. Profile Views (Real-time tracking)
+        let views = 0;
+        if (stats.profile_views !== undefined && stats.profile_views !== null) {
+          views = parseInt(stats.profile_views, 10);
+        } else if (b.profile_views !== undefined && b.profile_views !== null) {
+          views = parseInt(b.profile_views, 10);
+        } else {
+          const locViews = localStorage.getItem('flenko_seller_views');
+          if (locViews) views = parseInt(locViews, 10);
+        }
+        if (isNaN(views) || views < 0) views = 0;
+        const vEl = document.getElementById('profileViewCount');
+        if (vEl) vEl.innerText = views;
+        if (pBoxes && pBoxes[1]) pBoxes[1].innerText = views;
+
+        // 3. Dynamic Profile Completeness Formula (20% to 100%)
+        let score = 20; // Base registered account
+        const phone = (u.phone || b.phone || '').toString().replace(/[^0-9]/g, '');
+        if (phone.length >= 10) score += 10; // Phone verified
+        
+        const city = (b.city || u.city || '').toString().trim();
+        if (city && city.toLowerCase() !== 'industrial hub') score += 10; // City updated
+
+        const cleanComp = cleanSupplierName(b.company_name || u.company_name || u.name, '');
+        if (cleanComp && cleanComp.toLowerCase() !== 'supplier' && cleanComp.toLowerCase() !== 'verified supplier') {
+          score += 15; // Company name set
+        }
+
+        const cat = (b.category || '').toString().trim();
+        if (cat && cat.toLowerCase() !== 'general') score += 10; // Category set
+
+        const bizType = (b.business_type || '').toString().trim();
+        if (bizType) score += 10; // Business classification (Manufacturer/Wholesaler/Exporter)
+
+        const about = (b.about || '').toString().trim();
+        if (about.length > 20) score += 10; // Detailed business overview
+
+        const logo = (b.logo_url || '').toString().trim();
+        if (logo) score += 5; // Company logo uploaded
+
+        const gst = (b.gst_number || '').toString().trim();
+        const estYear = (b.year_est || b.establishment_year || '').toString().trim();
+        if (gst || estYear) score += 5; // GSTIN or Year established
+
+        if (prodCount > 0) score += 15; // At least 1 active product listed
+
+        if (stats.profile_completeness !== undefined && stats.profile_completeness !== null) {
+          score = Math.max(score, parseInt(stats.profile_completeness, 10));
+        }
+        if (score > 100) score = 100;
+
+        const compValEl = document.getElementById('profileCompletenessVal');
+        const compBarEl = document.getElementById('profileCompletenessBar');
+        const compHeadingEl = document.getElementById('completenessHeading');
+
+        if (compValEl) compValEl.innerText = `${score}%`;
+        if (compBarEl) {
+          compBarEl.style.width = `${score}%`;
+          if (score >= 100) {
+            compBarEl.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+          } else if (score >= 70) {
+            compBarEl.style.background = 'linear-gradient(90deg, #0F4C9B, #028867)';
+          } else {
+            compBarEl.style.background = 'linear-gradient(90deg, #f59e0b, #0F4C9B)';
+          }
+        }
+        if (compHeadingEl) {
+          if (score >= 100) {
+            compHeadingEl.innerText = '🌟 Profile 100% Complete! Your business has maximum buyer visibility on Flenko';
+          } else if (score >= 70) {
+            compHeadingEl.innerText = 'Almost there! Add more products or details to achieve 100% profile score';
+          } else {
+            compHeadingEl.innerText = 'Complete your catalog & profile to get 5x more buyer visibility';
+          }
+        }
+
+        // Setup Public Storefront link for seller
+        const storefrontSlug = b.slug || (cleanComp ? cleanComp.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : null);
+        const storefrontUrl = storefrontSlug ? `/suppliers/${storefrontSlug}` : `supplier-details.html?id=${u.id || b.user_id || 1}`;
+        const sideStoreLink = document.getElementById('sideNavStorefrontLink');
+        if (sideStoreLink) {
+          sideStoreLink.href = storefrontUrl;
+          sideStoreLink.style.display = 'flex';
+        }
+        const mobStoreLink = document.getElementById('mobileSubnavStorefrontLink');
+        if (mobStoreLink) {
+          mobStoreLink.href = storefrontUrl;
+          mobStoreLink.style.display = 'inline-flex';
+        }
+      }
+
+      let currentServerStats = null;
+      let currentServerBiz = null;
+      let currentServerUser = null;
+
       // 2. Instant rendering from local session
       try {
         const localU = auth.getUser();
@@ -556,34 +675,58 @@
           document.getElementById('userAvatarText').style.display = 'none';
         }
         syncWebsiteUI(localSeller, localU);
+        updateCompletenessAndViewsUI(localU, localSeller, null, null);
       } catch(e) {}
 
       // 3. Fetch Profile from server
       try {
         const profileData = await auth.getProfile();
         if (profileData && profileData.user) {
-           const servBiz = profileData.user.business || {};
-           const cleanServName = cleanSupplierName(servBiz.company_name || profileData.user.company_name || profileData.user.name, 'Supplier');
+           currentServerUser = profileData.user;
+           currentServerBiz = profileData.user.business || {};
+           currentServerStats = profileData.stats || {};
+           const cleanServName = cleanSupplierName(currentServerBiz.company_name || profileData.user.company_name || profileData.user.name, 'Supplier');
            document.getElementById('userAvatarText').innerText = cleanServName.charAt(0).toUpperCase();
            document.getElementById('welcomeName').innerText = cleanServName;
-           if (servBiz.logo_url) {
+           if (currentServerBiz.logo_url) {
              const logoImg = document.getElementById('userLogoImg');
-             logoImg.src = servBiz.logo_url;
+             logoImg.src = currentServerBiz.logo_url;
              logoImg.style.display = 'block';
              document.getElementById('userAvatarText').style.display = 'none';
            }
-           syncWebsiteUI(servBiz, profileData.user);
+           syncWebsiteUI(currentServerBiz, profileData.user);
+           updateCompletenessAndViewsUI(currentServerUser, currentServerBiz, currentServerStats, null);
         }
       } catch(e) {}
 
       // 4. Products count
       try {
         const prods = await auth.getProducts();
-        const pBoxes = document.querySelectorAll('.im-stat-box h2');
-        if (pBoxes && pBoxes[2] && prods && prods.products) {
-          pBoxes[2].innerText = prods.products.length;
+        if (prods && prods.products) {
+          window.currentDashboardProducts = prods.products;
+          updateCompletenessAndViewsUI(
+            currentServerUser || auth.getUser(),
+            currentServerBiz || JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}'),
+            currentServerStats,
+            prods.products
+          );
         }
       } catch(e) {}
+
+      // 4b. Real-time stats refresher (every 10s and when tab gains focus)
+      async function refreshLiveStats() {
+        try {
+          const freshData = await auth.getProfile();
+          if (freshData && freshData.user) {
+            currentServerUser = freshData.user;
+            currentServerBiz = freshData.user.business || {};
+            currentServerStats = freshData.stats || {};
+            updateCompletenessAndViewsUI(currentServerUser, currentServerBiz, currentServerStats, window.currentDashboardProducts);
+          }
+        } catch(e) {}
+      }
+      setInterval(refreshLiveStats, 10000);
+      window.addEventListener('focus', refreshLiveStats);
 
       // 5. Fetch Leads
       let allLeads = [];

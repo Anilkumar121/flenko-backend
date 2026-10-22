@@ -178,6 +178,7 @@ async function ensureTables() {
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS seo_title VARCHAR(255)`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS seo_description TEXT`,
     `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_indexed BOOLEAN DEFAULT TRUE`,
+    `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS profile_views INTEGER DEFAULT 0`,
     `CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       supplier_id INTEGER,
