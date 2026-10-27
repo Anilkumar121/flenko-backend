@@ -67,12 +67,18 @@ async function renderHomepageProducts() {
       years: "Verified",
       rating: "5.0",
       reviews: 1,
+      slug: p.slug || '',
       supplier: { 
         name: p.supplier_name || ("Supplier #" + p.supplier_id), 
-        logo: p.supplier_logo || null,
+        logo: p.supplier_logo || null, 
         verified: true, 
-        location: (p.city || "Industrial Hub") + (p.country ? ", " + p.country : ", India") 
+        location: (p.city || "Industrial Hub") + (p.country ? ", " + p.country : ", India"),
+        slug: p.supplier_slug || (p.supplier && p.supplier.slug) || ''
       },
+      supplier_id: p.supplier_id || 1,
+      supplier_slug: p.supplier_slug || (p.supplier && p.supplier.slug) || '',
+      supplier_phone: p.supplier_phone || (p.supplier && p.supplier.phone) || '',
+      supplier_whatsapp: p.supplier_whatsapp || (p.supplier && (p.supplier.whatsapp || p.supplier.phone)) || '',
       price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
       priceMax: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? (parseFloat(p.price) * 1.15) : null,
       moq: p.moq || 1,
@@ -85,7 +91,7 @@ async function renderHomepageProducts() {
     }));
   }
 
-  try { localStorage.removeItem('flenko_seller_products'); } catch(e) {}
+  
 
   // Clean Empty State if no products yet
   if (allProducts.length === 0) {

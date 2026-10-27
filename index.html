@@ -1407,22 +1407,29 @@
           homeProducts = rawList.map(p => ({
             id: p.id,
             name: p.name,
+            slug: p.slug || '',
             category: p.category || 'General B2B',
             country: p.country || 'India',
             flag: getFlag(p.country || 'India'),
-            supplier: { name: p.supplier_name || ('Verified Supplier #' + p.supplier_id), location: (p.city || 'Industrial Hub') + ', ' + (p.country || 'India') },
+            supplier: { 
+              name: p.supplier_name || ('Verified Supplier #' + p.supplier_id), 
+              location: (p.city || 'Industrial Hub') + ', ' + (p.country || 'India'),
+              slug: p.supplier_slug || (p.supplier && p.supplier.slug) || ''
+            },
             supplier_id: p.supplier_id || 1,
+            supplier_slug: p.supplier_slug || (p.supplier && p.supplier.slug) || '',
             supplier_phone: p.supplier_phone || '',
             supplier_whatsapp: p.supplier_whatsapp || '',
             price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
             moq: p.moq || 1,
             unit: p.unit || 'Pieces',
             image: p.image_url || 'assets/images/logo.png',
-            badge: 'VERIFIED PRO'
+            badge: (p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? 'Paid Trusted' : 'VERIFIED PRO',
+            is_paid_trusted: !!(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted))
           }));
         }
 
-        try { localStorage.removeItem('flenko_seller_products'); } catch(e) {}
+        
 
         window.homeProductsList = homeProducts;
 
@@ -1486,10 +1493,10 @@
                 </div>
                 <div class="flenko-supplier-box">
                   <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
-                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" class="flenko-supp-name" style="text-decoration:none; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="View Supplier Storefront">
+                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" class="flenko-supp-name" style="text-decoration:none; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="View Supplier Storefront">
                       ${p.supplier ? p.supplier.name : 'Verified Supplier'}
                     </a>
-                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
+                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
                       #FLK-SUP-${p.supplier_id || 1}
                     </a>
                   </div>

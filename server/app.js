@@ -283,15 +283,26 @@ app.get('/products/:slug', async (req, res) => {
       return res.redirect(301, `/products/${product.slug}`);
     }
 
-    // Fetch genuine supplier with verified phone & whatsapp
+    // Fetch genuine supplier with verified phone & whatsapp (prioritizing user_id = product.supplier_id)
     let supplier = null;
     if (product.supplier_id) {
-      const suppRes = await db.query(`
+      let suppRes = await db.query(`
         SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
         FROM businesses b 
         LEFT JOIN users u ON b.user_id = u.id 
-        WHERE b.user_id = $1 OR b.id = $1
+        WHERE b.user_id = $1
+        ORDER BY b.id ASC
+        LIMIT 1
       `, [product.supplier_id]);
+      if (!suppRes.rows || suppRes.rows.length === 0) {
+        suppRes = await db.query(`
+          SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
+          FROM businesses b 
+          LEFT JOIN users u ON b.user_id = u.id 
+          WHERE b.id = $1
+          LIMIT 1
+        `, [product.supplier_id]);
+      }
       if (suppRes.rows && suppRes.rows.length > 0) {
         supplier = suppRes.rows[0];
       }
@@ -342,12 +353,23 @@ app.get('/services/:slug', async (req, res) => {
     }
     let supplier = null;
     if (product.supplier_id) {
-      const suppRes = await db.query(`
+      let suppRes = await db.query(`
         SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
         FROM businesses b 
         LEFT JOIN users u ON b.user_id = u.id 
-        WHERE b.user_id = $1 OR b.id = $1
+        WHERE b.user_id = $1
+        ORDER BY b.id ASC
+        LIMIT 1
       `, [product.supplier_id]);
+      if (!suppRes.rows || suppRes.rows.length === 0) {
+        suppRes = await db.query(`
+          SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
+          FROM businesses b 
+          LEFT JOIN users u ON b.user_id = u.id 
+          WHERE b.id = $1
+          LIMIT 1
+        `, [product.supplier_id]);
+      }
       if (suppRes.rows && suppRes.rows.length > 0) {
         supplier = suppRes.rows[0];
       }
@@ -374,18 +396,32 @@ app.get('/suppliers/:slug', async (req, res) => {
     let bizRes;
     if (/^\d+$/.test(slug)) {
       const numId = parseInt(slug, 10);
+      // Prioritize user_id because products.supplier_id links by user_id
       bizRes = await db.query(`
         SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
         FROM businesses b 
         LEFT JOIN users u ON b.user_id = u.id 
-        WHERE b.user_id = $1 OR b.id = $1
+        WHERE b.user_id = $1
+        ORDER BY b.id ASC
+        LIMIT 1
       `, [numId]);
+      if (!bizRes.rows || bizRes.rows.length === 0) {
+        bizRes = await db.query(`
+          SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
+          FROM businesses b 
+          LEFT JOIN users u ON b.user_id = u.id 
+          WHERE b.id = $1
+          LIMIT 1
+        `, [numId]);
+      }
     } else {
       bizRes = await db.query(`
         SELECT b.*, COALESCE(b.phone, u.phone) AS phone, COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp 
         FROM businesses b 
         LEFT JOIN users u ON b.user_id = u.id 
         WHERE b.slug = $1
+        ORDER BY b.id ASC
+        LIMIT 1
       `, [slug]);
     }
 
@@ -858,10 +894,16 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     // Universal query: matches email OR full international phone with + OR digits only OR last 10 digits
-    let userRes = await db.query(
-      'SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR phone = $2 OR phone = $3 OR phone = $4 OR phone = $5 OR phone = $6',
-      [cleanEmail, input, withPlus, inputDigits, cleanDigits, ('+91' + cleanDigits)]
-    );
+    // Prioritize accounts with active businesses, products, and supplier role
+    let userRes = await db.query(`
+      SELECT * FROM users 
+      WHERE LOWER(email) = LOWER($1) OR phone = $2 OR phone = $3 OR phone = $4 OR phone = $5 OR phone = $6
+      ORDER BY 
+        (SELECT COUNT(*) FROM businesses WHERE user_id = users.id) DESC,
+        (SELECT COUNT(*) FROM products WHERE supplier_id = users.id) DESC,
+        (CASE WHEN users.role = 'supplier' THEN 0 ELSE 1 END),
+        users.id ASC
+    `, [cleanEmail, input, withPlus, inputDigits, cleanDigits, ('+91' + cleanDigits)]);
 
     let user;
     const isAdmin = ADMIN_PHONES.includes(cleanDigits) || input.toLowerCase() === 'admin@flenko.com';
@@ -1363,10 +1405,16 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     }
 
     // Check if user exists (matches any phone format: 10-digit, +91, or full input)
-    let userRes = await db.query(
-      'SELECT * FROM users WHERE phone = $1 OR phone = $2 OR phone = $3 OR phone = $4',
-      [cleanPhone, ('+91' + cleanPhone), ('+' + cleanPhone), (phone || '')]
-    );
+    // Prioritize accounts with active businesses, products, and supplier role
+    let userRes = await db.query(`
+      SELECT * FROM users 
+      WHERE phone = $1 OR phone = $2 OR phone = $3 OR phone = $4
+      ORDER BY 
+        (SELECT COUNT(*) FROM businesses WHERE user_id = users.id) DESC,
+        (SELECT COUNT(*) FROM products WHERE supplier_id = users.id) DESC,
+        (CASE WHEN users.role = 'supplier' THEN 0 ELSE 1 END),
+        users.id ASC
+    `, [cleanPhone, ('+91' + cleanPhone), ('+' + cleanPhone), (phone || '')]);
     let user;
 
     if (!userRes.rows || userRes.rows.length === 0) {
@@ -1912,9 +1960,13 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
 
     let bizRes;
     if (!isNaN(parseInt(rawSub, 10)) && String(parseInt(rawSub, 10)) === rawSub) {
-      bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1 OR id = $1', [parseInt(rawSub, 10)]);
+      const numSub = parseInt(rawSub, 10);
+      bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1 ORDER BY id ASC LIMIT 1', [numSub]);
+      if (!bizRes.rows || bizRes.rows.length === 0) {
+        bizRes = await db.query('SELECT * FROM businesses WHERE id = $1 LIMIT 1', [numSub]);
+      }
     } else {
-      bizRes = await db.query('SELECT * FROM businesses WHERE LOWER(subdomain) = LOWER($1)', [rawSub]);
+      bizRes = await db.query('SELECT * FROM businesses WHERE LOWER(subdomain) = LOWER($1) OR LOWER(slug) = LOWER($1) ORDER BY id ASC LIMIT 1', [rawSub]);
     }
 
     let business = (bizRes.rows && bizRes.rows.length > 0) ? bizRes.rows[0] : null;
@@ -2801,14 +2853,27 @@ app.get('/api/public/products/:id', async (req, res) => {
     if (product && product.supplier_id) {
        db.query('UPDATE businesses SET profile_views = COALESCE(profile_views, 0) + 1 WHERE user_id = $1', [product.supplier_id]).catch(() => {});
     }
-    const supplierRes = await db.query(`
+    let supplierRes = await db.query(`
       SELECT b.id, b.user_id, b.company_name, b.city, b.country, b.logo_url, b.slug,
              COALESCE(b.phone, u.phone) AS phone,
              COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp
       FROM businesses b
       LEFT JOIN users u ON b.user_id = u.id
-      WHERE b.user_id = $1 OR b.id = $1
+      WHERE b.user_id = $1
+      ORDER BY b.id ASC
+      LIMIT 1
     `, [product.supplier_id]);
+    if (!supplierRes.rows || supplierRes.rows.length === 0) {
+      supplierRes = await db.query(`
+        SELECT b.id, b.user_id, b.company_name, b.city, b.country, b.logo_url, b.slug,
+               COALESCE(b.phone, u.phone) AS phone,
+               COALESCE(b.whatsapp, b.phone, u.phone) AS whatsapp
+        FROM businesses b
+        LEFT JOIN users u ON b.user_id = u.id
+        WHERE b.id = $1
+        LIMIT 1
+      `, [product.supplier_id]);
+    }
     if (supplierRes.rows.length > 0) {
        product.supplier = supplierRes.rows[0];
        product.supplier_slug = supplierRes.rows[0].slug;
@@ -3167,6 +3232,7 @@ app.get('/api/public/products', async (req, res) => {
       prods = {
         rows: (rawProds.rows || []).map(p => ({
           ...p,
+          supplier_slug: bizMap[p.supplier_id] ? bizMap[p.supplier_id].slug : '',
           supplier_name: bizMap[p.supplier_id] ? bizMap[p.supplier_id].company_name : ('Supplier #' + p.supplier_id),
           supplier_logo: bizMap[p.supplier_id] ? bizMap[p.supplier_id].logo_url : null,
           city: bizMap[p.supplier_id] ? bizMap[p.supplier_id].city : 'Industrial Hub',

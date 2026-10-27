@@ -384,16 +384,58 @@ function scheduleReconnect() {
   }, 10000);
 }
 
+// Serverless Keep-Alive Ping (Runs every 2 minutes to keep Neon PostgreSQL active 24/7)
+if (hasDatabaseUrl) {
+  setInterval(async () => {
+    try {
+      if (pool) {
+        await pool.query('SELECT 1');
+      }
+    } catch(err) {
+      console.warn('Neon keep-alive ping notice:', err.message);
+      try { await checkAndConnectDb(); } catch(e) {}
+    }
+  }, 120000);
+}
+
 // Initial connection attempt
 let initialConnectPromise = checkAndConnectDb();
 
 module.exports = {
   query: async (text, params = []) => {
-    // If initial connection attempt is still resolving, wait for it before evaluating useMock
-    if (initialConnectPromise && !isConnectedToPostgres && !lastDbError) {
-      try {
-        await initialConnectPromise;
-      } catch (e) {}
+    // If PostgreSQL URL is configured, ALWAYS query PostgreSQL with automatic retries (NEVER drop into mock)
+    if (hasDatabaseUrl) {
+      if (initialConnectPromise && !isConnectedToPostgres && !lastDbError) {
+        try { await initialConnectPromise; } catch (e) {}
+      }
+
+      let attempts = 0;
+      const maxAttempts = 3;
+      while (attempts < maxAttempts) {
+        attempts++;
+        try {
+          return await pool.query(text, params);
+        } catch (err) {
+          const isNetworkError = (
+            err.code === 'ECONNREFUSED' ||
+            err.code === 'ENOTFOUND' ||
+            (err.message && (
+              err.message.includes('Connection terminated') ||
+              err.message.includes('timeout') ||
+              err.message.includes('Connection lost') ||
+              err.message.includes('closed') ||
+              err.message.includes('server closed the connection')
+            ))
+          );
+          if (isNetworkError && attempts < maxAttempts) {
+            console.warn(`PostgreSQL transient error (attempt ${attempts}/${maxAttempts}): ${err.message}. Retrying query...`);
+            await new Promise(r => setTimeout(r, attempts * 600));
+            try { await pool.query('SELECT 1'); } catch(e) {}
+            continue;
+          }
+          throw err;
+        }
+      }
     }
 
     if (!useMock && isConnectedToPostgres) {
@@ -401,19 +443,7 @@ module.exports = {
         return await pool.query(text, params);
       } catch (err) {
         console.warn('Postgres query failed:', err.message);
-        if (
-          err.code === 'ECONNREFUSED' ||
-          err.code === 'ENOTFOUND' ||
-          (err.message && (err.message.includes('Connection terminated') || err.message.includes('timeout') || err.message.includes('Connection lost') || err.message.includes('closed')))
-        ) {
-          console.warn('Temporary connection drop to PostgreSQL. Retrying connection in background...');
-          isConnectedToPostgres = false;
-          useMock = true;
-          lastDbError = err.message;
-          scheduleReconnect();
-        } else {
-          throw err;
-        }
+        throw err;
       }
     }
     

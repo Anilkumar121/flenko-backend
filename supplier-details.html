@@ -506,19 +506,19 @@
             </tr>
             <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Year Established</th>
-              <td id="tableEstYear" style="padding: 0.75rem 1rem; font-weight: 600;">2015</td>
+              <td id="tableEstYear" style="padding: 0.75rem 1rem; font-weight: 600;">Verified Entity</td>
             </tr>
             <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Primary Category</th>
-              <td id="tableCategory" style="padding: 0.75rem 1rem;">Packaging, Printing & Paper</td>
+              <td id="tableCategory" style="padding: 0.75rem 1rem;">General B2B</td>
             </tr>
             <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">GST / Tax Identification</th>
-              <td id="tableGst" style="padding: 0.75rem 1rem;">27AADCA9821Z5 (Verified)</td>
+              <td id="tableGst" style="padding: 0.75rem 1rem;">GST Verified</td>
             </tr>
             <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">City & Hub</th>
-              <td id="tableCity" style="padding: 0.75rem 1rem;">Mumbai, Maharashtra</td>
+              <td id="tableCity" style="padding: 0.75rem 1rem;">Industrial Hub</td>
             </tr>
             <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Country</th>
@@ -526,7 +526,7 @@
             </tr>
             <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Registered Address</th>
-              <td id="tableAddress" style="padding: 0.75rem 1rem;">Plot 45, MIDC Industrial Area, Andheri East, Mumbai</td>
+              <td id="tableAddress" style="padding: 0.75rem 1rem;">Industrial Area, India</td>
             </tr>
             <tr>
               <th style="background: #f8fafc; padding: 0.75rem 1rem; color: #475569; font-size: 0.85rem;">Trade Assurance</th>
@@ -606,7 +606,7 @@
       if (id && !isNaN(parseInt(id, 10))) {
         return parseInt(id, 10);
       }
-      return id || 1;
+      return id || '';
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -650,20 +650,23 @@
     }
 
     function fallbackLocalSupplier(id) {
-      // Look up in localStorage flenko_seller_profile if it matches the current user
+      // ONLY look up in localStorage if current logged in user matches this exact id
       let localBiz = {};
       try {
-        localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+        if (u && (String(u.id) === String(id) || String(u.phone) === String(id))) {
+          localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        }
       } catch(e) {}
 
       supplierData = {
         id: id,
-        seller_code: `FLK-SUP-${id}`,
+        seller_code: `FLK-SUP-${id || '1'}`,
         company_name: localBiz.company_name || 'Verified Supplier',
         business_type: localBiz.business_type || 'Manufacturer & Wholesaler',
         category: localBiz.category || 'General B2B',
-        gst_number: localBiz.gst_number || '',
-        city: localBiz.city || 'India',
+        gst_number: localBiz.gst_number || 'GST Verified',
+        city: localBiz.city || 'Industrial Hub',
         country: localBiz.country || 'India',
         address: localBiz.address || 'Industrial Area, India',
         about: localBiz.about || 'Verified B2B manufacturer and wholesale supplier on Flenko Marketplace.',

@@ -746,6 +746,7 @@
         allProducts = rawList.map(p => ({
           id: p.id,
           name: p.name,
+          slug: p.slug || '',
           category: p.category || "General B2B",
           country: p.country || "India",
           flag: getCountryFlag(p.country || "India"),
@@ -755,9 +756,11 @@
           supplier: { 
             name: p.supplier_name || ("Verified Supplier #" + p.supplier_id), 
             verified: true, 
-            location: (p.city || "Industrial Hub") + (p.country ? ", " + p.country : ", India") 
+            location: (p.city || "Industrial Hub") + (p.country ? ", " + p.country : ", India"),
+            slug: p.supplier_slug || (p.supplier && p.supplier.slug) || ''
           },
           supplier_id: p.supplier_id || 1,
+          supplier_slug: p.supplier_slug || (p.supplier && p.supplier.slug) || '',
           supplier_phone: p.supplier_phone || (p.supplier && p.supplier.phone) || '',
           supplier_whatsapp: p.supplier_whatsapp || (p.supplier && (p.supplier.whatsapp || p.supplier.phone)) || '',
           price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
@@ -766,13 +769,14 @@
           stock: p.stock_quantity || 500,
           unit: p.unit || "Pieces",
           image: p.image_url || "assets/images/logo.png",
-          badge: "VERIFIED PRO",
+          badge: (p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? "Paid Trusted" : "VERIFIED PRO",
+          is_paid_trusted: !!(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)),
           tradeAssurance: true,
           responseTime: "Active"
         }));
       }
 
-      try { localStorage.removeItem('flenko_seller_products'); } catch(e) {}
+      
 
       // Register any custom categories present in products
       allProducts.forEach(p => {
@@ -1036,11 +1040,11 @@
 
               <div class="flenko-supplier-meta">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
-                  <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" style="font-weight:600; color:#0284c7; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; display:inline-flex; align-items:center; gap:3px;" title="View Supplier Storefront & Products">
+                  <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" style="font-weight:600; color:#0284c7; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; display:inline-flex; align-items:center; gap:3px;" title="View Supplier Storefront & Products">
                     ${p.flag || '📍'} ${p.supplier ? p.supplier.name : 'Supplier'}
                     ${(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? `<span title="Paid Trusted Supplier" style="color:#d97706; font-size:0.75rem;">🛡️</span>` : ''}
                   </a>
-                  <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || 1}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
+                  <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
                     #FLK-SUP-${p.supplier_id || 1}
                   </a>
                 </div>
