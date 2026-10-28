@@ -342,7 +342,7 @@
               user_id: res.user ? res.user.id : 101,
               is_verified: true
             };
-            localStorage.setItem('flenko_seller_profile', JSON.stringify(fullBiz));
+            if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(fullBiz)); else localStorage.setItem('flenko_seller_profile', JSON.stringify(fullBiz));
             
             const userObj = res.user || {};
             userObj.business = fullBiz;

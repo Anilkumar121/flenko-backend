@@ -433,7 +433,7 @@
             // Persist locally
             const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
             localSeller.logo_url = (res && res.logo_url) ? res.logo_url : compressedDataUrl;
-            localStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller));
+            if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller)); else if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller)); else localStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller));
 
             const u = auth.getUser() || {};
             u.business = { ...(u.business || {}), ...localSeller };

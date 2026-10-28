@@ -293,6 +293,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       if (!auth.getToken()) return window.location.href = 'login.html';
+      if (window.flenkoSafeStorage) { window.flenkoSafeStorage.cleanupExpendables(); }
       
       const loggedUser = auth.getUser() || {};
       currentUserId = loggedUser.id || 1;
@@ -360,8 +361,8 @@
       }
     });
 
-    // Fast canvas image compression to guarantee smooth storage (<50KB)
-    function compressImage(file, maxWidth = 350, maxHeight = 350, quality = 0.88) {
+    // Fast canvas image compression to guarantee lightweight storage (<35KB)
+    function compressImage(file, maxWidth = 220, maxHeight = 220, quality = 0.70) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -377,7 +378,7 @@
             } else {
               if (height > maxHeight) {
                 width = Math.round((width * maxHeight) / height);
-                height = maxHeight;
+                width = maxHeight;
               }
             }
             const canvas = document.createElement('canvas');
@@ -387,7 +388,9 @@
             ctx.drawImage(img, 0, 0, width, height);
             resolve(canvas.toDataURL('image/jpeg', quality));
           };
-          img.onerror = () => resolve(e.target.result);
+          img.onerror = () => {
+            resolve(e.target.result && e.target.result.length < 50000 ? e.target.result : null);
+          };
           img.src = e.target.result;
         };
         reader.onerror = () => resolve(null);
@@ -400,16 +403,13 @@
       const file = e.target.files[0];
       if (file) {
         try {
-          const compressed = await compressImage(file, 350, 350, 0.88);
-          selectedLogoDataUrl = compressed;
-          document.getElementById('logoPreview').src = compressed;
+          const compressed = await compressImage(file, 220, 220, 0.70);
+          if (compressed) {
+            selectedLogoDataUrl = compressed;
+            document.getElementById('logoPreview').src = compressed;
+          }
         } catch(err) {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            selectedLogoDataUrl = ev.target.result;
-            document.getElementById('logoPreview').src = selectedLogoDataUrl;
-          };
-          reader.readAsDataURL(file);
+          console.warn('Image compression fallback:', err);
         }
       }
     });
@@ -476,35 +476,49 @@
           return;
         }
         
-        // Save persistently to local seller profile
-        const currentProfile = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-        currentProfile.company_name = compName;
-        currentProfile.gst_number = gstNum;
-        currentProfile.business_type = bType;
-        currentProfile.category = bCat;
-        currentProfile.city = bCity;
-        currentProfile.country = bCountry;
-        currentProfile.about = bAbout;
-        currentProfile.address = addr;
-        currentProfile.year_est = yearEst;
-        currentProfile.phone = bPhone;
-        currentProfile.whatsapp = bWa;
-        if (selectedLogoDataUrl) {
-          currentProfile.logo_url = selectedLogoDataUrl;
-        } else if (data && data.logo_url) {
-          currentProfile.logo_url = data.logo_url;
-        }
-        if (data && data.business) {
-          Object.assign(currentProfile, data.business);
-        }
-        localStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
+        // Save persistently to local seller profile safely without throwing quota error
+        try {
+          const currentProfile = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+          currentProfile.company_name = compName;
+          currentProfile.gst_number = gstNum;
+          currentProfile.business_type = bType;
+          currentProfile.category = bCat;
+          currentProfile.city = bCity;
+          currentProfile.country = bCountry;
+          currentProfile.about = bAbout;
+          currentProfile.address = addr;
+          currentProfile.year_est = yearEst;
+          currentProfile.phone = bPhone;
+          currentProfile.whatsapp = bWa;
+          
+          if (data && (data.logo_url || (data.business && data.business.logo_url))) {
+            currentProfile.logo_url = data.logo_url || data.business.logo_url;
+          } else if (selectedLogoDataUrl && selectedLogoDataUrl.length < 50000) {
+            currentProfile.logo_url = selectedLogoDataUrl;
+          }
 
-        const user = auth.getUser() || {};
-        user.name = compName;
-        user.company_name = compName;
-        user.city = bCity;
-        user.business = { ...(user.business || {}), ...currentProfile };
-        auth.setUser(user);
+          if (data && data.business) {
+            Object.assign(currentProfile, data.business);
+            if (currentProfile.logo_url && currentProfile.logo_url.startsWith('data:image') && currentProfile.logo_url.length > 50000) {
+              currentProfile.logo_url = '';
+            }
+          }
+
+          if (window.flenkoSafeStorage) {
+            window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
+          } else {
+            localStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
+          }
+
+          const user = auth.getUser() || {};
+          user.name = compName;
+          user.company_name = compName;
+          user.city = bCity;
+          user.business = { ...(user.business || {}), ...currentProfile };
+          auth.setUser(user);
+        } catch(storeErr) {
+          console.warn('[Storage Quota Managed] Local storage write notice:', storeErr);
+        }
 
         // Auto sync seller session with server to survive container reboots and update Google Sheets
         try {
@@ -516,8 +530,8 @@
         resText.style.color = '#16a34a';
         resText.innerText = '✅ Profile & Storefront Saved Successfully!';
         if (statusIndicator) statusIndicator.style.display = 'inline-block';
-        if (currentProfile.logo_url) {
-          document.getElementById('logoPreview').src = currentProfile.logo_url;
+        if (selectedLogoDataUrl || (data && (data.logo_url || (data.business && data.business.logo_url)))) {
+          document.getElementById('logoPreview').src = selectedLogoDataUrl || (data && (data.logo_url || (data.business && data.business.logo_url)));
         }
       } catch (err) {
         console.error('Error saving profile:', err);

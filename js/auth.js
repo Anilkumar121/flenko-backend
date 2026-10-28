@@ -16,7 +16,91 @@ window.API_FALLBACK = (window.location.hostname === 'localhost' || window.locati
   ? 'http://localhost:3000/api' 
   : (window.location.protocol === 'file:' ? 'https://flenko-backend.onrender.com/api' : '/api');
 
+// Quota-Safe LocalStorage Manager: Prevents QuotaExceededError across all browsers
+const flenkoSafeStorage = {
+  cleanupExpendables() {
+    const keysToPurge = [
+      'flenko_public_products_cache',
+      'flenko_cached_leads',
+      'flenko_temp_preview',
+      'flenko_custom_categories'
+    ];
+    keysToPurge.forEach(k => {
+      try { localStorage.removeItem(k); } catch(e) {}
+    });
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('flenko_temp') || key.startsWith('flenko_cache'))) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch(e) {}
+  },
+  stripHeavyImages(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    try {
+      const cloned = Array.isArray(obj) ? [...obj] : { ...obj };
+      for (const k in cloned) {
+        if (typeof cloned[k] === 'string' && cloned[k].startsWith('data:image') && cloned[k].length > 30000) {
+          cloned[k] = ''; // Remove oversized local base64 to save storage
+        } else if (typeof cloned[k] === 'object' && cloned[k] !== null) {
+          cloned[k] = this.stripHeavyImages(cloned[k]);
+        }
+      }
+      return cloned;
+    } catch(e) {
+      return obj;
+    }
+  },
+  setItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (err) {
+      const isQuota = err && (
+        err.name === 'QuotaExceededError' || 
+        err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || 
+        (err.message && err.message.toLowerCase().includes('quota'))
+      );
+      if (isQuota) {
+        console.warn(`[SafeStorage] LocalStorage quota exceeded while setting "${key}". Auto-recovering...`);
+        this.cleanupExpendables();
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (retryErr) {
+          // If still failing, strip heavy base64 images if value is JSON
+          try {
+            const parsed = JSON.parse(value);
+            const sanitized = this.stripHeavyImages(parsed);
+            localStorage.setItem(key, JSON.stringify(sanitized));
+            return true;
+          } catch(stripErr) {
+            console.warn(`[SafeStorage] Could not store "${key}" even after image stripping:`, stripErr);
+          }
+        }
+      }
+      return false;
+    }
+  },
+  getItem(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch(e) {
+      return null;
+    }
+  },
+  removeItem(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch(e) {}
+  }
+};
+window.flenkoSafeStorage = flenkoSafeStorage;
+
 const auth = {
+  safeStorage: flenkoSafeStorage,
   async fetchWithFallback(urlPath, options = {}) {
     const primary = window.API_BASE || 'https://flenko-backend.onrender.com/api';
     const fallback = window.API_FALLBACK || primary;
@@ -55,7 +139,7 @@ const auth = {
     }
   },
   setToken(token) {
-    localStorage.setItem('flenko_token', token);
+    flenkoSafeStorage.setItem('flenko_token', token);
   },
   getToken() {
     return localStorage.getItem('flenko_token');
@@ -64,7 +148,9 @@ const auth = {
     return !!this.getToken();
   },
   setUser(user) {
-    localStorage.setItem('flenko_user', JSON.stringify(user));
+    if (!user) return;
+    const cleanUser = flenkoSafeStorage.stripHeavyImages(user);
+    flenkoSafeStorage.setItem('flenko_user', JSON.stringify(cleanUser));
   },
   getUser() {
     try {
@@ -118,11 +204,15 @@ const auth = {
       console.warn('Network save business profile failed:', e);
     }
 
-    // Always mirror confirmed business to local storage so profile edits and logo never get lost
+    // Always mirror confirmed business to local storage safely so profile edits never get lost
     try {
       const bObj = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
       for (let [k, v] of formData.entries()) {
-        if (typeof v === 'string') bObj[k] = v;
+        if (typeof v === 'string') {
+          // If this is a huge data URI, skip storing raw base64 locally
+          if (k === 'logo_url' && v.startsWith('data:image') && v.length > 30000) continue;
+          bObj[k] = v;
+        }
       }
       if (resData && resData.business) {
         Object.assign(bObj, resData.business);
@@ -134,7 +224,7 @@ const auth = {
       if (bObj.company_name && /^\d+$/.test(bObj.company_name.trim())) {
         delete bObj.company_name;
       }
-      localStorage.setItem('flenko_seller_profile', JSON.stringify(bObj));
+      flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(flenkoSafeStorage.stripHeavyImages(bObj)));
       const u = this.getUser() || {};
       u.business = { ...(u.business || {}), ...bObj };
       if (bObj.company_name) {
@@ -143,7 +233,7 @@ const auth = {
       }
       this.setUser(u);
 
-      // Also update this user in flenko_registered_users list
+      // Also update this user in flenko_registered_users list without heavy base64
       try {
         let rList = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
         const uPhone10 = (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
@@ -157,7 +247,7 @@ const auth = {
             rList[idx].company_name = bObj.company_name;
           }
           if (bObj.city) rList[idx].city = bObj.city;
-          localStorage.setItem('flenko_registered_users', JSON.stringify(rList));
+          flenkoSafeStorage.setItem('flenko_registered_users', JSON.stringify(flenkoSafeStorage.stripHeavyImages(rList)));
         }
       } catch(e) {}
     } catch(e) {}
@@ -190,7 +280,7 @@ const auth = {
       } else {
         list.push(user);
       }
-      localStorage.setItem('flenko_registered_users', JSON.stringify(list));
+      flenkoSafeStorage.setItem('flenko_registered_users', JSON.stringify(flenkoSafeStorage.stripHeavyImages(list)));
 
       // Asynchronously sync to server database in background
       if (user.password) {
@@ -511,7 +601,7 @@ const auth = {
             for (const [k, v] of Object.entries(data.user.business)) {
               if (v !== null && v !== undefined && v !== '') merged[k] = v;
             }
-            localStorage.setItem('flenko_seller_profile', JSON.stringify(merged));
+            flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(flenkoSafeStorage.stripHeavyImages(merged)));
           } catch(e) {}
         }
       }
@@ -550,9 +640,9 @@ const auth = {
       products = (data && data.products) ? data.products : [];
 
       if (products.length > 0) {
-        // Cache locally for offline and spin-down persistence
+        // Cache locally for offline and spin-down persistence safely
         try {
-          localStorage.setItem(cacheKey, JSON.stringify(products));
+          flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(products)));
         } catch(e) {}
       } else {
         // If server returned 0 products, check if we have cached products from previous sessions
@@ -575,7 +665,7 @@ const auth = {
             const syncData = await syncRes.json();
             if (syncData && syncData.products && syncData.products.length > 0) {
               products = syncData.products;
-              localStorage.setItem(cacheKey, JSON.stringify(products));
+              flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(products)));
             } else {
               products = cached;
             }
@@ -617,7 +707,7 @@ const auth = {
         if (resData.product) {
           cached = cached.filter(p => p.id !== resData.product.id && p.name !== resData.product.name);
           cached.unshift(resData.product);
-          localStorage.setItem(cacheKey, JSON.stringify(cached));
+          flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
         }
       } catch(e) {}
       return resData;
@@ -654,7 +744,7 @@ const auth = {
           } else {
             cached.unshift(resData.product);
           }
-          localStorage.setItem(cacheKey, JSON.stringify(cached));
+          flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
         }
       } catch(e) {}
       return resData;
@@ -678,7 +768,7 @@ const auth = {
       const cacheKey = `flenko_seller_products_${user.id || user.phone || 'default'}`;
       let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
       cached = cached.filter(p => p.id != id);
-      localStorage.setItem(cacheKey, JSON.stringify(cached));
+      flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
     } catch(e) {}
 
     return resData || { success: true };

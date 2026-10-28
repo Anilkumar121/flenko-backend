@@ -730,7 +730,13 @@
       }
 
       if (rawList && rawList.length > 0) {
-        try { localStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList)); } catch(e) {}
+        try {
+          if (window.flenkoSafeStorage) {
+            window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList));
+          } else {
+            localStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList));
+          }
+        } catch(e) {}
       } else {
         try {
           const cached = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
