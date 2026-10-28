@@ -289,9 +289,13 @@
         });
       } catch(e) {}
 
-      // Check URL query parameters (e.g. ?cat=Industrial+Machinery)
+      // Check URL query parameters (e.g. ?cat=Industrial+Machinery or ?q=drilling)
       const urlParams = new URLSearchParams(window.location.search);
       const initialCat = urlParams.get('cat') || '';
+      const initialQ = urlParams.get('q') || '';
+      if (initialQ) {
+        searchInput.value = initialQ;
+      }
       if (initialCat) {
         catSelect.value = initialCat;
         catPills.forEach(p => {

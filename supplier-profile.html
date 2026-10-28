@@ -196,14 +196,16 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Primary Business Category *</label>
-                <select id="bizCategory" class="form-control" required style="font-weight:600;">
-                  <option value="" disabled selected>Select Primary Category...</option>
+                <label class="form-label">Primary Business Category * <small style="color:#028867; font-weight:600;">(Choose or type custom industry)</small></label>
+                <input type="text" id="bizCategory" list="bizCategoryList" class="form-control" required style="font-weight:600;" placeholder="Select or type primary industry (e.g. Construction & Real Estate, IT & Telecom...)">
+                <datalist id="bizCategoryList">
+                  <option value="Construction & Real Estate">🏗️ Construction & Real Estate / Materials</option>
+                  <option value="Building & Construction">🏗️ Building & Construction Materials</option>
                   <option value="Industrial Machinery">⚙️ Industrial Machinery & Equipment</option>
                   <option value="Electrical & Electronics">⚡ Electrical & Electronics</option>
+                  <option value="IT & Telecom">💻 IT, Telecom & Software</option>
                   <option value="Packaging & Printing">📦 Packaging, Printing & Paper</option>
                   <option value="Chemicals & Dyes">🧪 Chemicals, Polymers & Dyes</option>
-                  <option value="Building & Construction">🏗️ Building & Construction Materials</option>
                   <option value="Medical & Pharma">💊 Medical, Healthcare & Pharma</option>
                   <option value="Textiles & Apparel">🧵 Textiles, Fabrics & Garments</option>
                   <option value="Agriculture & Food">🌾 Agriculture, Food & Bulk Produce</option>
@@ -213,11 +215,11 @@
                   <option value="Furniture & Decor">🛋️ Furniture & Commercial Decor</option>
                   <option value="Beauty & Personal Care">🧴 Beauty & Personal Care</option>
                   <option value="Hardware & Tools">🔧 Hardware, Fasteners & Tools</option>
-                  <option value="IT & Telecom">💻 IT, Telecom & Software</option>
                   <option value="Safety & Security">🛡️ Safety, Security & Protection</option>
                   <option value="Gifts & Sports">🧸 Gifts, Handicrafts & Sports</option>
                   <option value="Logistics & Shipping">🚢 Logistics, Freight & Cargo</option>
-                </select>
+                  <option value="General B2B">🏢 General B2B Services</option>
+                </datalist>
               </div>
             </div>
 
@@ -460,6 +462,13 @@
         }
 
         const data = await auth.saveBusinessProfile(formData);
+        if (data && data.error) {
+          resText.style.color = '#ef4444';
+          resText.innerText = '❌ Failed to save: ' + (data.error || 'Server error');
+          btn.disabled = false;
+          btn.innerText = 'Save Profile Details';
+          return;
+        }
         
         // Save persistently to local seller profile
         const currentProfile = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
@@ -478,6 +487,9 @@
           currentProfile.logo_url = selectedLogoDataUrl;
         } else if (data && data.logo_url) {
           currentProfile.logo_url = data.logo_url;
+        }
+        if (data && data.business) {
+          Object.assign(currentProfile, data.business);
         }
         localStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
 
@@ -503,8 +515,8 @@
         }
       } catch (err) {
         console.error('Error saving profile:', err);
-        resText.style.color = '#16a34a';
-        resText.innerText = '✅ Profile details saved locally & queued!';
+        resText.style.color = '#ef4444';
+        resText.innerText = '❌ Error saving profile: ' + (err.message || 'Please check connection');
       } finally {
         btn.disabled = false;
         btn.innerText = 'Save Profile Details';

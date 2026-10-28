@@ -370,9 +370,11 @@
       </a>
 
       <!-- Flenko Search Box -->
-      <form class="flenko-search-box" action="products.html" method="GET">
-        <select class="search-type-select" name="type">
-          <option value="products">Products</option>
+      <form class="flenko-search-box" action="products.html" method="GET" id="productsSearchForm">
+        <select class="search-type-select" name="type" id="pageSearchType">
+          <option value="all">All</option>
+          <option value="products" selected>Products</option>
+          <option value="services">Services</option>
           <option value="suppliers">Suppliers</option>
         </select>
         
@@ -742,12 +744,25 @@
         return match ? match.flag : (cName === 'United States' ? '🇺🇸' : (cName === 'Germany' ? '🇩🇪' : (cName === 'China' ? '🇨🇳' : (cName === 'United Arab Emirates' ? '🇦🇪' : '🇮🇳'))));
       };
 
+      function isServiceListing(item) {
+        if (!item) return false;
+        if (item.is_service === true || item.is_service === 'true' || item.is_service === 1 || item.is_service === '1') return true;
+        const text = [item.name, item.category, item.seo_tags, item.description, item.unit].filter(Boolean).join(' ').toLowerCase();
+        const serviceWords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy', 'package', 'work'];
+        const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
+        const u = (item.unit || '').toLowerCase().trim();
+        return serviceUnits.includes(u) || serviceWords.some(w => text.includes(w));
+      }
+
       if (rawList && rawList.length > 0) {
         allProducts = rawList.map(p => ({
           id: p.id,
           name: p.name,
           slug: p.slug || '',
           category: p.category || "General B2B",
+          is_service: isServiceListing(p),
+          description: p.description || '',
+          seo_tags: p.seo_tags || '',
           country: p.country || "India",
           flag: getCountryFlag(p.country || "India"),
           years: "Verified",
@@ -776,8 +791,6 @@
         }));
       }
 
-      
-
       // Register any custom categories present in products
       allProducts.forEach(p => {
         if (p.category && window.registerCustomCategory) {
@@ -794,6 +807,12 @@
       const countryParam = urlParams.get('country');
       const featParam = urlParams.get('feature');
       const filterParam = urlParams.get('filter');
+      const typeParam = urlParams.get('type') || 'all';
+
+      const pageSearchType = document.getElementById("pageSearchType");
+      if (pageSearchType && typeParam) {
+        pageSearchType.value = typeParam;
+      }
 
       if (qParam) searchQueryInput.value = qParam;
       if (featParam === 'trade_assurance') {
@@ -827,11 +846,51 @@
         headerCountryPicker.selectCountry(FLENKO_COUNTRIES[0]);
       }
 
+      // Re-render categories including custom categories found in live products
+      renderCategorySidebar(catParam || '');
+
       // Event listeners
       checkVerified.addEventListener("change", applyFilters);
       checkTrade.addEventListener("change", applyFilters);
       document.getElementById("btnApplyMoq").addEventListener("click", applyFilters);
       sortSelector.addEventListener("change", applyFilters);
+      if (pageSearchType) {
+        pageSearchType.addEventListener("change", () => {
+          if (pageSearchType.value === 'suppliers') {
+            const q = searchQueryInput.value.trim();
+            window.location.href = `business-directory.html${q ? '?q=' + encodeURIComponent(q) : ''}`;
+            return;
+          }
+          applyFilters();
+        });
+      }
+
+      // Real-time instant search as user types
+      let searchDebounceTimer = null;
+      searchQueryInput.addEventListener("input", () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+          applyFilters();
+          const qVal = searchQueryInput.value.trim();
+          const newUrl = new URL(window.location.href);
+          if (qVal) newUrl.searchParams.set('q', qVal);
+          else newUrl.searchParams.delete('q');
+          window.history.replaceState({}, '', newUrl.toString());
+        }, 120);
+      });
+
+      const searchFormEl = document.getElementById("productsSearchForm");
+      if (searchFormEl) {
+        searchFormEl.addEventListener("submit", (e) => {
+          e.preventDefault();
+          if (pageSearchType && pageSearchType.value === 'suppliers') {
+            const q = searchQueryInput.value.trim();
+            window.location.href = `business-directory.html${q ? '?q=' + encodeURIComponent(q) : ''}`;
+            return;
+          }
+          applyFilters();
+        });
+      }
 
       document.getElementById("catFilterInput").addEventListener("input", (e) => {
         const q = e.target.value.toLowerCase().trim();
@@ -841,6 +900,29 @@
           l.style.display = l.textContent.toLowerCase().includes(q) ? "flex" : "none";
         });
       });
+
+      // Semantic Category Matcher with Aliases
+      function isCategoryMatch(pCategory, selectedCategory) {
+        if (!selectedCategory) return true;
+        const pCat = (pCategory || '').toLowerCase().trim();
+        const sCat = selectedCategory.toLowerCase().trim();
+        if (!pCat) return false;
+        if (pCat === sCat || pCat.includes(sCat) || sCat.includes(pCat)) return true;
+
+        const isConstructionSel = /construction|building|real estate|demolition|fabrication|civil/i.test(sCat);
+        const isConstructionProd = /construction|building|real estate|demolition|fabrication|civil|cement|anchoring|drilling|shoring|barricading/i.test(pCat);
+        if (isConstructionSel && isConstructionProd) return true;
+
+        const isItSel = /it|telecom|software|website|web/i.test(sCat);
+        const isItProd = /it|telecom|software|website|web/i.test(pCat);
+        if (isItSel && isItProd) return true;
+
+        const isMachinerySel = /machinery|equipment|industrial/i.test(sCat);
+        const isMachineryProd = /machinery|equipment|industrial|milling|lathe/i.test(pCat);
+        if (isMachinerySel && isMachineryProd) return true;
+
+        return false;
+      }
 
       // Dynamic SEO Title & Meta Description based on Query, Category, or Country
       function updateDynamicSEO(q, cat, country) {
@@ -917,23 +999,52 @@
         const tradeOnly = checkTrade.checked;
         const maxMoq = parseFloat(maxMoqInput.value) || 0;
         const sortVal = sortSelector.value;
+        const curType = pageSearchType ? pageSearchType.value : 'all';
 
         let filtered = allProducts.filter(p => {
-          if (q) {
-            const m1 = p.name && p.name.toLowerCase().includes(q);
-            const m2 = p.category && p.category.toLowerCase().includes(q);
-            const m3 = p.supplier && p.supplier.name && p.supplier.name.toLowerCase().includes(q);
-            if (!m1 && !m2 && !m3) return false;
-          }
+          // 1. Search Type filter (all, products, services)
+          if (curType === 'services' && !p.is_service) return false;
+          if (curType === 'products' && p.is_service) return false;
 
-          if (selCat) {
-            const pCat = (p.category || '').toLowerCase();
-            const sCat = selCat.toLowerCase();
-            if (pCat !== sCat && !pCat.includes(sCat) && !sCat.includes(pCat)) {
-              return false;
+          // 2. Query Search with Multi-Token & Service Detection
+          if (q) {
+            const isPureServiceQuery = /^(service|services|all services|b2b services|contractor|contractors|work)$/i.test(q);
+            if (isPureServiceQuery) {
+              if (!p.is_service) return false;
+            } else {
+              const words = q.split(/[\s,+/_-]+/).filter(w => w.length > 0);
+              const textHaystack = [
+                p.name,
+                p.category,
+                p.seo_tags,
+                p.description,
+                p.unit,
+                p.supplier && p.supplier.name,
+                p.supplier && p.supplier.location
+              ].filter(Boolean).join(' ').toLowerCase();
+
+              const allWordsMatch = words.every(word => {
+                if (/^(service|services|contractor|contractors|work|solutions|firm|provider)$/i.test(word)) {
+                  if (p.is_service || textHaystack.includes(word)) return true;
+                }
+                if (textHaystack.includes(word)) return true;
+                if (word === 'construction' && /building|real estate|drilling|anchoring|fabrication|demolition|shoring|barricading/i.test(textHaystack)) return true;
+                if (word === 'building' && /construction|real estate|structure|office|house|mall/i.test(textHaystack)) return true;
+                if (word === 'interior' && /design|drawing room|kitchen|office/i.test(textHaystack)) return true;
+                if ((word === 'software' || word === 'it' || word === 'website') && /web|telecom|development|starter package/i.test(textHaystack)) return true;
+                return false;
+              });
+
+              if (!allWordsMatch) return false;
             }
           }
 
+          // 3. Category Filter
+          if (selCat && !isCategoryMatch(p.category, selCat)) {
+            return false;
+          }
+
+          // 4. Country Filter
           if (selCountry && selCountry.code !== 'ALL') {
             const targetName = (selCountry.name || '').toLowerCase();
             const targetCode = (selCountry.code || '').toLowerCase();
@@ -964,11 +1075,11 @@
         else if (sortVal === 'price_high') filtered.sort((a,b) => (b.price || 0) - (a.price || 0));
         else if (sortVal === 'moq_low') filtered.sort((a,b) => a.moq - b.moq);
 
-        renderList(filtered, { q, selCat, selCountry });
+        renderList(filtered, { q, selCat, selCountry, curType });
       }
 
       function renderList(products, filters) {
-        resultsSubText.textContent = `Showing ${products.length} verified products with direct factory pricing`;
+        resultsSubText.textContent = `Showing ${products.length} verified listings with direct factory pricing`;
         filterCountLabel.textContent = `${products.length} items`;
         document.getElementById("mobileBadge").textContent = filters.selCat || (filters.selCountry.code !== 'ALL' ? filters.selCountry.name : 'All Products');
 
@@ -979,6 +1090,7 @@
         // Chips
         let chips = '';
         if (filters.q) chips += `<span class="badge badge-gray">Search: "${filters.q}"</span>`;
+        if (filters.curType && filters.curType !== 'all') chips += `<span class="badge badge-blue">Type: ${filters.curType.toUpperCase()}</span>`;
         if (filters.selCat) chips += `<span class="badge badge-blue">Category: ${filters.selCat}</span>`;
         if (filters.selCountry && filters.selCountry.code !== 'ALL') chips += `<span class="badge badge-teal">Country: ${filters.selCountry.flag} ${filters.selCountry.name}</span>`;
         if (filterRtsActive) chips += `<span class="badge badge-blue">⚡ Ready to Ship</span>`;
@@ -1008,28 +1120,38 @@
           return;
         }
 
-        grid.innerHTML = products.map(p => `
+        grid.innerHTML = products.map(p => {
+          const sPhone = (p.supplier_phone || '').toString().trim();
+          const sWa = (p.supplier_whatsapp || sPhone).toString().trim();
+          const cleanPhoneDigits = sPhone.replace(/[^0-9]/g, '');
+          const cleanWaDigits = sWa.replace(/[^0-9]/g, '');
+          const callUrl = cleanPhoneDigits ? `tel:${cleanPhoneDigits}` : '#';
+          const waText = encodeURIComponent(`Hi, I am interested in '${p.name}' on Flenko. Please share wholesale details.`);
+          const waUrl = cleanWaDigits ? `https://wa.me/${cleanWaDigits.length === 10 ? '91' + cleanWaDigits : cleanWaDigits}?text=${waText}` : '#';
+
+          return `
           <article class="flenko-card">
             <div class="flenko-card-img-wrap">
               <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80'">
               <div style="position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px;">
+                ${p.is_service ? `<span class="badge" style="font-size:0.68rem; padding:2px 7px; background:#0284c7; color:white; font-weight:700; border-radius:4px;">🛠️ Service</span>` : ''}
                 ${(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted) || p.badge === 'Paid Trusted') ? `<span class="badge" style="font-size:0.68rem; padding:2px 7px; background:linear-gradient(135deg, #f59e0b, #d97706); color:white; font-weight:700; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.25);">🛡️ Paid Trusted</span>` : ''}
                 ${p.tradeAssurance ? `<span class="badge badge-trade-assurance" style="font-size:0.68rem; padding:2px 6px;">🛡️ Trade Assurance</span>` : ''}
-                ${(p.badge && p.badge !== 'Paid Trusted') ? `<span class="badge badge-verified-pro" style="font-size:0.68rem; padding:2px 6px;">${p.badge}</span>` : ''}
+                ${(!p.is_service && p.badge && p.badge !== 'Paid Trusted') ? `<span class="badge badge-verified-pro" style="font-size:0.68rem; padding:2px 6px;">${p.badge}</span>` : ''}
               </div>
             </div>
             
             <div class="flenko-card-body">
               <div class="flenko-card-price" style="min-height:28px; display:flex; align-items:center;" onclick="openProductInquiry('${p.id}')">
                 ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
-                  ? `${formatPriceRange(p)} <small style="font-size:0.75rem; font-weight:normal; color:#64748b; margin-left:4px;">/ ${p.unit || 'Pieces'}</small>`
-                  : formatPriceRange(p)
+                  ? `${formatPriceRange(p)} <small style="font-size:0.75rem; font-weight:normal; color:#64748b; margin-left:4px;">/ ${p.unit || (p.is_service ? 'Project' : 'Pieces')}</small>`
+                  : (p.is_service ? '<span style="color:#0284c7; font-weight:700;">Quote on Request</span>' : formatPriceRange(p))
                 }
               </div>
               
               <div class="flenko-card-moq" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>Min. order: <strong>${p.moq} ${p.unit}</strong></span>
-                <span style="color:#028867; font-weight:600; font-size:0.72rem;">✓ ${p.stock || 500} ${p.unit} In Stock</span>
+                <span>${p.is_service ? 'Scope: <strong>Custom Project</strong>' : `Min. order: <strong>${p.moq} ${p.unit}</strong>`}</span>
+                <span style="color:#028867; font-weight:600; font-size:0.72rem;">✓ ${p.is_service ? 'Verified Service' : `${p.stock || 500} ${p.unit} In Stock`}</span>
               </div>
 
               <a href="${p.slug ? `/products/${p.slug}` : `/products/${p.id}`}" style="text-decoration:none; color:inherit;">
@@ -1057,7 +1179,7 @@
 
               <!-- Direct Quick Call & WhatsApp Buttons -->
               <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.4rem; margin-top:0.65rem;">
-                ${sPhone ? `
+                ${cleanPhoneDigits ? `
                   <a href="${callUrl}" class="btn" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; padding:0.42rem 0.3rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:3px; border-radius:6px;" title="Direct Call Supplier">
                     📞 Call
                   </a>
@@ -1071,11 +1193,12 @@
                 `}
               </div>
               <button class="btn btn-orange" style="width:100%; padding:0.42rem 0.5rem; font-size:0.78rem; margin-top:0.35rem; font-weight:700;" onclick="openProductInquiry('${p.id}')">
-                ✉️ Send Wholesale RFQ
+                ${p.is_service ? '✉️ Request Service Quote' : '✉️ Send Wholesale RFQ'}
               </button>
             </div>
           </article>
-        `).join("");
+          `;
+        }).join("");
       }
 
       window.openProductInquiry = function(id) {

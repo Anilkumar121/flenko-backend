@@ -118,11 +118,14 @@ const auth = {
       console.warn('Network save business profile failed:', e);
     }
 
-    // Always mirror to local storage so profile edits and logo never get lost
+    // Always mirror confirmed business to local storage so profile edits and logo never get lost
     try {
       const bObj = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
       for (let [k, v] of formData.entries()) {
         if (typeof v === 'string') bObj[k] = v;
+      }
+      if (resData && resData.business) {
+        Object.assign(bObj, resData.business);
       }
       if (resData && resData.logo_url) {
         bObj.logo_url = resData.logo_url;
@@ -501,6 +504,16 @@ const auth = {
       const data = await res.json();
       if (data && data.user) {
         this.setUser(data.user);
+        if (data.user.business) {
+          try {
+            const curP = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+            const merged = { ...curP };
+            for (const [k, v] of Object.entries(data.user.business)) {
+              if (v !== null && v !== undefined && v !== '') merged[k] = v;
+            }
+            localStorage.setItem('flenko_seller_profile', JSON.stringify(merged));
+          } catch(e) {}
+        }
       }
       return data;
     } catch(e) {

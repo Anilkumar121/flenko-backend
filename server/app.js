@@ -1050,18 +1050,45 @@ app.post('/api/auth/sync-seller-session', async (req, res) => {
       }
     }
 
-    // 2. Ensure Business exists & is updated
+    // 2. Ensure Business exists & is updated safely without overwriting non-empty fields with blanks
     if (business && targetUserId) {
       const bRes = await db.query('SELECT id FROM businesses WHERE user_id = $1', [targetUserId]);
       if (bRes.rows && bRes.rows.length > 0) {
         await db.query(
-          'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10 WHERE user_id = $11',
-          [cleanCompName, business.gst_number || '', business.business_type || 'Manufacturer & Wholesaler', business.address || '', business.city || 'Industrial Hub', business.category || 'General B2B', business.logo_url || null, business.country || 'India', business.about || '', business.year_est || '', targetUserId]
+          `UPDATE businesses SET 
+            company_name = COALESCE(NULLIF($1, ''), company_name),
+            gst_number = COALESCE(NULLIF($2, ''), gst_number),
+            business_type = COALESCE(NULLIF($3, ''), business_type),
+            address = COALESCE(NULLIF($4, ''), address),
+            city = COALESCE(NULLIF($5, ''), city),
+            category = CASE WHEN $6 != '' AND $6 != 'General B2B' THEN $6 ELSE category END,
+            logo_url = COALESCE(NULLIF($7, ''), logo_url),
+            country = COALESCE(NULLIF($8, ''), country),
+            about = COALESCE(NULLIF($9, ''), about),
+            year_est = COALESCE(NULLIF($10, ''), year_est),
+            phone = COALESCE(NULLIF($11, ''), phone),
+            whatsapp = COALESCE(NULLIF($12, ''), whatsapp)
+          WHERE user_id = $13`,
+          [
+            cleanCompName,
+            business.gst_number || '',
+            business.business_type || '',
+            business.address || '',
+            business.city || '',
+            business.category || '',
+            business.logo_url || '',
+            business.country || '',
+            business.about || '',
+            business.year_est || '',
+            cleanPhone || business.phone || '',
+            business.whatsapp || cleanPhone || '',
+            targetUserId
+          ]
         );
       } else {
         await db.query(
-          'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est, is_verified) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
-          [targetUserId, cleanCompName, business.gst_number || '', business.business_type || 'Manufacturer & Wholesaler', business.address || '', business.city || 'Industrial Hub', business.category || 'General B2B', business.logo_url || null, business.country || 'India', business.about || '', business.year_est || '', true]
+          'INSERT INTO businesses (user_id, company_name, gst_number, business_type, address, city, category, logo_url, country, about, year_est, is_verified, phone, whatsapp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
+          [targetUserId, cleanCompName, business.gst_number || '', business.business_type || 'Manufacturer & Wholesaler', business.address || '', business.city || 'Industrial Hub', business.category || 'General B2B', business.logo_url || null, business.country || 'India', business.about || '', business.year_est || '', true, cleanPhone || business.phone || null, business.whatsapp || cleanPhone || null]
         );
       }
     }
@@ -1563,12 +1590,24 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
     }
 
     // fetch business details
-    const bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [user.id]);
+    let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [user.id]);
     if (bizRes.rows && bizRes.rows.length > 0) {
       user.business = bizRes.rows[0];
-      if (user.business.company_name && /^\d+$/.test(user.business.company_name.trim())) {
-        user.business.company_name = 'Verified Supplier';
+    } else {
+      // Auto-relink business by phone if user_id was desynced
+      const cleanPhone = (user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      if (cleanPhone && cleanPhone.length >= 10) {
+        const phoneBiz = await db.query('SELECT * FROM businesses WHERE phone LIKE $1 OR whatsapp LIKE $1 ORDER BY id DESC LIMIT 1', ['%' + cleanPhone]);
+        if (phoneBiz.rows && phoneBiz.rows.length > 0) {
+          user.business = phoneBiz.rows[0];
+          try {
+            await db.query('UPDATE businesses SET user_id = $1 WHERE id = $2', [user.id, user.business.id]);
+          } catch(relinkErr) {}
+        }
       }
+    }
+    if (user.business && user.business.company_name && /^\d+$/.test(user.business.company_name.trim())) {
+      user.business.company_name = 'Verified Supplier';
     }
 
     // fetch live product count
@@ -1636,16 +1675,32 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
 
   try {
     let targetUserId = req.user.id;
+    const cleanPhoneDigits = (cleanPhone || (req.user && req.user.phone) || '').toString().replace(/[^0-9]/g, '').slice(-10);
+
     // Verify user exists in database to satisfy foreign key constraint
     let userCheck = await db.query('SELECT id, phone, name, city FROM users WHERE id = $1', [targetUserId]);
     if (!userCheck.rows || userCheck.rows.length === 0) {
-      const cleanP = (req.user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
-      try {
-        await db.query(
-          'INSERT INTO users (id, phone, name, role) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
-          [targetUserId, cleanP || ('9' + Date.now().toString().slice(-9)), cleanCompName, 'supplier']
-        );
-      } catch(insErr) {}
+      if (cleanPhoneDigits && cleanPhoneDigits.length >= 10) {
+        const phoneUser = await db.query('SELECT id, phone, name, city FROM users WHERE phone LIKE $1', ['%' + cleanPhoneDigits]);
+        if (phoneUser.rows && phoneUser.rows.length > 0) {
+          targetUserId = phoneUser.rows[0].id;
+          userCheck = phoneUser;
+        }
+      }
+      if (!userCheck.rows || userCheck.rows.length === 0) {
+        try {
+          const insU = await db.query(
+            'INSERT INTO users (id, phone, name, role) VALUES ($1, $2, $3, $4) ON CONFLICT (phone) DO UPDATE SET name = $3 RETURNING id, phone, name, city',
+            [targetUserId, cleanPhone ? ('+91' + cleanPhoneDigits) : ('9' + Date.now().toString().slice(-9)), cleanCompName, 'supplier']
+          );
+          if (insU.rows && insU.rows[0]) {
+            targetUserId = insU.rows[0].id;
+            userCheck = insU;
+          }
+        } catch(insErr) {
+          console.warn('User auto-upsert in businesses notice:', insErr.message);
+        }
+      }
     }
 
     const finalCity = city || (userCheck.rows && userCheck.rows[0] ? userCheck.rows[0].city : 'Industrial Hub') || 'Industrial Hub';
@@ -1657,8 +1712,17 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
       await db.query('UPDATE users SET name = COALESCE($1, name), city = COALESCE($2, city) WHERE id = $3', [cleanCompName, finalCity, targetUserId]);
     } catch(e) {}
 
-    // Check if business exists
-    const existing = await db.query('SELECT id, company_name, slug, logo_url, country, about FROM businesses WHERE user_id = $1', [targetUserId]);
+    // Check if business exists by user_id or phone
+    let existing = await db.query('SELECT * FROM businesses WHERE user_id = $1', [targetUserId]);
+    if ((!existing.rows || existing.rows.length === 0) && cleanPhoneDigits && cleanPhoneDigits.length >= 10) {
+      const phoneBiz = await db.query('SELECT * FROM businesses WHERE phone LIKE $1 OR whatsapp LIKE $1 ORDER BY id DESC LIMIT 1', ['%' + cleanPhoneDigits]);
+      if (phoneBiz.rows && phoneBiz.rows.length > 0) {
+        existing = phoneBiz;
+        try {
+          await db.query('UPDATE businesses SET user_id = $1 WHERE id = $2', [targetUserId, existing.rows[0].id]);
+        } catch(e) {}
+      }
+    }
     
     let updatedBusiness = null;
     let supplierSlug = null;
@@ -3003,9 +3067,15 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       image_url
     }, supplierBiz);
 
+    const serviceKeywords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy'];
+    const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
+    const isServiceListing = req.body.is_service === true || req.body.is_service === 'true' || 
+                             serviceUnits.includes((unit || '').toLowerCase().trim()) || 
+                             serviceKeywords.some(kw => (cleanName || '').toLowerCase().includes(kw) || (effectiveCategory || '').toLowerCase().includes(kw));
+
     const newProd = await db.query(
-      'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country, slug, seo_title, seo_description, is_indexed) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
-      [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry, productSlug, meta.title, meta.description, true]
+      'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country, slug, seo_title, seo_description, is_indexed, is_service) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
+      [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry, productSlug, meta.title, meta.description, true, isServiceListing]
     );
 
     // Auto-sync seller product count and products catalog to Google Sheets
@@ -3065,18 +3135,24 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
       slug: productSlug
     });
 
-    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, slug = $8, seo_title = $9, seo_description = $10 WHERE id = $11 RETURNING *';
-    let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productSlug, meta.title, meta.description, productId];
+    const serviceKeywords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy'];
+    const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
+    const isServiceListing = req.body.is_service === true || req.body.is_service === 'true' || 
+                             serviceUnits.includes((unit || '').toLowerCase().trim()) || 
+                             serviceKeywords.some(kw => (cleanName || '').toLowerCase().includes(kw) || (effectiveCategory || '').toLowerCase().includes(kw));
+
+    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, slug = $8, seo_title = $9, seo_description = $10, is_service = $11 WHERE id = $12 RETURNING *';
+    let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productSlug, meta.title, meta.description, isServiceListing, productId];
 
     if (req.file) {
       const dataUri = fileToDataUri(req.file);
       const image_url = dataUri || `${backendHost}/assets/images/products/${req.file.filename}`;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11 WHERE id = $12 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, productId];
+      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11, is_service = $12 WHERE id = $13 RETURNING *';
+      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, isServiceListing, productId];
     } else if (req.body.image_data) {
       const image_url = req.body.image_data;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11 WHERE id = $12 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, productId];
+      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11, is_service = $12 WHERE id = $13 RETURNING *';
+      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, isServiceListing, productId];
     }
 
     const updated = await db.query(updateQuery, params);
