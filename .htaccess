@@ -1,0 +1,148 @@
+# =========================================================================
+# FLENKO B2B MARKETPLACE - HIGH PERFORMANCE APACHE .HTACCESS
+# Built for Maximum Google SEO Crawlability, Clean URLs, Caching & Speed
+# =========================================================================
+
+Options -Indexes +FollowSymLinks
+DirectoryIndex index.html index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Enforce HTTPS (if SSL available)
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 2. XML Sitemaps Handling
+    RewriteRule ^sitemap\.xml$ sitemap.xml [L]
+    RewriteRule ^sitemap-([a-z0-9_-]+)\.xml$ sitemap-$1.xml [L]
+
+    # 3. Clean SEO Product URLs (/products/wholesale-product-slug)
+    RewriteCond %{DOCUMENT_ROOT}/products/$1/index.html -f
+    RewriteRule ^products/([^/]+)/?$ products/$1/index.html [L]
+
+    # 4. Clean SEO Service URLs (/services/service-slug)
+    RewriteCond %{DOCUMENT_ROOT}/services/$1/index.html -f
+    RewriteRule ^services/([^/]+)/?$ services/$1/index.html [L]
+
+    # 5. Clean SEO Supplier Storefront URLs (/suppliers/supplier-slug)
+    RewriteCond %{DOCUMENT_ROOT}/suppliers/$1/index.html -f
+    RewriteRule ^suppliers/([^/]+)/?$ suppliers/$1/index.html [L]
+
+    # 6. Clean SEO Category URLs (/wholesale/category-slug)
+    RewriteCond %{DOCUMENT_ROOT}/wholesale/$1/index.html -f
+    RewriteRule ^wholesale/([^/]+)/?$ wholesale/$1/index.html [L]
+
+    # 7. Fallback Dynamic Routes (If static page not yet pre-rendered)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^suppliers/([^/]+)/?$ supplier-details.html?slug=$1 [L,QSA]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^products/([^/]+)/?$ products.html?q=$1 [L,QSA]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^services/([^/]+)/?$ products.html?type=services&q=$1 [L,QSA]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^wholesale/([^/]+)/?$ products.html?cat=$1 [L,QSA]
+
+    # 8. Clean URL rewrite for standard HTML files (e.g. /products -> /products.html)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+    RewriteRule ^([^/]+)/?$ $1.html [L]
+</IfModule>
+
+# =========================================================================
+# MIME TYPES FOR SEO ASSETS & STRUCTURED DATA
+# =========================================================================
+<IfModule mod_mime.c>
+    AddType application/xml .xml
+    AddType text/xml .xml
+    AddType application/json .json
+    AddType application/ld+json .jsonld
+    AddType image/webp .webp
+    AddType image/svg+xml .svg
+    AddType font/woff2 .woff2
+</IfModule>
+
+# Ensure Sitemaps Always Return Proper Content-Type
+<FilesMatch "\.xml$">
+    <IfModule mod_headers.c>
+        Header set Content-Type "application/xml; charset=UTF-8"
+        Header set X-Robots-Tag "noindex, follow"
+    </IfModule>
+</FilesMatch>
+
+# Allow Robots.txt to be crawled freely
+<Files "robots.txt">
+    <IfModule mod_headers.c>
+        Header set Content-Type "text/plain; charset=UTF-8"
+        Header set X-Robots-Tag "all"
+    </IfModule>
+</Files>
+
+# =========================================================================
+# GZIP / DEFLATE COMPRESSION FOR CORE WEB VITALS (PAGE SPEED)
+# =========================================================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/ld+json
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE font/woff2
+</IfModule>
+
+# =========================================================================
+# BROWSER CACHING HEADERS (EXPIRES)
+# =========================================================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+
+    # HTML pages (revalidate often for fresh listings)
+    ExpiresByType text/html "access plus 1 hour"
+
+    # XML Sitemaps (revalidate daily)
+    ExpiresByType application/xml "access plus 1 day"
+    ExpiresByType text/xml "access plus 1 day"
+
+    # CSS & JavaScript
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType application/x-javascript "access plus 1 week"
+
+    # Images & Fonts
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# =========================================================================
+# SECURITY & CORS HEADERS
+# =========================================================================
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Access-Control-Allow-Origin "*"
+</IfModule>
+
+# Custom Error Pages
+ErrorDocument 404 /products.html

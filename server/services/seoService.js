@@ -204,16 +204,20 @@ function buildProductSchema(product, supplier, canonicalUrl) {
 }
 
 /**
- * JSON-LD Schema: Organization / LocalBusiness
+ * JSON-LD Schema: Organization / LocalBusiness / LegalService
  */
 function buildSupplierSchema(supplier, canonicalUrl) {
+  const isLegal = /advocate|lawyer|attorney|legal|law firm|rera/i.test((supplier.business_type || '') + ' ' + (supplier.company_name || '') + ' ' + (supplier.category || ''));
+  const isAccounting = /chartered accountant|ca audit|tax consultant|income tax/i.test((supplier.business_type || '') + ' ' + (supplier.company_name || ''));
+  const orgType = isLegal ? "LegalService" : (isAccounting ? "AccountingService" : (supplier.business_type === 'Manufacturer' ? "LocalBusiness" : "Organization"));
+
   const schema = {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": orgType,
     "name": supplier.company_name || supplier.name,
     "url": canonicalUrl,
     "logo": (supplier.logo_url && supplier.logo_url.startsWith('http')) ? supplier.logo_url : `${BASE_URL}/assets/images/logo.png`,
-    "description": supplier.about || `${supplier.company_name} is a verified manufacturer and wholesale supplier on Flenko B2B.`,
+    "description": supplier.about || `${supplier.company_name} is a verified ${supplier.business_type || 'business'} on Flenko B2B.`,
     "address": {
       "@type": "PostalAddress",
       "addressLocality": supplier.city || "Industrial Hub",
@@ -223,6 +227,9 @@ function buildSupplierSchema(supplier, canonicalUrl) {
 
   if (supplier.address) {
     schema.address.streetAddress = supplier.address;
+  }
+  if (supplier.phone) {
+    schema.telephone = supplier.phone;
   }
 
   return schema;
@@ -245,22 +252,36 @@ function buildBreadcrumbSchema(items) {
 }
 
 /**
- * JSON-LD Schema: Service
+ * JSON-LD Schema: Service / LegalService / AccountingService
  */
 function buildServiceSchema(service, provider, canonicalUrl) {
-  return {
+  const isLegal = /advocate|lawyer|attorney|legal|court|litigation|law firm|rera/i.test((service.name || '') + ' ' + (service.category || ''));
+  const isAccounting = /chartered accountant|ca audit|tax consultant|income tax|gst filing/i.test((service.name || '') + ' ' + (service.category || ''));
+  const schemaType = isLegal ? "LegalService" : (isAccounting ? "AccountingService" : "Service");
+
+  const schema = {
     "@context": "https://schema.org",
-    "@type": "Service",
+    "@type": schemaType,
     "name": service.name,
     "description": service.description || service.seo_description || `${service.name} offered by ${provider ? provider.company_name : 'Verified Provider'} on Flenko B2B.`,
     "provider": {
-      "@type": "Organization",
+      "@type": isLegal ? "LegalService" : (isAccounting ? "AccountingService" : "Organization"),
       "name": provider ? (provider.company_name || provider.name) : "Verified Provider",
       "url": provider && provider.slug ? `${BASE_URL}/suppliers/${provider.slug}` : BASE_URL
     },
-    "serviceType": service.category || "B2B Business Service",
+    "serviceType": service.category || (isLegal ? "Legal & Advocate Services" : "B2B Business Service"),
     "areaServed": service.country || "India"
   };
+
+  if (provider && provider.city) {
+    schema.provider.address = {
+      "@type": "PostalAddress",
+      "addressLocality": provider.city,
+      "addressCountry": provider.country || "India"
+    };
+  }
+
+  return schema;
 }
 
 /**

@@ -556,6 +556,12 @@ function classifyCategory(name = '', category = '') {
   
   const text = ((name || '') + ' ' + cleanCat).toLowerCase();
   
+  if (/advocate|lawyer|attorney|legal|court|litigation|law firm|rera|trademark|patent|copyright|chartered accountant|ca audit|tax consultant|income tax|gst filing/i.test(text)) {
+    return 'Legal & Professional Services';
+  }
+  if (/software|website|web app|crm|erp|mobile app|android app|ios app|seo|digital marketing|cloud hosting|telecom/i.test(text)) {
+    return 'IT, Software & Telecom';
+  }
   if (/solar|photovoltaic|bess|inverter|wind turbine|clean tech|biomass/i.test(text)) {
     return 'Renewable Energy & Solar';
   }

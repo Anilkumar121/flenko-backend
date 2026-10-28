@@ -748,8 +748,8 @@
         if (!item) return false;
         if (item.is_service === true || item.is_service === 'true' || item.is_service === 1 || item.is_service === '1') return true;
         const text = [item.name, item.category, item.seo_tags, item.description, item.unit].filter(Boolean).join(' ').toLowerCase();
-        const serviceWords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy', 'package', 'work'];
-        const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
+        const serviceWords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy', 'package', 'work', 'advocate', 'lawyer', 'legal', 'attorney', 'court', 'rera', 'advisory', 'audit', 'tax filing', 'ca audit'];
+        const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract', 'cases', 'consultations'];
         const u = (item.unit || '').toLowerCase().trim();
         return serviceUnits.includes(u) || serviceWords.some(w => text.includes(w));
       }
@@ -921,6 +921,10 @@
         const isMachineryProd = /machinery|equipment|industrial|milling|lathe/i.test(pCat);
         if (isMachinerySel && isMachineryProd) return true;
 
+        const isLegalSel = /legal|lawyer|advocate|attorney|rera|ca|tax|consulting/i.test(sCat);
+        const isLegalProd = /legal|lawyer|advocate|attorney|rera|ca|tax|court|litigation|advisory/i.test(pCat);
+        if (isLegalSel && isLegalProd) return true;
+
         return false;
       }
 
@@ -1032,6 +1036,8 @@
                 if (word === 'building' && /construction|real estate|structure|office|house|mall/i.test(textHaystack)) return true;
                 if (word === 'interior' && /design|drawing room|kitchen|office/i.test(textHaystack)) return true;
                 if ((word === 'software' || word === 'it' || word === 'website') && /web|telecom|development|starter package/i.test(textHaystack)) return true;
+                if (/^(advocate|advocates|lawyer|lawyers|attorney|legal|court|litigation|rera)$/i.test(word) && /legal|advocate|lawyer|court|attorney|litigation|rera/i.test(textHaystack)) return true;
+                if (/^(ca|audit|audits|tax|gst|consultant|consultancy)$/i.test(word) && /chartered accountant|ca|tax|gst|audit|consult/i.test(textHaystack)) return true;
                 return false;
               });
 

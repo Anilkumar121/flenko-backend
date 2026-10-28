@@ -397,6 +397,41 @@ const FLENKO_CATEGORIES = [
       { name: "Waste Oil Recycling Distillation", query: "Oil Recycling Machine" },
       { name: "Plastic Pelletizing Extruders", query: "Plastic Recycling Extruder" }
     ]
+  },
+  {
+    id: "legal-professional-services",
+    name: "Legal & Professional Services",
+    slug: "legal-professional-services",
+    icon: "⚖️",
+    description: "Verified Advocates, High Court Lawyers, Corporate Legal Counsel, Chartered Accountants (CA), Tax & Patent Attorneys",
+    bannerBg: "linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%)",
+    subcategories: [
+      { name: "Advocates & High Court Lawyers", query: "Advocates Lawyers", popular: true },
+      { name: "Corporate Legal Advisors & Law Firms", query: "Corporate Legal Advisors", popular: true },
+      { name: "Civil & Commercial Dispute Lawyers", query: "Civil Court Advocates", popular: true },
+      { name: "Criminal Defense Advocates", query: "Criminal Defense Lawyers", popular: true },
+      { name: "Chartered Accountants (CA) & Tax Audits", query: "Chartered Accountants CA", popular: true },
+      { name: "GST Consultants & Income Tax Filing", query: "GST Tax Consultants", popular: true },
+      { name: "Trademark, Patent & Copyright Attorneys", query: "Trademark Patent Attorneys", popular: true },
+      { name: "Property, Real Estate & RERA Advocates", query: "Property RERA Lawyers", popular: true },
+      { name: "Company Registration & Startup Consultants", query: "Company Registration Consultants" }
+    ]
+  },
+  {
+    id: "it-software-telecom",
+    name: "IT, Software & Telecom",
+    slug: "it-software-telecom",
+    icon: "💻",
+    description: "Website development, custom business software, mobile apps, CRM, cloud hosting, and telecom infrastructure",
+    bannerBg: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
+    subcategories: [
+      { name: "Website & E-Commerce Development", query: "Website Development", popular: true },
+      { name: "Custom Business ERP & CRM Software", query: "ERP CRM Software", popular: true },
+      { name: "Mobile App Development (Android/iOS)", query: "Mobile App Development", popular: true },
+      { name: "Digital Marketing & SEO Services", query: "SEO Digital Marketing", popular: true },
+      { name: "Cloud Servers, VPS & Web Hosting", query: "Cloud Web Hosting" },
+      { name: "Cybersecurity & IT Infrastructure", query: "Cybersecurity Services" }
+    ]
   }
 ];
 

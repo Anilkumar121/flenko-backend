@@ -1,12 +1,23 @@
 import os
 import zipfile
 import shutil
+import subprocess
 
 def create_update_zip():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     target_dir = os.path.abspath(os.path.join(base_dir, '..'))
     zip_path = os.path.join(target_dir, 'flenko_domain_update.zip')
     latest_zip_path = os.path.join(target_dir, 'flenko_latest_upload.zip')
+
+    print("[SEO] Pre-rendering static SEO HTML pages and regenerating XML Sitemaps...")
+    try:
+        res = subprocess.run(["node", "generate_seo_pages.js"], cwd=base_dir, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+        if res.returncode == 0:
+            print("[SEO SUCCESS] Dynamic SEO pre-rendering complete!")
+        else:
+            print(f"[SEO NOTICE] Pre-rendering finished with code {res.returncode}: {res.stderr or res.stdout}")
+    except Exception as e:
+        print(f"[SEO WARNING] Could not run generate_seo_pages.js automatically: {e}")
 
     exclude_dirs = {
         '.git',

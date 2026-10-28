@@ -9,6 +9,12 @@ Allow: /supplier-details.html
 Allow: /rfq.html
 Allow: /pricing.html
 Allow: /sell.html
+Allow: /products/
+Allow: /services/
+Allow: /suppliers/
+Allow: /wholesale/
+Allow: /sitemap.xml
+Allow: /sitemap-*.xml
 
 # Disallow Private Dashboards, CRM, and APIs
 Disallow: /admin-dashboard.html
