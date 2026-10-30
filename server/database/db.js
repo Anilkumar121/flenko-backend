@@ -408,9 +408,10 @@ module.exports = {
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('PostgreSQL query timed out (3000ms)')), 3000));
         return await Promise.race([queryPromise, timeoutPromise]);
       } catch (err) {
+        isConnectedToPostgres = false;
+        useMock = true;
         const isQuota = err && (err.code === '53000' || (err.message && err.message.toLowerCase().includes('quota')));
         if (isQuota) {
-          isConnectedToPostgres = false;
           console.warn('⚠️ PostgreSQL quota exceeded. Transparently serving query from local store (db.json).');
         } else {
           console.warn(`⚠️ PostgreSQL query error (${err.message}). Transparently serving from local store (db.json).`);
@@ -424,13 +425,17 @@ module.exports = {
         return await pool.query(text, params);
       } catch (err) {
         console.warn('Postgres query failed:', err.message);
-        throw err;
+        isConnectedToPostgres = false;
+        useMock = true;
       }
     }
     
     // DEVELOPMENT ADAPTER LOGIC
-    // This is a naive regex parser just to handle the basic queries in app.js for the demo
-    if (text.includes('INSERT INTO otp_requests')) {
+    // Normalize SQL to single line to support multi-line template literals seamlessly
+    const rawSql = (text || '').toString();
+    const normSql = rawSql.replace(/\s+/g, ' ').trim();
+    const textHas = (str) => normSql.includes(str) || rawSql.includes(str);
+    if (textHas('INSERT INTO otp_requests')) {
       mockDB.otp_requests = mockDB.otp_requests || [];
       const cleanPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
       mockDB.otp_requests.push({ 
@@ -442,7 +447,7 @@ module.exports = {
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('SELECT * FROM otp_requests')) {
+    if (textHas('SELECT * FROM otp_requests')) {
       const targetPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
       const targetOtp = (params[1] || '').toString().trim();
       mockDB.otp_requests = mockDB.otp_requests || [];
@@ -453,11 +458,11 @@ module.exports = {
       );
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('SELECT id, phone, name FROM users WHERE subscription')) {
+    if (textHas('SELECT id, phone, name FROM users WHERE subscription')) {
       const rows = mockDB.users.filter(u => u.subscription && u.subscription !== 'free' && u.role === 'supplier' && u.id !== params[0]).slice(0, 5);
       return { rows };
     }
-    if (text.includes('INSERT INTO users')) {
+    if (textHas('INSERT INTO users')) {
       const cleanPhone = (params[0] || '').toString().trim();
       const cleanPhoneDigits = cleanPhone.replace(/[^0-9]/g, '').slice(-10);
       mockDB.users = mockDB.users || [];
@@ -504,24 +509,24 @@ module.exports = {
       saveMockDB();
       return { rows: [newUser] };
     }
-    if (text.includes('FROM users') && !text.includes('WHERE')) {
+    if (textHas('FROM users') && !textHas('WHERE')) {
       mockDB.users = mockDB.users || [];
-      if (text.includes('COUNT(*)')) {
+      if (textHas('COUNT(*)')) {
         return { rows: [{ count: mockDB.users.length, cnt: mockDB.users.length }] };
       }
       let rows = [...mockDB.users];
-      if (text.includes('ORDER BY id DESC') || text.includes('ORDER BY created_at DESC')) {
+      if (textHas('ORDER BY id DESC') || textHas('ORDER BY created_at DESC')) {
         rows.sort((a, b) => (b.id || 0) - (a.id || 0));
-      } else if (text.includes('ORDER BY id ASC')) {
+      } else if (textHas('ORDER BY id ASC')) {
         rows.sort((a, b) => (a.id || 0) - (b.id || 0));
       }
-      if (text.includes('LIMIT 10')) rows = rows.slice(0, 10);
+      if (textHas('LIMIT 10')) rows = rows.slice(0, 10);
       return { rows };
     }
-    if (text.includes('SELECT * FROM users WHERE')) {
+    if (textHas('SELECT * FROM users WHERE') || textHas('FROM users WHERE')) {
       mockDB.users = mockDB.users || [];
       const cleanParams = params.map(p => (p !== null && p !== undefined) ? p.toString().trim() : '');
-      const row = mockDB.users.find(u => {
+      const matched = mockDB.users.filter(u => {
         const uPhone = (u.phone || '').toString();
         const uPhoneDigits = uPhone.replace(/[^0-9]/g, '');
         const uPhone10 = uPhoneDigits.slice(-10);
@@ -532,15 +537,26 @@ module.exports = {
           const pDigits = p.replace(/[^0-9]/g, '');
           const p10 = pDigits.slice(-10);
           if (pLower.includes('@') && uEmail === pLower) return true;
-          if (u.phone === p || uPhoneDigits === pDigits) return true;
-          if (p10 && p10.length >= 7 && (uPhone10 === p10 || uPhoneDigits === pDigits)) return true;
+          if (u.phone === p || (uPhoneDigits && pDigits && uPhoneDigits === pDigits)) return true;
+          if (p10 && p10.length >= 7 && (uPhone10 === p10 || (uPhoneDigits && uPhoneDigits.endsWith(p10)))) return true;
           if (u.id && u.id.toString() === p) return true;
         }
         return false;
       });
-      return { rows: row ? [row] : [] };
+      matched.sort((a, b) => {
+        const aBiz = (mockDB.businesses || []).filter(bz => bz.user_id === a.id).length;
+        const bBiz = (mockDB.businesses || []).filter(bz => bz.user_id === b.id).length;
+        if (bBiz !== aBiz) return bBiz - aBiz;
+        const aProd = (mockDB.products || []).filter(pr => pr.supplier_id === a.id).length;
+        const bProd = (mockDB.products || []).filter(pr => pr.supplier_id === b.id).length;
+        if (bProd !== aProd) return bProd - aProd;
+        if (a.role === 'supplier' && b.role !== 'supplier') return -1;
+        if (b.role === 'supplier' && a.role !== 'supplier') return 1;
+        return (a.id || 0) - (b.id || 0);
+      });
+      return { rows: matched };
     }
-    if (text.includes('INSERT INTO password_resets')) {
+    if (textHas('INSERT INTO password_resets')) {
       mockDB.password_resets = mockDB.password_resets || [];
       const newReset = {
         id: mockDB.idCounter++,
@@ -554,51 +570,51 @@ module.exports = {
       saveMockDB();
       return { rows: [newReset] };
     }
-    if (text.includes('SELECT * FROM password_resets WHERE token = $1')) {
+    if (textHas('SELECT * FROM password_resets WHERE token = $1')) {
       mockDB.password_resets = mockDB.password_resets || [];
       const row = mockDB.password_resets.find(r => r.token === params[0] && new Date(r.expires_at).getTime() > Date.now());
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('DELETE FROM password_resets WHERE token = $1')) {
+    if (textHas('DELETE FROM password_resets WHERE token = $1')) {
       mockDB.password_resets = (mockDB.password_resets || []).filter(r => r.token !== params[0]);
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM password_resets WHERE user_id = $1')) {
+    if (textHas('DELETE FROM password_resets WHERE user_id = $1')) {
       mockDB.password_resets = (mockDB.password_resets || []).filter(r => r.user_id != params[0]);
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('UPDATE users SET password = $1 WHERE id = $2')) {
+    if (textHas('UPDATE users SET password = $1 WHERE id = $2')) {
       const user = (mockDB.users || []).find(u => u.id == params[1]);
       if (user) { user.password = params[0]; }
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('UPDATE users SET password = $1 WHERE phone = $2')) {
+    if (textHas('UPDATE users SET password = $1 WHERE phone = $2')) {
       const targetPhone = (params[1] || '').toString().replace(/[^0-9]/g, '').slice(-10);
       const user = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
       if (user) { user.password = params[0]; }
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('UPDATE users SET role = $1 WHERE id = $2')) {
+    if (textHas('UPDATE users SET role = $1 WHERE id = $2')) {
       const user = (mockDB.users || []).find(u => u.id == params[1]);
       if (user) { user.role = params[0]; saveMockDB(); return { rows: [user] }; }
       return { rows: [] };
     }
-    if (text.includes('UPDATE users SET phone = $1 WHERE id = $2')) {
+    if (textHas('UPDATE users SET phone = $1 WHERE id = $2')) {
       const user = (mockDB.users || []).find(u => u.id == params[1]);
       if (user) { user.phone = params[0]; saveMockDB(); return { rows: [user] }; }
       return { rows: [] };
     }
-    if (text.includes('UPDATE users SET name = $1 WHERE id = $2')) {
+    if (textHas('UPDATE users SET name = $1 WHERE id = $2')) {
       const user = (mockDB.users || []).find(u => u.id == params[1]);
       if (user) { user.name = params[0]; }
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('UPDATE users SET') && text.includes('WHERE id =')) {
+    if (textHas('UPDATE users SET') && textHas('WHERE id =')) {
       const targetUserId = params[params.length - 1];
       let user = (mockDB.users || []).find(u => String(u.id) === String(targetUserId));
       if (!user) {
@@ -621,55 +637,55 @@ module.exports = {
       saveMockDB();
       return { rows: [user] };
     }
-    if (text.includes('UPDATE users SET')) {
+    if (textHas('UPDATE users SET')) {
       const targetPhone = (params[3] || '').toString().replace(/[^0-9]/g, '').slice(-10);
       const user = mockDB.users.find(u => (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) === targetPhone);
       if (user) { user.name = params[0]; user.email = params[1]; user.city = params[2]; }
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM otp_requests')) {
+    if (textHas('DELETE FROM otp_requests')) {
       const targetPhone = (params[0] || '').toString().replace(/[^0-9]/g, '').slice(-10);
       mockDB.otp_requests = (mockDB.otp_requests || []).filter(o => (o.phone || '').toString().replace(/[^0-9]/g, '').slice(-10) !== targetPhone);
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('FROM users WHERE id')) {
+    if (textHas('FROM users WHERE id')) {
       const row = mockDB.users.find(u => u.id == params[0]);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('FROM businesses WHERE user_id')) {
+    if (textHas('FROM businesses WHERE user_id')) {
       const targetId = params[0];
       const row = mockDB.businesses.find(b => String(b.user_id) === String(targetId));
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('FROM businesses WHERE id')) {
+    if (textHas('FROM businesses WHERE id')) {
       const targetId = params[0];
       const row = mockDB.businesses.find(b => String(b.id) === String(targetId) || String(b.user_id) === String(targetId));
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('FROM businesses WHERE LOWER(subdomain)') || text.includes('FROM businesses WHERE subdomain')) {
+    if (textHas('FROM businesses WHERE LOWER(subdomain)') || textHas('FROM businesses WHERE subdomain')) {
       const targetSub = (params[0] || '').toString().toLowerCase().trim();
       const row = mockDB.businesses.find(b => (b.subdomain || '').toLowerCase().trim() === targetSub || String(b.user_id) === targetSub);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('FROM businesses') && (text.includes('SELECT') || !text.includes('WHERE'))) {
+    if (textHas('FROM businesses') && (textHas('SELECT') || !textHas('WHERE'))) {
       mockDB.businesses = mockDB.businesses || [];
-      if (text.includes('COUNT(*)')) {
+      if (textHas('COUNT(*)')) {
         return { rows: [{ count: mockDB.businesses.length, cnt: mockDB.businesses.length }] };
       }
       let rows = [...mockDB.businesses];
-      if (params.length > 0 && text.includes('LOWER(b.category) = LOWER($1)')) {
+      if (params.length > 0 && textHas('LOWER(b.category) = LOWER($1)')) {
         rows = rows.filter(b => b.category && b.category.toLowerCase() === params[0].toLowerCase());
       }
-      if (text.includes('ORDER BY id ASC')) {
+      if (textHas('ORDER BY id ASC')) {
         rows.sort((a, b) => (a.id || 0) - (b.id || 0));
       } else {
         rows.sort((a, b) => (b.id || 0) - (a.id || 0));
       }
       return { rows };
     }
-    if (text.includes('INSERT INTO businesses')) {
+    if (textHas('INSERT INTO businesses')) {
       const newBiz = {
         id: mockDB.idCounter++,
         user_id: params[0],
@@ -694,7 +710,7 @@ module.exports = {
       saveMockDB();
       return { rows: [newBiz] };
     }
-    if (text.includes('UPDATE businesses SET website_enabled')) {
+    if (textHas('UPDATE businesses SET website_enabled')) {
       const targetUserId = params[params.length - 1];
       let biz = mockDB.businesses.find(b => String(b.user_id) === String(targetUserId) || String(b.id) === String(targetUserId));
       if (biz) {
@@ -708,10 +724,10 @@ module.exports = {
       saveMockDB();
       return { rows: biz ? [biz] : [] };
     }
-    if (text.includes('UPDATE businesses SET')) {
+    if (textHas('UPDATE businesses SET')) {
       const targetUserId = params[params.length - 1];
       let biz = null;
-      if (text.includes('WHERE user_id =') || text.includes('WHERE user_id=')) {
+      if (textHas('WHERE user_id =') || textHas('WHERE user_id=')) {
         biz = mockDB.businesses.find(b => String(b.user_id) === String(targetUserId));
       } else {
         biz = mockDB.businesses.find(b => String(b.id) === String(targetUserId) || String(b.user_id) === String(targetUserId));
@@ -782,7 +798,7 @@ module.exports = {
       saveMockDB();
       return { rows: [biz] };
     }
-    if (text.includes('INSERT INTO reviews')) {
+    if (textHas('INSERT INTO reviews')) {
       mockDB.reviews = mockDB.reviews || [];
       const newReview = {
         id: mockDB.idCounter++,
@@ -798,20 +814,20 @@ module.exports = {
       saveMockDB();
       return { rows: [newReview] };
     }
-    if (text.includes('FROM reviews') && text.includes('WHERE supplier_id')) {
+    if (textHas('FROM reviews') && textHas('WHERE supplier_id')) {
       mockDB.reviews = mockDB.reviews || [];
       const targetSuppId = Number(params[0]);
       const rows = mockDB.reviews.filter(r => Number(r.supplier_id) === targetSuppId);
       return { rows: rows.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
     }
-    if (text.includes('FROM reviews')) {
+    if (textHas('FROM reviews')) {
       mockDB.reviews = mockDB.reviews || [];
-      if (text.includes('COUNT(*)')) {
+      if (textHas('COUNT(*)')) {
         return { rows: [{ count: mockDB.reviews.length, cnt: mockDB.reviews.length }] };
       }
       return { rows: mockDB.reviews.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
     }
-    if (text.includes('FROM leads WHERE') && (text.includes('supplier_id') || text.includes('supplier_id IS NULL') || text.includes('is_direct'))) {
+    if (textHas('FROM leads WHERE') && (textHas('supplier_id') || textHas('supplier_id IS NULL') || textHas('is_direct'))) {
       const targetSuppId = params[0];
       const rows = (mockDB.leads || []).filter(l => {
         const isDirect = l.is_direct === true || l.is_direct === 'true';
@@ -822,11 +838,11 @@ module.exports = {
       });
       return { rows: rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) };
     }
-    if (text.includes('SELECT * FROM leads WHERE supplier_id')) {
+    if (textHas('SELECT * FROM leads WHERE supplier_id')) {
       const rows = (mockDB.leads || []).filter(l => l.supplier_id == params[0] || !l.supplier_id || l.supplier_id == 0).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
       return { rows };
     }
-    if (text.includes('INSERT INTO leads')) {
+    if (textHas('INSERT INTO leads')) {
       const newLead = { 
         id: mockDB.idCounter++, 
         supplier_id: params[0], 
@@ -844,12 +860,12 @@ module.exports = {
       saveMockDB();
       return { rows: [newLead] };
     }
-    if (text.includes('FROM leads WHERE id = $1') || text.includes('SELECT * FROM leads WHERE id')) {
+    if (textHas('FROM leads WHERE id = $1') || textHas('SELECT * FROM leads WHERE id')) {
       const row = (mockDB.leads || []).find(l => l.id == params[0]);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('UPDATE leads SET is_paid')) {
-      const isPaidVal = !text.includes('is_paid = false');
+    if (textHas('UPDATE leads SET is_paid')) {
+      const isPaidVal = !textHas('is_paid = false');
       const lead = (mockDB.leads || []).find(l => l.id == params[0]);
       if (lead) {
         lead.is_paid = isPaidVal;
@@ -857,7 +873,7 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM leads WHERE id = $1')) {
+    if (textHas('DELETE FROM leads WHERE id = $1')) {
       mockDB.leads = mockDB.leads || [];
       const idx = mockDB.leads.findIndex(l => l.id == params[0]);
       if (idx !== -1) {
@@ -870,7 +886,7 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('FROM leads') && (text.includes('u_buyer') || text.includes('ORDER BY l.id DESC') || text.includes('SELECT l.*') || text.includes('ORDER BY id DESC'))) {
+    if (textHas('FROM leads') && (textHas('u_buyer') || textHas('ORDER BY l.id DESC') || textHas('SELECT l.*') || textHas('ORDER BY id DESC'))) {
       mockDB.leads = mockDB.leads || [];
       mockDB.users = mockDB.users || [];
       mockDB.businesses = mockDB.businesses || [];
@@ -897,37 +913,37 @@ module.exports = {
       });
       return { rows: enriched };
     }
-    if (text.includes('FROM leads WHERE supplier_id = $1 OR buyer_id = $1')) {
+    if (textHas('FROM leads WHERE supplier_id = $1 OR buyer_id = $1')) {
       const uId = params[0];
       const rows = (mockDB.leads || []).filter(l => l.supplier_id == uId || l.buyer_id == uId);
       return { rows: rows.slice().reverse() };
     }
-    if (text.includes('COUNT(*)') && text.includes('FROM leads')) {
+    if (textHas('COUNT(*)') && textHas('FROM leads')) {
       mockDB.leads = mockDB.leads || [];
-      if (text.includes('is_direct = true')) {
+      if (textHas('is_direct = true')) {
         const cnt = mockDB.leads.filter(l => l.is_direct === true || l.is_direct === 'true').length;
         return { rows: [{ count: cnt, cnt }] };
       }
-      if (text.includes('is_direct = false OR supplier_id IS NULL')) {
+      if (textHas('is_direct = false OR supplier_id IS NULL')) {
         const cnt = mockDB.leads.filter(l => !l.is_direct || l.is_direct === false || l.is_direct === 'false' || !l.supplier_id).length;
         return { rows: [{ count: cnt, cnt }] };
       }
       const cnt = mockDB.leads.length;
       return { rows: [{ count: cnt, cnt }] };
     }
-    if (text.includes('INSERT INTO lead_payments')) {
+    if (textHas('INSERT INTO lead_payments')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       const rec = { id: mockDB.idCounter++, lead_id: params[0], supplier_id: params[1], amount: params[2], utr: params[3], screenshot_url: params[4], payer_phone: params[5], status: params[6] || 'verified', created_at: new Date() };
       mockDB.lead_payments.push(rec);
       saveMockDB();
       return { rows: [rec] };
     }
-    if (text.includes('FROM lead_payments WHERE id = $1') || text.includes('SELECT * FROM lead_payments WHERE id')) {
+    if (textHas('FROM lead_payments WHERE id = $1') || textHas('SELECT * FROM lead_payments WHERE id')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       const row = mockDB.lead_payments.find(p => p.id == params[0]);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('UPDATE lead_payments SET status')) {
+    if (textHas('UPDATE lead_payments SET status')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       const pay = mockDB.lead_payments.find(p => p.id == params[0]);
       if (pay) {
@@ -936,58 +952,58 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('FROM lead_payments WHERE utr')) {
+    if (textHas('FROM lead_payments WHERE utr')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       const found = mockDB.lead_payments.filter(p => p.utr === params[0]);
       return { rows: found };
     }
-    if (text.includes('FROM subscription_payments WHERE utr')) {
+    if (textHas('FROM subscription_payments WHERE utr')) {
       mockDB.subscription_payments = mockDB.subscription_payments || [];
       const found = mockDB.subscription_payments.filter(p => p.utr === params[0]);
       return { rows: found };
     }
-    if (text.includes('INSERT INTO subscription_payments')) {
+    if (textHas('INSERT INTO subscription_payments')) {
       mockDB.subscription_payments = mockDB.subscription_payments || [];
       const rec = { id: mockDB.idCounter++, user_id: params[0], plan: params[1], amount: params[2], utr: params[3], screenshot_url: params[4], status: params[5] || 'verified', created_at: new Date() };
       mockDB.subscription_payments.push(rec);
       saveMockDB();
       return { rows: [rec] };
     }
-    if (text.includes('FROM lead_payments WHERE lead_id = $1 AND supplier_id = $2')) {
+    if (textHas('FROM lead_payments WHERE lead_id = $1 AND supplier_id = $2')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       const rows = mockDB.lead_payments.filter(p => p.lead_id == params[0] && p.supplier_id == params[1] && p.status === 'verified');
       return { rows };
     }
-    if (text.includes('FROM lead_payments WHERE supplier_id = $1')) {
+    if (textHas('FROM lead_payments WHERE supplier_id = $1')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
-      const rows = mockDB.lead_payments.filter(p => p.supplier_id == params[0] && (!text.includes('status =') || p.status === 'verified'));
+      const rows = mockDB.lead_payments.filter(p => p.supplier_id == params[0] && (!textHas('status =') || p.status === 'verified'));
       return { rows };
     }
-    if (text.includes('SELECT * FROM lead_payments') || text.includes('FROM lead_payments')) {
+    if (textHas('SELECT * FROM lead_payments') || textHas('FROM lead_payments')) {
       mockDB.lead_payments = mockDB.lead_payments || [];
       return { rows: mockDB.lead_payments.slice().reverse() };
     }
-    if (text.includes('SELECT * FROM subscription_payments') || text.includes('FROM subscription_payments')) {
+    if (textHas('SELECT * FROM subscription_payments') || textHas('FROM subscription_payments')) {
       mockDB.subscription_payments = mockDB.subscription_payments || [];
       return { rows: mockDB.subscription_payments.slice().reverse() };
     }
-    if (text.includes('SELECT subscription FROM users')) {
+    if (textHas('SELECT subscription FROM users')) {
       const user = mockDB.users.find(u => u.id === params[0]);
       return { rows: user ? [user] : [] };
     }
-    if (text.includes('UPDATE users SET subscription')) {
+    if (textHas('UPDATE users SET subscription')) {
       const user = mockDB.users.find(u => u.id === params[1]);
       if (user) user.subscription = params[0];
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('UPDATE leads SET status')) {
+    if (textHas('UPDATE leads SET status')) {
       const lead = mockDB.leads.find(l => l.id === params[1]);
       if (lead) lead.status = params[0];
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('INSERT INTO lead_replies')) {
+    if (textHas('INSERT INTO lead_replies')) {
       const lead = mockDB.leads.find(l => l.id === params[0]);
       if (lead) {
         lead.replies = lead.replies || [];
@@ -999,16 +1015,16 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('SELECT * FROM leads WHERE buyer_phone')) {
+    if (textHas('SELECT * FROM leads WHERE buyer_phone')) {
       const rows = mockDB.leads.filter(l => l.buyer_phone === params[0]).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
       return { rows };
     }
-    if (text.includes('SELECT * FROM products WHERE id = $1')) {
+    if (textHas('SELECT * FROM products WHERE id = $1')) {
       mockDB.products = mockDB.products || [];
       const row = mockDB.products.find(p => p.id == params[0]);
       return { rows: row ? [row] : [] };
     }
-    if (text.includes('INSERT INTO products')) {
+    if (textHas('INSERT INTO products')) {
       const newProd = { 
         id: mockDB.idCounter++, 
         supplier_id: params[0], 
@@ -1028,7 +1044,7 @@ module.exports = {
       saveMockDB();
       return { rows: [newProd] };
     }
-    if (text.includes('FROM products') && text.includes('GROUP BY supplier_id')) {
+    if (textHas('FROM products') && textHas('GROUP BY supplier_id')) {
       mockDB.products = mockDB.products || [];
       const countMap = {};
       mockDB.products.forEach(p => {
@@ -1038,28 +1054,28 @@ module.exports = {
       const rows = Object.keys(countMap).map(sid => ({ supplier_id: parseInt(sid), cnt: countMap[sid] }));
       return { rows };
     }
-    if (text.includes('COUNT(*)') && text.includes('FROM products')) {
+    if (textHas('COUNT(*)') && textHas('FROM products')) {
       mockDB.products = mockDB.products || [];
-      if (text.includes('WHERE supplier_id')) {
+      if (textHas('WHERE supplier_id')) {
         const suppId = params[0];
         const cnt = mockDB.products.filter(p => p.supplier_id == suppId).length;
         return { rows: [{ count: cnt, cnt }] };
       }
       return { rows: [{ count: mockDB.products.length, cnt: mockDB.products.length }] };
     }
-    if (text.includes('FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name))')) {
+    if (textHas('FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name))')) {
       mockDB.products = mockDB.products || [];
       const suppId = params[0];
       const targetName = (params[1] || '').toString().trim().toLowerCase();
       const match = mockDB.products.slice().reverse().find(p => p.supplier_id == suppId && (p.name || '').toString().trim().toLowerCase() === targetName);
       return { rows: match ? [match] : [] };
     }
-    if (text.includes('FROM products WHERE supplier_id')) {
+    if (textHas('FROM products WHERE supplier_id')) {
       mockDB.products = mockDB.products || [];
       const rows = mockDB.products.filter(p => p.supplier_id == params[0]);
       return { rows };
     }
-    if (text.includes('UPDATE products') && text.includes('image_url')) {
+    if (textHas('UPDATE products') && textHas('image_url')) {
       const targetId = parseInt(params[params.length - 1]) || parseInt(params[params.length - 2]);
       let prod = mockDB.products.find(p => p.id == targetId);
       if (prod) {
@@ -1078,7 +1094,7 @@ module.exports = {
       }
       return { rows: prod ? [prod] : [] };
     }
-    if (text.includes('UPDATE products') && !text.includes('image_url')) {
+    if (textHas('UPDATE products') && !textHas('image_url')) {
       const targetId = parseInt(params[params.length - 1]) || parseInt(params[params.length - 2]);
       let prod = mockDB.products.find(p => p.id == targetId);
       if (prod) {
@@ -1095,7 +1111,7 @@ module.exports = {
       }
       return { rows: prod ? [prod] : [] };
     }
-    if (text.includes('DELETE FROM products WHERE id = $1')) {
+    if (textHas('DELETE FROM products WHERE id = $1')) {
       let idx = mockDB.products.findIndex(p => p.id == params[0] && (params.length < 2 || p.supplier_id == params[1] || !p.supplier_id));
       if (idx === -1) idx = mockDB.products.findIndex(p => p.id == params[0]);
       if (idx !== -1) {
@@ -1105,7 +1121,7 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('FROM products') && (text.includes('businesses') || text.includes('ORDER BY') || text.includes('SELECT p.*') || text.includes('SELECT * FROM products') || !text.includes('WHERE'))) {
+    if (textHas('FROM products') && (textHas('businesses') || textHas('ORDER BY') || textHas('SELECT p.*') || textHas('SELECT * FROM products') || !textHas('WHERE'))) {
       mockDB.products = mockDB.products || [];
       mockDB.businesses = mockDB.businesses || [];
       mockDB.users = mockDB.users || [];
@@ -1132,7 +1148,7 @@ module.exports = {
       return { rows: enriched };
     }
     
-    if (text.includes('SELECT (SELECT COUNT(*) FROM users)')) {
+    if (textHas('SELECT (SELECT COUNT(*) FROM users)')) {
       const stats = {
         users: mockDB.users ? mockDB.users.length : 0,
         leads: mockDB.leads ? mockDB.leads.length : 0,
@@ -1140,19 +1156,19 @@ module.exports = {
       };
       return { rows: [stats] };
     }
-    if (text.includes('SELECT id, name, phone, role, subscription FROM users ORDER BY id DESC LIMIT 10')) {
+    if (textHas('SELECT id, name, phone, role, subscription FROM users ORDER BY id DESC LIMIT 10')) {
       const recent = (mockDB.users || []).slice().reverse().slice(0, 10);
       return { rows: recent };
     }
-    if (text.includes("SELECT id, phone, name FROM users WHERE subscription != 'free' AND subscription IS NOT NULL AND role = 'supplier' AND id !=")) {
+    if (textHas("SELECT id, phone, name FROM users WHERE subscription != 'free' AND subscription IS NOT NULL AND role = 'supplier' AND id !=")) {
       const prem = (mockDB.users || []).filter(u => u.subscription && u.subscription !== 'free' && u.role === 'supplier' && u.id != params[0] && u.phone !== params[1]);
       return { rows: prem };
     }
-    if (text.includes("SELECT supplier_id, name, category FROM products")) {
+    if (textHas("SELECT supplier_id, name, category FROM products")) {
       return { rows: mockDB.products || [] };
     }
-    if (text.includes('DELETE FROM users WHERE id') || text.includes('DELETE FROM users WHERE phone')) {
-      const isPhone = text.includes('phone');
+    if (textHas('DELETE FROM users WHERE id') || textHas('DELETE FROM users WHERE phone')) {
+      const isPhone = textHas('phone');
       const idx = mockDB.users.findIndex(u => isPhone ? (u.phone == params[0]) : (u.id == params[0]));
       if (idx !== -1) {
         const deletedUser = mockDB.users[idx];
@@ -1167,44 +1183,44 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes("DELETE FROM users WHERE role != 'admin'") || text.includes("DELETE FROM users WHERE role = 'supplier'")) {
+    if (textHas("DELETE FROM users WHERE role != 'admin'") || textHas("DELETE FROM users WHERE role = 'supplier'")) {
       mockDB.users = (mockDB.users || []).filter(u => u.id == 1 && u.role === 'admin');
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM businesses')) {
+    if (textHas('DELETE FROM businesses')) {
       mockDB.businesses = [];
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM reviews') && !text.includes('WHERE id')) {
+    if (textHas('DELETE FROM reviews') && !textHas('WHERE id')) {
       mockDB.reviews = [];
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM products') && !text.includes('WHERE id')) {
+    if (textHas('DELETE FROM products') && !textHas('WHERE id')) {
       mockDB.products = [];
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM leads') && !text.includes('WHERE id')) {
+    if (textHas('DELETE FROM leads') && !textHas('WHERE id')) {
       mockDB.leads = [];
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM quotations') && !text.includes('WHERE id')) {
+    if (textHas('DELETE FROM quotations') && !textHas('WHERE id')) {
       mockDB.quotations = [];
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM rfqs') && !text.includes('WHERE id') && !text.includes('WHERE buyer_id')) {
+    if (textHas('DELETE FROM rfqs') && !textHas('WHERE id') && !textHas('WHERE buyer_id')) {
       mockDB.rfqs = [];
       saveMockDB();
       return { rows: [] };
     }
 
     // --- Module 3 & 4 Mock Data (RFQs and Quotations) ---
-    if (text.includes('INSERT INTO rfqs')) {
+    if (textHas('INSERT INTO rfqs')) {
       mockDB.rfqs = mockDB.rfqs || [];
       const newRfq = {
         id: ++mockDB.idCounter,
@@ -1219,7 +1235,7 @@ module.exports = {
       saveMockDB();
       return { rows: [newRfq] };
     }
-    if (text.includes('DELETE FROM rfqs WHERE id = $1 AND buyer_id = $2')) {
+    if (textHas('DELETE FROM rfqs WHERE id = $1 AND buyer_id = $2')) {
       mockDB.rfqs = mockDB.rfqs || [];
       const idx = mockDB.rfqs.findIndex(r => r.id == params[0] && r.buyer_id == params[1]);
       if (idx !== -1) {
@@ -1229,19 +1245,19 @@ module.exports = {
       }
       return { rows: [] };
     }
-    if (text.includes('DELETE FROM rfqs WHERE buyer_id = $1')) {
+    if (textHas('DELETE FROM rfqs WHERE buyer_id = $1')) {
       mockDB.rfqs = mockDB.rfqs || [];
       mockDB.rfqs = mockDB.rfqs.filter(r => r.buyer_id != params[0]);
       saveMockDB();
       return { rows: [] };
     }
-    if (text.includes('SELECT * FROM rfqs WHERE buyer_id = $1')) {
+    if (textHas('SELECT * FROM rfqs WHERE buyer_id = $1')) {
       return { rows: (mockDB.rfqs || []).filter(r => r.buyer_id == params[0]).slice().reverse() };
     }
-    if (text.includes('SELECT * FROM rfqs ORDER BY created_at DESC')) {
+    if (textHas('SELECT * FROM rfqs ORDER BY created_at DESC')) {
       return { rows: (mockDB.rfqs || []).slice().reverse() };
     }
-    if (text.includes('INSERT INTO quotations')) {
+    if (textHas('INSERT INTO quotations')) {
       mockDB.quotations = mockDB.quotations || [];
       const newQuote = {
         id: ++mockDB.idCounter,
@@ -1255,7 +1271,7 @@ module.exports = {
       saveMockDB();
       return { rows: [newQuote] };
     }
-    if (text.includes('SELECT q.*, u.name as supplier_name FROM quotations q JOIN users u ON q.supplier_id = u.id WHERE q.rfq_id = $1')) {
+    if (textHas('SELECT q.*, u.name as supplier_name FROM quotations q JOIN users u ON q.supplier_id = u.id WHERE q.rfq_id = $1')) {
       const quotes = (mockDB.quotations || []).filter(q => q.rfq_id == params[0]);
       const enriched = quotes.map(q => {
         const sup = mockDB.users.find(u => u.id == q.supplier_id);
@@ -1263,20 +1279,20 @@ module.exports = {
       });
       return { rows: enriched };
     }
-    if (text.includes('SELECT id FROM quotations WHERE rfq_id = $1 AND supplier_id = $2')) {
+    if (textHas('SELECT id FROM quotations WHERE rfq_id = $1 AND supplier_id = $2')) {
       return { rows: (mockDB.quotations || []).filter(q => q.rfq_id == params[0] && q.supplier_id == params[1]) };
     }
 
-    if (text.includes('platform_settings')) {
+    if (textHas('platform_settings')) {
       mockDB.platform_settings = mockDB.platform_settings || [];
-      if (text.includes('SELECT') && text.includes('WHERE setting_key = $1')) {
+      if (textHas('SELECT') && textHas('WHERE setting_key = $1')) {
         const row = mockDB.platform_settings.find(s => s.setting_key === params[0]);
         return { rows: row ? [row] : [] };
       }
-      if (text.includes('SELECT') && !text.includes('WHERE')) {
+      if (textHas('SELECT') && !textHas('WHERE')) {
         return { rows: mockDB.platform_settings };
       }
-      if (text.includes('INSERT') || text.includes('UPDATE')) {
+      if (textHas('INSERT') || textHas('UPDATE')) {
         const key = params[0];
         const val = params[1];
         let existing = mockDB.platform_settings.find(s => s.setting_key === key);

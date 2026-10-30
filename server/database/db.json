@@ -8,7 +8,8 @@
       "city": "Mumbai, Maharashtra",
       "role": "admin",
       "subscription": "vip",
-      "created_at": "2026-10-13T10:41:26.946Z"
+      "created_at": "2026-10-13T10:41:26.946Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 8,
@@ -18,7 +19,8 @@
       "city": "New Delhi",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 7,
@@ -28,7 +30,8 @@
       "city": "New Delhi",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 6,
@@ -38,7 +41,8 @@
       "city": "New Delhi",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 10,
@@ -48,7 +52,8 @@
       "city": "Ghaziabad",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 9,
@@ -58,7 +63,8 @@
       "city": "Faridabad",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 3,
@@ -68,7 +74,8 @@
       "city": "Noida",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 4,
@@ -78,7 +85,8 @@
       "city": "Delhi NCR",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 2,
@@ -88,7 +96,8 @@
       "city": "New Delhi",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     },
     {
       "id": 5,
@@ -98,7 +107,8 @@
       "city": "Gurugram",
       "role": "supplier",
       "subscription": "vip",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
     }
   ],
   "otp_requests": [],
@@ -973,7 +983,7 @@
   "lead_payments": [],
   "subscription_payments": [],
   "reviews": [],
-  "idCounter": 100,
+  "idCounter": 106,
   "platform_settings": [
     {
       "setting_key": "google_sheet_webhook_url",
