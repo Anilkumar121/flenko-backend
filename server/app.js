@@ -28,6 +28,13 @@ const multer = require('multer');
 const fs = require('fs');
 
 const app = express();
+function getBackendHost(req) {
+  if (process.env.BACKEND_URL) return process.env.BACKEND_URL;
+  const proto = (req.headers && req.headers['x-forwarded-proto']) || ((req.socket && req.socket.encrypted) || (req.connection && req.connection.encrypted) ? 'https' : 'http');
+  const host = (req.get && req.get('host')) || 'localhost:3000';
+  return `${proto}://${host}`;
+}
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -1687,7 +1694,7 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
     : ((req.user && req.user.name && !/^\d+$/.test(req.user.name)) ? req.user.name : 'Verified Supplier');
 
   // Use production backend host for image URL if on cloud, otherwise request host
-  const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
+  const backendHost = getBackendHost(req);
   let logo_url = null;
   if (req.file) {
     const dataUri = fileToDataUri(req.file);
@@ -3001,7 +3008,7 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const cleanMoq = parseInt(moq) || 1;
   const cleanStock = parseInt(stock_quantity) || 500;
   
-  const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
+  const backendHost = getBackendHost(req);
   const image_url = (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image'))
     ? req.body.image_data
     : (req.file ? (fileToDataUri(req.file) || `${backendHost}/assets/images/products/${req.file.filename}`) : (req.body.image_url || 'assets/images/logo.png'));
@@ -3122,7 +3129,7 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
   const cleanMoq = parseInt(moq) || 1;
   const cleanStock = parseInt(stock_quantity) || 500;
   const productId = parseInt(req.params.id);
-  const backendHost = process.env.BACKEND_URL || (req.get('host') && req.get('host').includes('render') ? 'https://flenko-backend.onrender.com' : `${req.protocol}://${req.get('host')}`);
+  const backendHost = getBackendHost(req);
   
   try {
     // Manage SEO slug and redirect if title changed

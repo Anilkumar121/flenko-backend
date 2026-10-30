@@ -1027,16 +1027,21 @@ module.exports = {
     if (textHas('INSERT INTO products')) {
       const newProd = { 
         id: mockDB.idCounter++, 
-        supplier_id: params[0], 
-        name: params[1], 
+        supplier_id: params[0] || 1, 
+        name: params[1] || 'Product', 
         price: (params[2] !== undefined && params[2] !== null && params[2] !== '' && !isNaN(Number(params[2]))) ? Number(params[2]) : null, 
-        category: params[3], 
-        moq: params[4], 
-        unit: params[5],
-        image_url: params[6], 
-        seo_tags: params[7],
-        stock_quantity: params[8] !== undefined ? parseInt(params[8]) : 500,
+        category: params[3] || 'General B2B', 
+        moq: params[4] !== undefined ? (parseInt(params[4]) || 1) : 1, 
+        unit: params[5] || 'Pieces',
+        image_url: params[6] || 'assets/images/logo.png', 
+        seo_tags: params[7] || '',
+        stock_quantity: params[8] !== undefined ? (parseInt(params[8]) || 500) : 500,
         country: params[9] || 'India',
+        slug: params[10] || '',
+        seo_title: params[11] || '',
+        seo_description: params[12] || '',
+        is_indexed: params[13] !== false,
+        is_service: params[14] === true,
         created_at: new Date() 
       };
       mockDB.products = mockDB.products || [];

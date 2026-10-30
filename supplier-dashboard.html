@@ -549,7 +549,14 @@
           prodCount = parseInt(stats.products_count, 10) || 0;
         } else {
           try {
-            const locProds = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+            const uid = u.id || (typeof auth !== 'undefined' && auth.getUser() ? auth.getUser().id : null);
+            let locProds = [];
+            if (uid) {
+              locProds = JSON.parse(localStorage.getItem('flenko_seller_products_' + uid) || '[]');
+            }
+            if (!Array.isArray(locProds) || locProds.length === 0) {
+              locProds = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+            }
             if (Array.isArray(locProds)) prodCount = locProds.length;
           } catch(e) {}
         }
