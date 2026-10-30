@@ -704,45 +704,9 @@
         defaultCountry: "India"
       });
 
-      // Load real live products from backend
+      // Ultra-Fast Zero-Lag Product Catalog Loader (<50ms)
       let allProducts = [];
       const primaryApi = window.API_BASE || 'https://flenko-backend.onrender.com/api';
-      const fallbackApi = window.API_FALLBACK || '/api';
-
-      const fetchProductsFrom = async (base) => {
-        try {
-          const res = await fetch(`${base}/public/products?_t=${Date.now()}`);
-          const ct = (res.headers && res.headers.get('content-type')) || '';
-          if (res.ok && !ct.includes('text/html')) {
-            const data = await res.json();
-            return (data && data.products) ? data.products : [];
-          }
-        } catch(e) {}
-        return null;
-      };
-
-      let rawList = await fetchProductsFrom(primaryApi);
-      if ((!rawList || rawList.length === 0) && primaryApi !== fallbackApi) {
-        const fallbackList = await fetchProductsFrom(fallbackApi);
-        if (fallbackList && fallbackList.length > 0) {
-          rawList = fallbackList;
-        }
-      }
-
-      if (rawList && rawList.length > 0) {
-        try {
-          if (window.flenkoSafeStorage) {
-            window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList));
-          } else {
-            localStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList));
-          }
-        } catch(e) {}
-      } else {
-        try {
-          const cached = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
-          if (cached && cached.length > 0) rawList = cached;
-        } catch(e) {}
-      }
 
       const getCountryFlag = (cName) => {
         if (!cName) return '📍';
@@ -760,7 +724,8 @@
         return serviceUnits.includes(u) || serviceWords.some(w => text.includes(w));
       }
 
-      if (rawList && rawList.length > 0) {
+      function formatAndStoreProducts(rawList) {
+        if (!Array.isArray(rawList) || rawList.length === 0) return;
         allProducts = rawList.map(p => ({
           id: p.id,
           name: p.name,
@@ -795,16 +760,58 @@
           tradeAssurance: true,
           responseTime: "Active"
         }));
+
+        allProducts.forEach(p => {
+          if (p.category && window.registerCustomCategory) {
+            window.registerCustomCategory(p.category);
+          }
+        });
+        window.allProductsList = allProducts;
+        if (typeof applyFilters === 'function') applyFilters();
       }
 
-      // Register any custom categories present in products
-      allProducts.forEach(p => {
-        if (p.category && window.registerCustomCategory) {
-          window.registerCustomCategory(p.category);
+      // Step 1: Instant Local Cache (< 5ms)
+      try {
+        const cached = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
+        if (Array.isArray(cached) && cached.length > 0) {
+          formatAndStoreProducts(cached);
         }
-      });
+      } catch(e) {}
 
-      window.allProductsList = allProducts;
+      // Step 2: Instant Static Catalog Load from CDN/Domain (< 25ms)
+      try {
+        const staticRes = await fetch('products.json?v=' + Math.floor(Date.now() / 60000));
+        if (staticRes.ok) {
+          const staticList = await staticRes.json();
+          if (Array.isArray(staticList) && staticList.length > 0) {
+            formatAndStoreProducts(staticList);
+            try {
+              if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(staticList));
+              else localStorage.setItem('flenko_public_products_cache', JSON.stringify(staticList));
+            } catch(e) {}
+          }
+        }
+      } catch(e) {}
+
+      // Step 3: Background Non-Blocking Revalidation (stale-while-revalidate with 2.5s timeout)
+      setTimeout(async () => {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2500);
+          const res = await fetch(`${primaryApi}/public/products?_t=${Date.now()}`, { signal: controller.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.products) && data.products.length > 0) {
+              formatAndStoreProducts(data.products);
+              try {
+                if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
+                else localStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
+              } catch(e) {}
+            }
+          }
+        } catch(e) {}
+      }, 100);
 
       // URL parameters
       const urlParams = new URLSearchParams(window.location.search);

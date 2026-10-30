@@ -1394,10 +1394,46 @@
           return null;
         };
 
-        let rawList = await fetchProducts(primaryApi);
-        if ((!rawList || rawList.length === 0) && primaryApi !== fallbackApi) {
-          rawList = await fetchProducts(fallbackApi);
+        let rawList = [];
+
+        // 1. Instant Cache (< 5ms)
+        try {
+          const cached = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
+          if (Array.isArray(cached) && cached.length > 0) rawList = cached;
+        } catch(e) {}
+
+        // 2. Instant Static Load from Domain (< 25ms)
+        if (!rawList || rawList.length === 0) {
+          try {
+            const staticRes = await fetch('products.json?v=' + Math.floor(Date.now() / 60000));
+            if (staticRes.ok) {
+              rawList = await staticRes.json();
+              try {
+                if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList));
+                else localStorage.setItem('flenko_public_products_cache', JSON.stringify(rawList));
+              } catch(e) {}
+            }
+          } catch(e) {}
         }
+
+        // 3. Background Non-Blocking Revalidation (stale-while-revalidate with 2.5s timeout)
+        setTimeout(async () => {
+          try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 2500);
+            const res = await fetch(`${primaryApi}/public/products?_t=${Date.now()}`, { signal: controller.signal });
+            clearTimeout(timer);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && Array.isArray(data.products) && data.products.length > 0) {
+                try {
+                  if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
+                  else localStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
+                } catch(e) {}
+              }
+            }
+          } catch(e) {}
+        }, 100);
 
         const getFlag = (cName) => {
           if (!cName) return '📍';

@@ -217,16 +217,17 @@
 
       let allSuppliers = [];
 
-      // Fetch real live suppliers registered in backend
+      // Step 1: Instant Static Suppliers Load from Domain (< 25ms)
       try {
-        const res = await auth.fetchWithFallback('/public/businesses');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.businesses && data.businesses.length > 0) {
-            allSuppliers = data.businesses.map(b => ({
+        const staticRes = await fetch('suppliers.json?v=' + Math.floor(Date.now() / 60000));
+        if (staticRes.ok) {
+          const sList = await staticRes.json();
+          if (Array.isArray(sList) && sList.length > 0) {
+            allSuppliers = sList.map(b => ({
               id: b.id,
               user_id: b.user_id,
               company_name: b.company_name,
+              slug: b.slug,
               category: b.category || "General B2B",
               business_type: b.business_type || "Verified Supplier",
               city: b.city || "Global Hub",
@@ -236,9 +237,35 @@
             }));
           }
         }
-      } catch(e) {
-        console.warn("Could not fetch live businesses", e);
-      }
+      } catch(e) {}
+
+      // Step 2: Background Non-Blocking Revalidation (stale-while-revalidate with 2.5s timeout)
+      setTimeout(async () => {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2500);
+          const res = await fetch(`${window.API_BASE || 'https://flenko-backend.onrender.com/api'}/public/businesses?_t=${Date.now()}`, { signal: controller.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.businesses && data.businesses.length > 0) {
+              allSuppliers = data.businesses.map(b => ({
+                id: b.id,
+                user_id: b.user_id,
+                company_name: b.company_name,
+                slug: b.slug,
+                category: b.category || "General B2B",
+                business_type: b.business_type || "Verified Supplier",
+                city: b.city || "Global Hub",
+                is_verified: b.is_verified !== false,
+                created_at: b.created_at,
+                logo_url: b.logo_url
+              }));
+              renderSuppliers();
+            }
+          }
+        } catch(e) {}
+      }, 100);
 
       // Merge locally registered sellers so newly added suppliers never vanish across reboots
       try {

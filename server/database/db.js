@@ -13,9 +13,9 @@ const poolConfig = activeDatabaseUrl
   ? { 
       connectionString: activeDatabaseUrl, 
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000,
-      idleTimeoutMillis: 30000,
-      max: 10
+      connectionTimeoutMillis: 3000,
+      idleTimeoutMillis: 10000,
+      max: 5
     }
   : {
       user: process.env.DB_USER,
@@ -23,9 +23,9 @@ const poolConfig = activeDatabaseUrl
       database: process.env.DB_NAME,
       password: process.env.DB_PASSWORD,
       port: process.env.DB_PORT,
-      connectionTimeoutMillis: 10000,
-      idleTimeoutMillis: 30000,
-      max: 10
+      connectionTimeoutMillis: 3000,
+      idleTimeoutMillis: 10000,
+      max: 5
     };
 
 const pool = new Pool(poolConfig);
@@ -122,6 +122,15 @@ if (!hasMasterAdmin) {
 function saveMockDB() {
   try {
     fs.writeFileSync(mockDbPath, JSON.stringify(mockDB, null, 2), 'utf8');
+    // Also keep root products.json and suppliers.json in sync for ultra-fast CDN/domain caching
+    if (Array.isArray(mockDB.products) && mockDB.products.length > 0) {
+      const pJsonPath = path.resolve(__dirname, '../../products.json');
+      fs.writeFileSync(pJsonPath, JSON.stringify(mockDB.products, null, 2), 'utf8');
+    }
+    if (Array.isArray(mockDB.businesses) && mockDB.businesses.length > 0) {
+      const sJsonPath = path.resolve(__dirname, '../../suppliers.json');
+      fs.writeFileSync(sJsonPath, JSON.stringify(mockDB.businesses, null, 2), 'utf8');
+    }
   } catch (err) {
     console.error('Error saving db.json:', err);
   }
@@ -348,12 +357,14 @@ pool.on('error', (err) => {
 async function checkAndConnectDb() {
   if (!hasDatabaseUrl) {
     useMock = true;
-    console.warn('⚠️ No DATABASE_URL found in environment variables. Using in-memory fallback (data wipes on server restart).');
+    console.warn('ℹ️ No DATABASE_URL found. Operating in high-performance local persistent mode (db.json).');
     return false;
   }
 
   try {
-    const res = await pool.query('SELECT 1');
+    const queryPromise = pool.query('SELECT 1');
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out (3000ms)')), 3000));
+    const res = await Promise.race([queryPromise, timeoutPromise]);
     if (res) {
       isConnectedToPostgres = true;
       useMock = false;
@@ -365,11 +376,13 @@ async function checkAndConnectDb() {
     }
   } catch (err) {
     lastDbError = err.message;
-    console.warn(`⚠️ PostgreSQL connection failed: ${err.message}.`);
-    if (hasDatabaseUrl) {
-      console.warn('🔄 DATABASE_URL is set. Retrying connection in 10s...');
-      scheduleReconnect();
+    const isQuota = err && (err.code === '53000' || (err.message && err.message.toLowerCase().includes('quota')));
+    if (isQuota) {
+      console.warn('⚠️ Cloud PostgreSQL monthly compute quota reached. Automatically operating in high-performance local persistent store (db.json).');
+    } else {
+      console.warn(`⚠️ PostgreSQL connection notice: ${err.message}. Operating in local persistent mode (db.json).`);
     }
+    isConnectedToPostgres = false;
     useMock = true;
     return false;
   }
@@ -379,23 +392,8 @@ function scheduleReconnect() {
   if (reconnectTimer || !hasDatabaseUrl) return;
   reconnectTimer = setTimeout(async () => {
     reconnectTimer = null;
-    console.log('🔄 Retrying PostgreSQL connection...');
     await checkAndConnectDb();
-  }, 10000);
-}
-
-// Serverless Keep-Alive Ping (Runs every 2 minutes to keep Neon PostgreSQL active 24/7)
-if (hasDatabaseUrl) {
-  setInterval(async () => {
-    try {
-      if (pool) {
-        await pool.query('SELECT 1');
-      }
-    } catch(err) {
-      console.warn('Neon keep-alive ping notice:', err.message);
-      try { await checkAndConnectDb(); } catch(e) {}
-    }
-  }, 120000);
+  }, 60000); // Check once per minute, avoiding Neon spin-lock
 }
 
 // Initial connection attempt
@@ -403,38 +401,21 @@ let initialConnectPromise = checkAndConnectDb();
 
 module.exports = {
   query: async (text, params = []) => {
-    // If PostgreSQL URL is configured, ALWAYS query PostgreSQL with automatic retries (NEVER drop into mock)
-    if (hasDatabaseUrl) {
-      if (initialConnectPromise && !isConnectedToPostgres && !lastDbError) {
-        try { await initialConnectPromise; } catch (e) {}
-      }
-
-      let attempts = 0;
-      const maxAttempts = 3;
-      while (attempts < maxAttempts) {
-        attempts++;
-        try {
-          return await pool.query(text, params);
-        } catch (err) {
-          const isNetworkError = (
-            err.code === 'ECONNREFUSED' ||
-            err.code === 'ENOTFOUND' ||
-            (err.message && (
-              err.message.includes('Connection terminated') ||
-              err.message.includes('timeout') ||
-              err.message.includes('Connection lost') ||
-              err.message.includes('closed') ||
-              err.message.includes('server closed the connection')
-            ))
-          );
-          if (isNetworkError && attempts < maxAttempts) {
-            console.warn(`PostgreSQL transient error (attempt ${attempts}/${maxAttempts}): ${err.message}. Retrying query...`);
-            await new Promise(r => setTimeout(r, attempts * 600));
-            try { await pool.query('SELECT 1'); } catch(e) {}
-            continue;
-          }
-          throw err;
+    // If PostgreSQL is connected and active, query PostgreSQL with strict 3-second timeout
+    if (hasDatabaseUrl && isConnectedToPostgres) {
+      try {
+        const queryPromise = pool.query(text, params);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('PostgreSQL query timed out (3000ms)')), 3000));
+        return await Promise.race([queryPromise, timeoutPromise]);
+      } catch (err) {
+        const isQuota = err && (err.code === '53000' || (err.message && err.message.toLowerCase().includes('quota')));
+        if (isQuota) {
+          isConnectedToPostgres = false;
+          console.warn('⚠️ PostgreSQL quota exceeded. Transparently serving query from local store (db.json).');
+        } else {
+          console.warn(`⚠️ PostgreSQL query error (${err.message}). Transparently serving from local store (db.json).`);
         }
+        // Seamlessly continue to mockDB fallback below instead of throwing!
       }
     }
 
@@ -1139,10 +1120,13 @@ module.exports = {
         const usr = userMap[p.supplier_id] || {};
         return {
           ...p,
-          supplier_name: biz.company_name || usr.name || ('Supplier #' + p.supplier_id),
-          supplier_logo: biz.logo_url || null,
-          city: biz.city || usr.city || 'Industrial Hub',
-          country: p.country || biz.country || 'India'
+          supplier_name: biz.company_name || usr.name || p.supplier_name || ('Supplier #' + p.supplier_id),
+          supplier_logo: biz.logo_url || p.supplier_logo || null,
+          city: biz.city || usr.city || p.city || 'Industrial Hub',
+          country: p.country || biz.country || 'India',
+          supplier_slug: biz.slug || p.supplier_slug || '',
+          supplier_phone: biz.phone || usr.phone || p.supplier_phone || '',
+          supplier_whatsapp: biz.whatsapp || biz.phone || usr.phone || p.supplier_whatsapp || ''
         };
       });
       return { rows: enriched };

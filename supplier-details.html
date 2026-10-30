@@ -649,13 +649,33 @@
       }
     }
 
-    function fallbackLocalSupplier(id) {
-      // ONLY look up in localStorage if current logged in user matches this exact id
+    async function fallbackLocalSupplier(id) {
       let localBiz = {};
       try {
         const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
         if (u && (String(u.id) === String(id) || String(u.phone) === String(id))) {
           localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        }
+      } catch(e) {}
+
+      // Check suppliers.json directly from domain (< 20ms)
+      try {
+        const sRes = await fetch('suppliers.json');
+        if (sRes.ok) {
+          const sList = await sRes.json();
+          const match = sList.find(s => String(s.id) === String(id) || String(s.user_id) === String(id) || s.slug === String(id));
+          if (match) {
+            localBiz = { ...match, ...localBiz };
+          }
+        }
+      } catch(e) {}
+
+      // Also load products for this supplier from products.json
+      try {
+        const pRes = await fetch('products.json');
+        if (pRes.ok) {
+          const pList = await pRes.json();
+          allSupplierProducts = pList.filter(p => String(p.supplier_id) === String(id) || (localBiz.user_id && String(p.supplier_id) === String(localBiz.user_id)) || p.supplier_slug === String(id));
         }
       } catch(e) {}
 
