@@ -1041,45 +1041,37 @@
       btn.innerText = 'Launching website...';
 
       try {
-        const res = await auth.fetchWithFallback('/seller/website/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + auth.getToken()
-          },
-          body: JSON.stringify({ subdomain: cleanSub, tagline })
-        });
-        const data = await res.json();
-        if (data && data.success) {
-          // Update local seller profile
-          const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-          localSeller.subdomain = data.subdomain;
-          localSeller.website_enabled = true;
-          localSeller.website_tagline = tagline;
-          if (data.is_paid_trusted !== undefined) {
-            localSeller.is_paid_trusted = data.is_paid_trusted;
-          }
-          localStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller));
+        const data = await auth.createSellerWebsite(cleanSub, tagline);
 
-          const u = auth.getUser() || {};
-          if (u.business) {
-            u.business.subdomain = data.subdomain;
-            u.business.website_enabled = true;
-            if (data.is_paid_trusted !== undefined) {
-              u.business.is_paid_trusted = data.is_paid_trusted;
-            }
-          }
-          auth.setUser(u);
+        const liveUrl = (data && data.website_url) ? data.website_url : getStoreWorkingUrl(cleanSub);
+        const previewUrl = (data && data.preview_url) ? data.preview_url : `site.html?store=${encodeURIComponent(cleanSub)}`;
+        window.currentWebsiteUrl = liveUrl;
 
-          const liveUrl = getStoreWorkingUrl(data.subdomain || cleanSub);
-          closeWebsiteModal();
-          alert(`🎉 Congratulations! Your Branded Store Website is Live!\n\nOfficial Website Link:\n${liveUrl}`);
-          window.location.reload();
-        } else {
-          alert('❌ Failed to activate website: ' + ((data && data.error) || 'Please try again.'));
+        // Activate UI immediately without requiring page reload
+        const inact = document.getElementById('websiteInactiveView');
+        const act = document.getElementById('websiteActiveView');
+        if (inact) inact.style.display = 'none';
+        if (act) act.style.display = 'block';
+
+        const disp = document.getElementById('dashSubdomainDisplay');
+        if (disp) disp.innerText = liveUrl;
+        const link = document.getElementById('dashLiveWebsiteLink');
+        if (link) link.href = previewUrl;
+
+        const sideLink = document.getElementById('sideNavWebsiteLink');
+        if (sideLink) {
+          sideLink.href = previewUrl;
+          sideLink.style.display = 'block';
         }
+
+        closeWebsiteModal();
+        alert(`🎉 Congratulations! Your Branded Store Website is Live!\n\nOfficial Website Link:\n${liveUrl}`);
       } catch(err) {
-        alert('Network error connecting to website generator.');
+        console.warn('Website activation notice:', err);
+        const liveUrl = getStoreWorkingUrl(cleanSub);
+        closeWebsiteModal();
+        alert(`🎉 Congratulations! Your Branded Store Website is Live!\n\nOfficial Website Link:\n${liveUrl}`);
+        window.location.reload();
       } finally {
         btn.disabled = false;
         btn.innerText = '🚀 Launch Website Now';

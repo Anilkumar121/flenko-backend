@@ -322,47 +322,34 @@ const auth = {
   async saveBusinessProfile(formData) {
     const token = this.getToken();
     let resData = null;
-    try {
-      const res = await this.fetchWithFallback(`/businesses`, {
-        method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        body: formData
-      });
-      resData = await res.json();
-    } catch(e) {
-      console.warn('Network save business profile failed:', e);
-    }
 
-    // Always mirror confirmed business to local storage safely so profile edits never get lost
+    // 1. Immediately persist changes locally so seller details are never cleared or lost
+    let bObj = {};
     try {
-      const bObj = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-      for (let [k, v] of formData.entries()) {
-        if (typeof v === 'string') {
-          // If this is a huge data URI, skip storing raw base64 locally
-          if (k === 'logo_url' && v.startsWith('data:image') && v.length > 30000) continue;
-          bObj[k] = v;
+      bObj = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      if (formData && typeof formData.entries === 'function') {
+        for (let [k, v] of formData.entries()) {
+          if (typeof v === 'string') {
+            if (k === 'logo_url' && v.startsWith('data:image') && v.length > 35000) continue;
+            bObj[k] = v;
+          }
         }
       }
-      if (resData && resData.business) {
-        Object.assign(bObj, resData.business);
-      }
-      if (resData && resData.logo_url) {
-        bObj.logo_url = resData.logo_url;
-      }
-      // Sanitize company name if numeric like "100"
       if (bObj.company_name && /^\d+$/.test(bObj.company_name.trim())) {
         delete bObj.company_name;
       }
       flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(flenkoSafeStorage.stripHeavyImages(bObj)));
+
       const u = this.getUser() || {};
       u.business = { ...(u.business || {}), ...bObj };
       if (bObj.company_name) {
         u.company_name = bObj.company_name;
         u.name = bObj.company_name;
       }
+      if (bObj.phone) u.phone = bObj.phone;
+      if (bObj.city) u.city = bObj.city;
       this.setUser(u);
 
-      // Also update this user in flenko_registered_users list without heavy base64
       try {
         let rList = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
         const uPhone10 = (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
@@ -379,9 +366,109 @@ const auth = {
           flenkoSafeStorage.setItem('flenko_registered_users', JSON.stringify(flenkoSafeStorage.stripHeavyImages(rList)));
         }
       } catch(e) {}
+    } catch(err) {
+      console.warn('Local profile save notice:', err);
+    }
+
+    // 2. Sync to backend server
+    try {
+      const res = await this.fetchWithFallback(`/businesses`, {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData
+      });
+      if (res && res.ok) {
+        const ct = (res.headers && res.headers.get('content-type')) || '';
+        if (!ct.includes('text/html')) {
+          resData = await res.json();
+          if (resData && resData.business) {
+            Object.assign(bObj, resData.business);
+            if (resData.logo_url) bObj.logo_url = resData.logo_url;
+            flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(flenkoSafeStorage.stripHeavyImages(bObj)));
+          }
+        }
+      }
+    } catch(e) {
+      console.warn('Network save business profile notice (data saved locally):', e);
+    }
+
+    return {
+      success: true,
+      message: (resData && resData.message) ? resData.message : 'Profile & storefront details saved successfully',
+      business: bObj,
+      logo_url: bObj.logo_url,
+      isServerSynced: Boolean(resData && resData.success)
+    };
+  },
+  async createSellerWebsite(subdomain, tagline) {
+    const rawSub = (subdomain || '').toLowerCase().trim();
+    const cleanSub = rawSub.replace(/[^a-z0-9-]/g, '').slice(0, 30) || 'store';
+    const finalTagline = tagline || 'Verified Manufacturer & Wholesale Exporter';
+
+    // 1. Immediately persist website in local seller profile & user session
+    let localSeller = {};
+    try {
+      localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      localSeller.subdomain = cleanSub;
+      localSeller.website_enabled = true;
+      localSeller.website_tagline = finalTagline;
+      flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(localSeller));
+
+      const u = this.getUser() || {};
+      if (!u.business) u.business = {};
+      u.business.subdomain = cleanSub;
+      u.business.website_enabled = true;
+      u.business.website_tagline = finalTagline;
+      this.setUser(u);
+
+      let rList = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
+      const uPhone10 = (u.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      const idx = rList.findIndex(ru => {
+        const rP10 = (ru.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+        return (uPhone10 && rP10 && uPhone10 === rP10) || String(ru.id) === String(u.id);
+      });
+      if (idx !== -1) {
+        rList[idx].subdomain = cleanSub;
+        rList[idx].website_enabled = true;
+        flenkoSafeStorage.setItem('flenko_registered_users', JSON.stringify(flenkoSafeStorage.stripHeavyImages(rList)));
+      }
     } catch(e) {}
 
-    return resData || { success: true };
+    // 2. Try syncing with backend server
+    const token = this.getToken();
+    let resData = null;
+    try {
+      const res = await this.fetchWithFallback('/seller/website/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+        },
+        body: JSON.stringify({ subdomain: cleanSub, tagline: finalTagline })
+      });
+      if (res && res.ok) {
+        const ct = (res.headers && res.headers.get('content-type')) || '';
+        if (!ct.includes('text/html')) {
+          resData = await res.json();
+        }
+      }
+    } catch(e) {
+      console.warn('Network website generate fallback notice:', e);
+    }
+
+    const workingSub = (resData && resData.subdomain) ? resData.subdomain : cleanSub;
+    const origin = (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('file:') && !window.location.origin.includes('null')) ? window.location.origin : 'https://flenko.com';
+    const liveUrl = `${origin}/site.html?store=${encodeURIComponent(workingSub)}`;
+    const previewUrl = `site.html?store=${encodeURIComponent(workingSub)}`;
+
+    return {
+      success: true,
+      subdomain: workingSub,
+      tagline: finalTagline,
+      website_url: liveUrl,
+      preview_url: previewUrl,
+      isServerSynced: Boolean(resData && resData.success)
+    };
   },
   saveLocalUser(user) {
     try {

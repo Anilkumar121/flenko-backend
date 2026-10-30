@@ -194,8 +194,8 @@ async function generateAllSeoPagesAndSitemaps() {
       const slug = seoService.slugify(catName);
       if (!slug) continue;
 
-      const catProducts = products.filter(p => (p.category || '').toLowerCase() === catName.toLowerCase());
-      const catSuppliers = suppliers.filter(s => (s.category || '').toLowerCase().includes(catName.toLowerCase()));
+      const catProducts = products.filter(p => String(p.category || '').toLowerCase() === String(catName || '').toLowerCase());
+      const catSuppliers = suppliers.filter(s => String(s.category || '').toLowerCase().includes(String(catName || '').toLowerCase()));
 
       const html = seoService.renderCategoryPageHtml({
         categoryName: catName,

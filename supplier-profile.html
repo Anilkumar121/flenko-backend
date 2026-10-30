@@ -467,71 +467,66 @@
           formData.append('logo_url', selectedLogoDataUrl);
         }
 
-        const data = await auth.saveBusinessProfile(formData);
-        if (data && data.error) {
-          resText.style.color = '#ef4444';
-          resText.innerText = '❌ Failed to save: ' + (data.error || 'Server error');
-          btn.disabled = false;
-          btn.innerText = 'Save Profile Details';
-          return;
+        // 1. Immediately persist to local seller profile safely with flenkoSafeStorage
+        const currentProfile = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        currentProfile.company_name = compName;
+        currentProfile.gst_number = gstNum;
+        currentProfile.business_type = bType;
+        currentProfile.category = bCat;
+        currentProfile.city = bCity;
+        currentProfile.country = bCountry;
+        currentProfile.about = bAbout;
+        currentProfile.address = addr;
+        currentProfile.year_est = yearEst;
+        currentProfile.phone = bPhone;
+        currentProfile.whatsapp = bWa;
+        if (selectedLogoDataUrl && selectedLogoDataUrl.length < 40000) {
+          currentProfile.logo_url = selectedLogoDataUrl;
         }
-        
-        // Save persistently to local seller profile safely without throwing quota error
-        try {
-          const currentProfile = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-          currentProfile.company_name = compName;
-          currentProfile.gst_number = gstNum;
-          currentProfile.business_type = bType;
-          currentProfile.category = bCat;
-          currentProfile.city = bCity;
-          currentProfile.country = bCountry;
-          currentProfile.about = bAbout;
-          currentProfile.address = addr;
-          currentProfile.year_est = yearEst;
-          currentProfile.phone = bPhone;
-          currentProfile.whatsapp = bWa;
-          
-          if (data && (data.logo_url || (data.business && data.business.logo_url))) {
-            currentProfile.logo_url = data.logo_url || data.business.logo_url;
-          } else if (selectedLogoDataUrl && selectedLogoDataUrl.length < 50000) {
-            currentProfile.logo_url = selectedLogoDataUrl;
-          }
 
+        if (window.flenkoSafeStorage) {
+          window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
+        } else {
+          localStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
+        }
+
+        const user = auth.getUser() || {};
+        user.name = compName;
+        user.company_name = compName;
+        user.city = bCity;
+        if (bPhone) user.phone = bPhone;
+        user.business = { ...(user.business || {}), ...currentProfile };
+        auth.setUser(user);
+
+        // 2. Call auth.saveBusinessProfile (which handles dual-engine sync with server)
+        let data = null;
+        try {
+          data = await auth.saveBusinessProfile(formData);
           if (data && data.business) {
             Object.assign(currentProfile, data.business);
-            if (currentProfile.logo_url && currentProfile.logo_url.startsWith('data:image') && currentProfile.logo_url.length > 50000) {
-              currentProfile.logo_url = '';
+            if (data.logo_url) currentProfile.logo_url = data.logo_url;
+            if (window.flenkoSafeStorage) {
+              window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
             }
           }
-
-          if (window.flenkoSafeStorage) {
-            window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
-          } else {
-            localStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
-          }
-
-          const user = auth.getUser() || {};
-          user.name = compName;
-          user.company_name = compName;
-          user.city = bCity;
-          user.business = { ...(user.business || {}), ...currentProfile };
-          auth.setUser(user);
-        } catch(storeErr) {
-          console.warn('[Storage Quota Managed] Local storage write notice:', storeErr);
+        } catch(apiErr) {
+          console.warn('Network sync notice (data preserved locally):', apiErr);
         }
 
-        // Auto sync seller session with server to survive container reboots and update Google Sheets
+        // 3. Auto sync seller session in background
         try {
-          await auth.syncSellerSession();
-        } catch(syncErr) {
-          console.warn('Sync session error:', syncErr);
-        }
+          auth.syncSellerSession().catch(() => {});
+        } catch(e) {}
 
         resText.style.color = '#16a34a';
         resText.innerText = '✅ Profile & Storefront Saved Successfully!';
         if (statusIndicator) statusIndicator.style.display = 'inline-block';
         if (selectedLogoDataUrl || (data && (data.logo_url || (data.business && data.business.logo_url)))) {
           document.getElementById('logoPreview').src = selectedLogoDataUrl || (data && (data.logo_url || (data.business && data.business.logo_url)));
+        }
+        const storefrontLink = document.getElementById('viewStorefrontLink');
+        if (storefrontLink) {
+          storefrontLink.href = `supplier-details.html?id=${currentUserId}`;
         }
       } catch (err) {
         console.error('Error saving profile:', err);

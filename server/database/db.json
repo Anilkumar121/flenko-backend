@@ -13,8 +13,8 @@
     },
     {
       "id": 8,
-      "phone": "+918587979010",
-      "name": "Anil Kumar",
+      "phone": "8587979010",
+      "name": "Rana Pratap Technology",
       "email": "ranaprataptechenology@gmail.com",
       "city": "New Delhi",
       "role": "supplier",
@@ -47,7 +47,7 @@
     {
       "id": 10,
       "phone": "+919810935446",
-      "name": "Surender Kumar",
+      "name": "Surender building material supplier",
       "email": "surender.materials@gmail.com",
       "city": "Ghaziabad",
       "role": "supplier",
@@ -109,6 +109,15 @@
       "subscription": "vip",
       "created_at": "2026-10-14T10:00:00.000Z",
       "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
+    },
+    {
+      "id": 113,
+      "phone": "99999",
+      "password": null,
+      "name": "Sharma Industrial Tools",
+      "email": "Sharma Industrial Tools",
+      "city": "Jaipur",
+      "subscription": "free"
     }
   ],
   "otp_requests": [],
@@ -118,24 +127,26 @@
       "user_id": 8,
       "company_name": "Rana Pratap Technology",
       "slug": "rana-pratap-technology",
-      "subdomain": "ranaprataptechnology",
-      "phone": "+918587979010",
-      "whatsapp": "918587979010",
+      "subdomain": "ranapratap",
+      "phone": "8587979010",
+      "whatsapp": "8587979010",
       "email": "ranaprataptechenology@gmail.com",
       "city": "New Delhi",
       "country": "India",
-      "address": "Plot 12, Okhla Industrial Area Phase III, New Delhi, Delhi 110020",
-      "category": "IT, Software & Telecom",
-      "business_type": "IT & Web Development",
-      "year_est": "2018",
-      "gst_number": "07AAAFR1234K1Z2",
+      "address": "",
+      "category": "Industrial Machinery",
+      "business_type": "Manufacturer & Wholesaler",
+      "year_est": "",
+      "gst_number": "",
       "about": "Rana Pratap Technology is a premier IT solutions and custom web development enterprise delivering high-performance business websites, e-commerce platforms, mobile applications, and enterprise software suites across India and globally.",
       "website_enabled": true,
-      "website_tagline": "Custom Web & Software Development Solutions for Growing Businesses",
+      "website_tagline": "Leading Industrial Tech",
       "is_verified": true,
       "is_paid_trusted": true,
       "logo_url": "assets/images/logo.png",
-      "created_at": "2026-10-14T10:00:00.000Z"
+      "created_at": "2026-10-14T10:00:00.000Z",
+      "seo_title": "Rana Pratap Technology - Verified Manufacturer & Wholesaler in New Delhi | Flenko B2B",
+      "seo_description": "Rana Pratap Technology is a verified Manufacturer & Wholesaler based in New Delhi, India, specializing in Industrial Machinery. View products, company profile, and request direct bulk quotations on Flenko."
     },
     {
       "id": 7,
@@ -187,7 +198,7 @@
     },
     {
       "id": 10,
-      "user_id": 10,
+      "user_id": 113,
       "company_name": "Surender building material supplier",
       "slug": "surender-building-material-supplier",
       "subdomain": "surenderbuildingmaterial",
@@ -1006,7 +1017,7 @@
   "lead_payments": [],
   "subscription_payments": [],
   "reviews": [],
-  "idCounter": 112,
+  "idCounter": 115,
   "platform_settings": [
     {
       "setting_key": "google_sheet_webhook_url",

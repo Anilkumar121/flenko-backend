@@ -813,45 +813,92 @@
       let matchedSupp = null;
       let matchedProducts = [];
 
-      // 1. Try to load directly from static suppliers.json
+      const target = (activeSubdomain || '').toLowerCase().trim();
+
+      // 1. Check local seller profile first (direct match for owner viewing their website)
       try {
-        const sRes = await fetch('suppliers.json');
-        if (sRes.ok) {
-          const suppliersList = await sRes.json();
-          const target = (activeSubdomain || '').toLowerCase().trim();
-          matchedSupp = suppliersList.find(s => 
-            (s.subdomain && s.subdomain.toLowerCase() === target) ||
-            (s.slug && s.slug.toLowerCase() === target) ||
-            String(s.id) === target ||
-            String(s.user_id) === target ||
-            (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(target.replace(/[^a-z0-9]/g, '')))
-          );
+        const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        const loggedUser = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
+        const isOwner = localSeller && (
+          (localSeller.subdomain && localSeller.subdomain.toLowerCase() === target) ||
+          (localSeller.company_name && localSeller.company_name.toLowerCase().replace(/[^a-z0-9]/g, '') === target.replace(/[^a-z0-9]/g, '')) ||
+          (target === 'store' && (localSeller.company_name || localSeller.subdomain))
+        );
+        if (isOwner) {
+          matchedSupp = {
+            id: (loggedUser && loggedUser.id) || localSeller.id || 1,
+            user_id: (loggedUser && loggedUser.id) || localSeller.user_id || 1,
+            company_name: localSeller.company_name || (loggedUser && (loggedUser.company_name || loggedUser.name)) || 'Verified Supplier Storefront',
+            category: localSeller.category || 'General Business',
+            business_type: localSeller.business_type || 'Manufacturer & Wholesaler',
+            gst_number: localSeller.gst_number || 'GST Verified',
+            city: localSeller.city || 'India',
+            country: localSeller.country || 'India',
+            address: localSeller.address || 'Verified Facility, India',
+            about: localSeller.about || 'Certified manufacturer and wholesale supplier on Flenko Marketplace. Direct bulk B2B pricing with factory warranty.',
+            website_tagline: localSeller.website_tagline || 'Official Manufacturer & Wholesale Storefront',
+            year_est: localSeller.year_est || '2015',
+            phone: localSeller.phone || (loggedUser && loggedUser.phone) || '',
+            whatsapp: localSeller.whatsapp || localSeller.phone || (loggedUser && loggedUser.phone) || '',
+            subdomain: localSeller.subdomain || activeSubdomain || 'store',
+            is_verified: true,
+            is_paid_trusted: Boolean(localSeller.is_paid_trusted)
+          };
         }
       } catch(e) {}
 
-      // 2. Try to load products from static products.json
+      // 2. Try to load from static suppliers.json
+      if (!matchedSupp) {
+        try {
+          const sRes = await fetch('suppliers.json');
+          if (sRes.ok) {
+            const suppliersList = await sRes.json();
+            matchedSupp = suppliersList.find(s => 
+              (s.subdomain && s.subdomain.toLowerCase() === target) ||
+              (s.slug && s.slug.toLowerCase() === target) ||
+              String(s.id) === target ||
+              String(s.user_id) === target ||
+              (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(target.replace(/[^a-z0-9]/g, '')))
+            );
+          }
+        } catch(e) {}
+      }
+
+      // 3. Load products (merging local custom seller products first)
+      try {
+        const u = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
+        const uId = (u && u.id) || (matchedSupp && (matchedSupp.id || matchedSupp.user_id)) || 1;
+        const localProds = JSON.parse(localStorage.getItem(`flenko_seller_products_${uId}`) || localStorage.getItem('flenko_seller_products') || localStorage.getItem('flenko_custom_products') || '[]');
+        if (Array.isArray(localProds) && localProds.length > 0) {
+          matchedProducts = [...localProds];
+        }
+      } catch(e) {}
+
       try {
         const pRes = await fetch('products.json');
         if (pRes.ok) {
           const prodsList = await pRes.json();
           if (matchedSupp) {
-            matchedProducts = prodsList.filter(p => 
+            const filteredProds = prodsList.filter(p => 
               String(p.supplier_id) === String(matchedSupp.id) ||
               String(p.supplier_id) === String(matchedSupp.user_id) ||
               (p.supplier_slug && p.supplier_slug === matchedSupp.slug)
             );
-          } else {
+            if (filteredProds.length > 0) {
+              const existingIds = new Set(matchedProducts.map(p => String(p.id)));
+              filteredProds.forEach(fp => {
+                if (!existingIds.has(String(fp.id))) {
+                  matchedProducts.push(fp);
+                  existingIds.add(String(fp.id));
+                }
+              });
+            }
+          }
+          if (matchedProducts.length === 0) {
             matchedProducts = prodsList.slice(0, 8);
           }
         }
       } catch(e) {}
-
-      // 3. Fallback to local seller profile if matching
-      const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-      const isMatchingLocal = localSeller && localSeller.subdomain && (localSeller.subdomain.toLowerCase() === (activeSubdomain || '').toLowerCase());
-      if (isMatchingLocal) {
-        matchedSupp = { ...matchedSupp, ...localSeller };
-      }
 
       if (!matchedSupp) {
         matchedSupp = {
