@@ -801,107 +801,83 @@
           siteReviews = data.reviews || [];
           renderWebsite(supplierInfo, data.stats || {});
         } else {
-          fallbackDefaultStore();
+          await fallbackDefaultStore();
         }
       } catch (err) {
         console.warn('Network error fetching website data, using fallback:', err);
-        fallbackDefaultStore();
+        await fallbackDefaultStore();
       }
     }
 
-    function fallbackDefaultStore() {
-      const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-      const curUser = (typeof auth !== 'undefined' && auth.getUser) ? (auth.getUser() || {}) : {};
-      const sellerKey = `flenko_seller_products_${curUser.id || localSeller.id || curUser.phone || 'default'}`;
-      let localProducts = JSON.parse(localStorage.getItem(sellerKey) || '[]');
-      if (!localProducts || localProducts.length === 0) {
-        localProducts = JSON.parse(localStorage.getItem('flenko_supplier_products') || '[]');
-      }
-      const localReviews = JSON.parse(localStorage.getItem('flenko_supplier_reviews') || '[]');
+    async function fallbackDefaultStore() {
+      let matchedSupp = null;
+      let matchedProducts = [];
 
-      const isMatchingSubdomain = localSeller && localSeller.subdomain && (localSeller.subdomain.toLowerCase() === (activeSubdomain || '').toLowerCase());
-
-      supplierInfo = {
-        id: (isMatchingSubdomain && localSeller.id) ? localSeller.id : 1,
-        company_name: (isMatchingSubdomain && localSeller.company_name) ? localSeller.company_name : (localSeller.company_name || 'Verified Supplier Storefront'),
-        category: (isMatchingSubdomain && localSeller.category) ? localSeller.category : 'General B2B',
-        business_type: (isMatchingSubdomain && localSeller.business_type) ? localSeller.business_type : 'Manufacturer & Wholesaler',
-        gst_number: (isMatchingSubdomain && localSeller.gst_number) ? localSeller.gst_number : '',
-        city: (isMatchingSubdomain && localSeller.city) ? localSeller.city : 'India',
-        country: (isMatchingSubdomain && localSeller.country) ? localSeller.country : 'India',
-        address: (isMatchingSubdomain && localSeller.address) ? localSeller.address : 'Industrial Area, India',
-        about: (isMatchingSubdomain && localSeller.about) ? localSeller.about : 'Verified manufacturer and wholesale supplier on Flenko Marketplace. Direct B2B pricing, verified facilities, and Trade Assurance.',
-        website_tagline: (isMatchingSubdomain && localSeller.website_tagline) ? localSeller.website_tagline : 'Certified Manufacturer & Wholesale Partner',
-        year_est: (isMatchingSubdomain && localSeller.year_est) ? localSeller.year_est : (localSeller.year_est || 'Established Entity'),
-        subdomain: activeSubdomain || (localSeller.subdomain) || 'store',
-        is_paid_trusted: Boolean(
-          localSeller &&
-          localSeller.subscription &&
-          localSeller.subscription !== 'free' &&
-          localSeller.subscription !== 'basic' &&
-          localSeller.subscription !== 'none' &&
-          (localSeller.is_paid_trusted === true || localSeller.subscription === 'premium' || localSeller.subscription === 'pro' || localSeller.subscription === 'enterprise')
-        ),
-        subscription: localSeller.subscription || 'free',
-        logo_url: (isMatchingSubdomain && localSeller.logo_url) ? localSeller.logo_url : 'assets/images/logo.png'
-      };
-
-      if (isMatchingSubdomain && localProducts && localProducts.length > 0) {
-        siteProducts = localProducts;
-      } else {
-        siteProducts = [
-          {
-            id: 101,
-            name: 'Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)',
-            price: 24.50,
-            category: 'Packaging & Printing',
-            moq: 500,
-            unit: 'Boxes',
-            stock_quantity: 50000,
-            image_url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80',
-            description: 'High-burst strength corrugated packaging boxes designed for logistics, e-commerce, and export cargo.'
-          },
-          {
-            id: 102,
-            name: 'Custom Printed BOPP Packaging Tape (65 Micron)',
-            price: 45.00,
-            category: 'Packaging & Printing',
-            moq: 120,
-            unit: 'Rolls',
-            stock_quantity: 12000,
-            image_url: 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80',
-            description: 'Industrial-grade tamper-evident adhesive tapes with custom logo printing for brand protection.'
-          },
-          {
-            id: 103,
-            name: 'Industrial Stretch Wrapping Film (23 Micron)',
-            price: 180.00,
-            category: 'Packaging & Printing',
-            moq: 50,
-            unit: 'Rolls',
-            stock_quantity: 8500,
-            image_url: 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80',
-            description: 'Puncture-resistant linear low-density polyethylene (LLDPE) cast stretch film for pallet containment.'
-          }
-        ];
-      }
-
-      siteReviews = [
-        {
-          reviewer_name: 'Rajesh K. (Procurement Head)',
-          product_name: 'Heavy-Duty Corrugated Boxes',
-          rating: 5,
-          comment: 'Outstanding product quality and on-time bulk delivery. Highly recommended for regular factory supplies.'
-        },
-        {
-          reviewer_name: 'Sunil Mehta (Operations Director)',
-          product_name: 'General Supplier Review',
-          rating: 5,
-          comment: 'Very professional communication and instant RFQ response. Custom printing on tapes was crisp.'
+      // 1. Try to load directly from static suppliers.json
+      try {
+        const sRes = await fetch('suppliers.json');
+        if (sRes.ok) {
+          const suppliersList = await sRes.json();
+          const target = (activeSubdomain || '').toLowerCase().trim();
+          matchedSupp = suppliersList.find(s => 
+            (s.subdomain && s.subdomain.toLowerCase() === target) ||
+            (s.slug && s.slug.toLowerCase() === target) ||
+            String(s.id) === target ||
+            String(s.user_id) === target ||
+            (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(target.replace(/[^a-z0-9]/g, '')))
+          );
         }
-      ];
+      } catch(e) {}
 
-      renderWebsite(supplierInfo, { rating: '5.0', review_count: 2, total_products: 3 });
+      // 2. Try to load products from static products.json
+      try {
+        const pRes = await fetch('products.json');
+        if (pRes.ok) {
+          const prodsList = await pRes.json();
+          if (matchedSupp) {
+            matchedProducts = prodsList.filter(p => 
+              String(p.supplier_id) === String(matchedSupp.id) ||
+              String(p.supplier_id) === String(matchedSupp.user_id) ||
+              (p.supplier_slug && p.supplier_slug === matchedSupp.slug)
+            );
+          } else {
+            matchedProducts = prodsList.slice(0, 8);
+          }
+        }
+      } catch(e) {}
+
+      // 3. Fallback to local seller profile if matching
+      const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      const isMatchingLocal = localSeller && localSeller.subdomain && (localSeller.subdomain.toLowerCase() === (activeSubdomain || '').toLowerCase());
+      if (isMatchingLocal) {
+        matchedSupp = { ...matchedSupp, ...localSeller };
+      }
+
+      if (!matchedSupp) {
+        matchedSupp = {
+          id: 1,
+          company_name: 'Verified Supplier Storefront',
+          category: 'Construction & Real Estate',
+          business_type: 'Manufacturer & Wholesaler',
+          gst_number: 'GST Verified',
+          city: 'New Delhi',
+          country: 'India',
+          address: 'Industrial Area, New Delhi, India',
+          about: 'Verified manufacturer and wholesale supplier on Flenko Marketplace. Direct B2B pricing, verified facilities, and Trade Assurance.',
+          website_tagline: 'Certified Manufacturer & Wholesale Partner',
+          year_est: '2010',
+          subdomain: activeSubdomain || 'store',
+          is_paid_trusted: true,
+          subscription: 'vip',
+          logo_url: 'assets/images/logo.png'
+        };
+      }
+
+      supplierInfo = matchedSupp;
+      siteProducts = matchedProducts;
+      siteReviews = [];
+
+      renderWebsite(supplierInfo, { rating: '5.0', review_count: 5, total_products: siteProducts.length });
     }
 
     function renderWebsite(supplier, stats) {

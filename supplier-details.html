@@ -694,9 +694,9 @@
         is_verified: true
       };
 
-      allSupplierProducts = [];
-      allSupplierReviews = [];
-      renderSupplierUI(supplierData, { rating: '5.0', review_count: 0, total_products: 0 });
+      // Do not wipe allSupplierProducts - keep the products loaded from products.json
+      allSupplierReviews = allSupplierReviews || [];
+      renderSupplierUI(supplierData, { rating: '5.0', review_count: 0, total_products: allSupplierProducts.length });
     }
 
     function renderSupplierUI(supplier, stats) {
