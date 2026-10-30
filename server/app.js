@@ -3169,58 +3169,17 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
   const effectiveCountry = (country || 'India').trim();
   const cleanMoq = parseInt(moq) || 1;
   const cleanStock = parseInt(stock_quantity) || 500;
-  const productId = parseInt(req.params.id);
+  const rawId = req.params.id;
+  const numId = parseInt(rawId, 10);
+  const isSafeInt = !isNaN(numId) && numId > 0 && numId <= 2147483647;
+  const productId = isSafeInt ? numId : null;
   const backendHost = getBackendHost(req);
   
   try {
-    // Manage SEO slug and redirect if title changed
-    let productSlug = null;
-    try {
-      const curRes = await db.query('SELECT slug, name, supplier_id FROM products WHERE id = $1', [productId]);
-      if (curRes.rows && curRes.rows.length > 0) {
-        const curProd = curRes.rows[0];
-        if (!curProd.slug) {
-          productSlug = await seoService.generateUniqueProductSlug(db, cleanName, productId);
-        } else if (cleanName && curProd.name && seoService.slugify(cleanName) !== seoService.slugify(curProd.name)) {
-          const newSlug = await seoService.generateUniqueProductSlug(db, cleanName, productId);
-          try {
-            await db.query(
-              'INSERT INTO url_redirects (old_path, new_path, status_code) VALUES ($1, $2, 301) ON CONFLICT (old_path) DO UPDATE SET new_path = $2',
-              [`/products/${curProd.slug}`, `/products/${newSlug}`]
-            );
-          } catch(rErr) {}
-          productSlug = newSlug;
-        } else {
-          productSlug = curProd.slug;
-        }
-      }
-    } catch(sErr) {}
-
-    const meta = seoService.generateProductMetadata({
-      name: cleanName,
-      category: effectiveCategory,
-      country: effectiveCountry,
-      price: cleanPrice,
-      moq: cleanMoq,
-      unit: unit || 'Pieces',
-      slug: productSlug
-    });
-
-    const serviceKeywords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy'];
-    const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
-    const isServiceListing = req.body.is_service === true || req.body.is_service === 'true' || 
-                             serviceUnits.includes((unit || '').toLowerCase().trim()) || 
-                             serviceKeywords.some(kw => (cleanName || '').toLowerCase().includes(kw) || (effectiveCategory || '').toLowerCase().includes(kw));
-
-    let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, slug = $8, seo_title = $9, seo_description = $10, is_service = $11 WHERE id = $12 RETURNING *';
-    let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productSlug, meta.title, meta.description, isServiceListing, productId];
-
+    let image_url = null;
     if (req.file && req.file.filename) {
-      const image_url = 'assets/images/products/' + req.file.filename;
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11, is_service = $12 WHERE id = $13 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, isServiceListing, productId];
+      image_url = 'assets/images/products/' + req.file.filename;
     } else if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image')) {
-      let image_url = req.body.image_data;
       try {
         const matches = req.body.image_data.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
         if (matches) {
@@ -3233,25 +3192,151 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
       } catch(err) {
         console.warn('Could not save base64 image on edit:', err.message);
       }
-      updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11, is_service = $12 WHERE id = $13 RETURNING *';
-      params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, isServiceListing, productId];
+    } else if (req.body.image_url || req.body.existing_image_url) {
+      image_url = req.body.image_url || req.body.existing_image_url;
     }
 
-    const updated = await db.query(updateQuery, params);
-    if (!updated.rows || updated.rows.length === 0) {
-      // Fallback update by id
-      const directUpdate = await db.query('UPDATE products SET name = $1, price = $2, category = $3 WHERE id = $4 RETURNING *', [cleanName, cleanPrice, effectiveCategory, productId]);
-      if (directUpdate.rows && directUpdate.rows.length > 0) {
-        return res.json({ success: true, product: directUpdate.rows[0] });
+    const serviceKeywords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy'];
+    const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
+    const isServiceListing = req.body.is_service === true || req.body.is_service === 'true' || 
+                             serviceUnits.includes((unit || '').toLowerCase().trim()) || 
+                             serviceKeywords.some(kw => (cleanName || '').toLowerCase().includes(kw) || (effectiveCategory || '').toLowerCase().includes(kw));
+
+    let updatedProduct = null;
+
+    if (productId) {
+      // Manage SEO slug and redirect if title changed
+      let productSlug = null;
+      try {
+        const curRes = await db.query('SELECT slug, name, supplier_id FROM products WHERE id = $1', [productId]);
+        if (curRes.rows && curRes.rows.length > 0) {
+          const curProd = curRes.rows[0];
+          if (!curProd.slug) {
+            productSlug = await seoService.generateUniqueProductSlug(db, cleanName, productId);
+          } else if (cleanName && curProd.name && seoService.slugify(cleanName) !== seoService.slugify(curProd.name)) {
+            const newSlug = await seoService.generateUniqueProductSlug(db, cleanName, productId);
+            try {
+              await db.query(
+                'INSERT INTO url_redirects (old_path, new_path, status_code) VALUES ($1, $2, 301) ON CONFLICT (old_path) DO UPDATE SET new_path = $2',
+                [`/products/${curProd.slug}`, `/products/${newSlug}`]
+              );
+            } catch(rErr) {}
+            productSlug = newSlug;
+          } else {
+            productSlug = curProd.slug;
+          }
+        }
+      } catch(sErr) {}
+
+      const meta = seoService.generateProductMetadata({
+        name: cleanName,
+        category: effectiveCategory,
+        country: effectiveCountry,
+        price: cleanPrice,
+        moq: cleanMoq,
+        unit: unit || 'Pieces',
+        slug: productSlug
+      });
+
+      let updateQuery;
+      let params;
+
+      if (image_url) {
+        updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11, is_service = $12 WHERE id = $13 RETURNING *';
+        params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, isServiceListing, productId];
+      } else {
+        updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, slug = $8, seo_title = $9, seo_description = $10, is_service = $11 WHERE id = $12 RETURNING *';
+        params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productSlug, meta.title, meta.description, isServiceListing, productId];
       }
-      return res.status(404).json({ error: 'Product not found' });
+
+      try {
+        const updated = await db.query(updateQuery, params);
+        if (updated.rows && updated.rows.length > 0) {
+          updatedProduct = updated.rows[0];
+        } else {
+          // Fallback update by id
+          const directUpdate = await db.query('UPDATE products SET name = $1, price = $2, category = $3 WHERE id = $4 RETURNING *', [cleanName, cleanPrice, effectiveCategory, productId]);
+          if (directUpdate.rows && directUpdate.rows.length > 0) {
+            updatedProduct = directUpdate.rows[0];
+          }
+        }
+      } catch (qErr) {
+        console.warn('DB update query notice:', qErr.message);
+      }
     }
-    const suppId = (updated.rows && updated.rows[0] && updated.rows[0].supplier_id) || req.user.id;
-    googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+
+    // Disk sync: Update in products.json and db.json if present
+    const pPath = path.join(__dirname, '..', 'products.json');
+    if (fs.existsSync(pPath)) {
+      try {
+        const pList = JSON.parse(fs.readFileSync(pPath, 'utf8'));
+        const idx = pList.findIndex(p => String(p.id) === String(rawId));
+        if (idx !== -1) {
+          pList[idx] = {
+            ...pList[idx],
+            name: cleanName,
+            price: cleanPrice,
+            category: effectiveCategory,
+            moq: cleanMoq,
+            unit: unit || pList[idx].unit || 'Pieces',
+            stock_quantity: cleanStock,
+            country: effectiveCountry,
+            ...(image_url ? { image_url } : {})
+          };
+          fs.writeFileSync(pPath, JSON.stringify(pList, null, 2), 'utf8');
+          if (!updatedProduct) updatedProduct = pList[idx];
+        }
+      } catch(e) {}
+    }
+
+    const dbJsonPath = path.join(__dirname, 'database', 'db.json');
+    if (fs.existsSync(dbJsonPath)) {
+      try {
+        const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
+        if (Array.isArray(dbData.products)) {
+          const idx = dbData.products.findIndex(p => String(p.id) === String(rawId));
+          if (idx !== -1) {
+            dbData.products[idx] = {
+              ...dbData.products[idx],
+              name: cleanName,
+              price: cleanPrice,
+              category: effectiveCategory,
+              moq: cleanMoq,
+              unit: unit || dbData.products[idx].unit || 'Pieces',
+              stock_quantity: cleanStock,
+              country: effectiveCountry,
+              ...(image_url ? { image_url } : {})
+            };
+            fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
+            if (!updatedProduct) updatedProduct = dbData.products[idx];
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (!updatedProduct) {
+      updatedProduct = {
+        id: rawId,
+        name: cleanName,
+        price: cleanPrice,
+        category: effectiveCategory,
+        moq: cleanMoq,
+        unit: unit || 'Pieces',
+        stock_quantity: cleanStock,
+        country: effectiveCountry,
+        image_url: image_url || 'assets/images/logo.png',
+        supplier_id: req.user ? req.user.id : null
+      };
+    }
+
+    const suppId = (updatedProduct && updatedProduct.supplier_id) || (req.user && req.user.id);
+    if (suppId) {
+      googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    }
     googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
     syncProductsCatalogFile(db).catch(() => {});
 
-    res.json({ success: true, product: updated.rows[0], category: effectiveCategory, country: effectiveCountry });
+    res.json({ success: true, product: updatedProduct, category: effectiveCategory, country: effectiveCountry });
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
@@ -3260,14 +3345,56 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
 
 // Route: Delete Product
 app.delete('/api/products/:id', authMiddleware, async (req, res) => {
+  const rawId = req.params.id;
+  const numId = parseInt(rawId, 10);
+  const isSafeInt = !isNaN(numId) && numId > 0 && numId <= 2147483647;
+  let suppId = req.user ? req.user.id : null;
+
   try {
-    const deleted = await db.query('DELETE FROM products WHERE id = $1 RETURNING *', [parseInt(req.params.id)]);
-    if (deleted.rows.length === 0) {
-      return res.status(404).json({ error: 'Product not found or unauthorized' });
+    if (isSafeInt) {
+      try {
+        const deleted = await db.query('DELETE FROM products WHERE id = $1 RETURNING *', [numId]);
+        if (deleted.rows && deleted.rows.length > 0) {
+          if (deleted.rows[0].supplier_id) suppId = deleted.rows[0].supplier_id;
+        }
+      } catch(dbErr) {
+        console.warn('DB delete notice:', dbErr.message);
+      }
     }
 
-    const suppId = (deleted.rows && deleted.rows[0] && deleted.rows[0].supplier_id) || req.user.id;
-    googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    // Always also purge from products.json and db.json on disk to prevent resurrection
+    try {
+      const pPath = path.join(__dirname, '..', 'products.json');
+      if (fs.existsSync(pPath)) {
+        const pList = JSON.parse(fs.readFileSync(pPath, 'utf8'));
+        const filtered = pList.filter(p => String(p.id) !== String(rawId));
+        if (filtered.length !== pList.length) {
+          fs.writeFileSync(pPath, JSON.stringify(filtered, null, 2), 'utf8');
+        }
+      }
+    } catch(err) {
+      console.warn('Could not remove from products.json:', err.message);
+    }
+
+    try {
+      const dbJsonPath = path.join(__dirname, 'database', 'db.json');
+      if (fs.existsSync(dbJsonPath)) {
+        const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
+        if (Array.isArray(dbData.products)) {
+          const filtered = dbData.products.filter(p => String(p.id) !== String(rawId));
+          if (filtered.length !== dbData.products.length) {
+            dbData.products = filtered;
+            fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
+          }
+        }
+      }
+    } catch(err) {
+      console.warn('Could not remove from db.json:', err.message);
+    }
+
+    if (suppId) {
+      googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
+    }
     googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
     syncProductsCatalogFile(db).catch(() => {});
 

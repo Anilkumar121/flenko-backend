@@ -913,6 +913,22 @@
         }
       } catch(e) {}
 
+      // Apply tombstones and edited overrides
+      let deletedIds = new Set();
+      try {
+        const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
+        if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
+      } catch(e) {}
+
+      let editedOverrides = {};
+      try {
+        editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
+      } catch(e) {}
+
+      matchedProducts = matchedProducts
+        .filter(p => !deletedIds.has(String(p.id)))
+        .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p);
+
       if (!matchedSupp) {
         matchedSupp = {
           id: 1,

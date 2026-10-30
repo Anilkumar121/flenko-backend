@@ -765,7 +765,24 @@
         const customNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
 
         const incomingFiltered = rawList.filter(p => !customIds.has(String(p.id)) && !customNames.has((p.name || "").toLowerCase().trim()));
-        const mergedList = [...customProds, ...incomingFiltered];
+        let mergedList = [...customProds, ...incomingFiltered];
+
+        // Apply tombstones and edited overrides
+        let deletedIds = new Set();
+        try {
+          const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
+          if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
+        } catch(e) {}
+
+        let editedOverrides = {};
+        try {
+          editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
+        } catch(e) {}
+
+        mergedList = mergedList
+          .filter(p => !deletedIds.has(String(p.id)))
+          .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p);
+
         if (mergedList.length === 0) return;
 
         allProducts = mergedList.map(p => ({

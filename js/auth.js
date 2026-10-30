@@ -1214,12 +1214,27 @@ const auth = {
     const cacheKey = `flenko_seller_products_${userId}`;
     let products = [];
 
-    // Helper: deduplicate products list by id and trimmed name
+    // Load tombstones and edited overrides
+    let deletedIds = new Set();
+    try {
+      const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
+      if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
+    } catch(e) {}
+
+    let editedOverrides = {};
+    try {
+      editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
+    } catch(e) {}
+
+    // Helper: deduplicate products list by id and trimmed name, apply edits and filter deleted
     const dedupe = (arr) => {
       const seen = new Set();
       const res = [];
-      arr.forEach(p => {
-        if (!p || !p.name) return;
+      arr.forEach(rawP => {
+        if (!rawP || !rawP.name) return;
+        const pIdStr = String(rawP.id);
+        if (deletedIds.has(pIdStr)) return;
+        const p = editedOverrides[pIdStr] ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
         const uid = String(p.id || p.name.toLowerCase().trim());
         if (!seen.has(uid)) {
           seen.add(uid);
@@ -1467,6 +1482,7 @@ const auth = {
     const user = this.getUser() || {};
     const userId = user.id || 1;
     const cacheKey = `flenko_seller_products_${userId}`;
+    const cleanId = String(id);
 
     let name = "";
     let category = "General B2B";
@@ -1490,6 +1506,8 @@ const auth = {
         const imgData = formData.get("image_data");
         if (imgData && typeof imgData === "string" && (imgData.startsWith("data:image") || imgData.startsWith("http") || imgData.includes("assets/"))) {
           image_url = imgData;
+        } else if (formData.get("existing_image_url")) {
+          image_url = formData.get("existing_image_url");
         }
       } else if (formData && typeof formData === "object") {
         name = (formData.name || "").toString().trim();
@@ -1503,13 +1521,31 @@ const auth = {
         const imgData = formData.image_data || formData.image_url;
         if (imgData && typeof imgData === "string" && (imgData.startsWith("data:image") || imgData.startsWith("http") || imgData.includes("assets/"))) {
           image_url = imgData;
+        } else if (formData.existing_image_url) {
+          image_url = formData.existing_image_url;
         }
       }
     } catch(fErr) {}
 
+    // Find existing product from local storage to preserve metadata
+    let existingProd = null;
+    const sourcesToFind = [cacheKey, "flenko_seller_products", "flenko_custom_products", "flenko_public_products"];
+    for (const key of sourcesToFind) {
+      try {
+        const arr = JSON.parse(localStorage.getItem(key) || "[]");
+        if (Array.isArray(arr)) {
+          const found = arr.find(p => String(p.id) === cleanId);
+          if (found) { existingProd = found; break; }
+        }
+      } catch(e) {}
+    }
+
+    let sProfile = {};
+    try { sProfile = JSON.parse(localStorage.getItem("flenko_seller_profile") || "{}"); } catch(e) {}
+
     let resData = null;
     try {
-      const res = await this.fetchWithFallback(`/products/${id}`, {
+      const res = await this.fetchWithFallback(`/products/${encodeURIComponent(id)}`, {
         method: "PUT",
         headers: token ? { "Authorization": `Bearer ${token}` } : {},
         body: formData
@@ -1521,72 +1557,100 @@ const auth = {
       console.warn("Network edit product warning:", e);
     }
 
+    const updatedProd = (resData && resData.product) ? {
+      ...resData.product,
+      name: name || resData.product.name,
+      category: category || resData.product.category,
+      country: country || resData.product.country,
+      price: price !== null ? price : resData.product.price,
+      moq: moq || resData.product.moq,
+      unit: unit || resData.product.unit,
+      stock_quantity: stock_quantity || resData.product.stock_quantity,
+      image_url: image_url || resData.product.image_url
+    } : {
+      ...(existingProd || {}),
+      id: existingProd && existingProd.id ? existingProd.id : id,
+      supplier_id: (existingProd && existingProd.supplier_id) || userId,
+      supplier_name: (existingProd && existingProd.supplier_name) || user.company_name || user.name || sProfile.company_name || "Verified Supplier",
+      supplier_phone: (existingProd && existingProd.supplier_phone) || user.phone || sProfile.phone || "",
+      supplier_whatsapp: (existingProd && existingProd.supplier_whatsapp) || user.whatsapp || user.phone || sProfile.whatsapp || "",
+      supplier_slug: (existingProd && existingProd.supplier_slug) || sProfile.subdomain || (user.company_name ? user.company_name.toLowerCase().replace(/[^a-z0-9]/g, "-") : "store"),
+      name: name || (existingProd && existingProd.name) || "Product",
+      category: category || (existingProd && existingProd.category) || "General B2B",
+      country: country || (existingProd && existingProd.country) || "India",
+      price: price !== null ? price : (existingProd ? existingProd.price : null),
+      moq: moq || (existingProd ? existingProd.moq : 1),
+      unit: unit || (existingProd ? existingProd.unit : "Pieces"),
+      stock_quantity: stock_quantity || (existingProd ? existingProd.stock_quantity : 500),
+      image_url: image_url || (existingProd ? existingProd.image_url : "assets/images/logo.png"),
+      city: (existingProd && existingProd.city) || user.city || sProfile.city || "Industrial Hub",
+      is_verified: true,
+      tradeAssurance: true,
+      updated_at: new Date().toISOString()
+    };
+
+    // Update in all local caches
+    const updateInList = (storageKey) => {
+      try {
+        let list = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        if (!Array.isArray(list)) list = [];
+        const pIdx = list.findIndex(p => String(p.id) === cleanId);
+        if (pIdx !== -1) {
+          list[pIdx] = { ...list[pIdx], ...updatedProd };
+        } else {
+          list.unshift(updatedProd);
+        }
+        flenkoSafeStorage.setItem(storageKey, JSON.stringify(list));
+      } catch(e) {}
+    };
+
+    updateInList(cacheKey);
+    updateInList("flenko_seller_products");
+    updateInList("flenko_custom_products");
+    updateInList("flenko_public_products");
+    updateInList("flenko_public_products_cache");
+
+    // Save in edited overrides map so any static load or API load uses this edited version
     try {
-      let cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
-      if (!Array.isArray(cached)) cached = [];
-      const idx = cached.findIndex(p => String(p.id) === String(id));
-      let updatedProd = null;
-      if (resData && resData.product) {
-        updatedProd = resData.product;
-      } else if (idx !== -1) {
-        updatedProd = {
-          ...cached[idx],
-          name: name || cached[idx].name,
-          category: category || cached[idx].category,
-          country: country || cached[idx].country,
-          price: price !== null ? price : cached[idx].price,
-          moq: moq || cached[idx].moq,
-          unit: unit || cached[idx].unit,
-          stock_quantity: stock_quantity || cached[idx].stock_quantity,
-          image_url: image_url || cached[idx].image_url
-        };
-      }
-      if (updatedProd) {
-        if (idx !== -1) cached[idx] = updatedProd;
-        else cached.unshift(updatedProd);
-        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
-        flenkoSafeStorage.setItem("flenko_seller_products", JSON.stringify(cached));
-
-        // Sync to custom products across all caches
-        const updateInList = (storageKey) => {
-          try {
-            let list = JSON.parse(localStorage.getItem(storageKey) || "[]");
-            if (Array.isArray(list)) {
-              const pIdx = list.findIndex(p => String(p.id) === String(id));
-              if (pIdx !== -1) list[pIdx] = { ...list[pIdx], ...updatedProd };
-              else list.unshift(updatedProd);
-              flenkoSafeStorage.setItem(storageKey, JSON.stringify(list));
-            }
-          } catch(e) {}
-        };
-        updateInList("flenko_custom_products");
-        updateInList("flenko_public_products");
-        updateInList("flenko_public_products_cache");
-
-        return { success: true, product: updatedProd };
-      }
+      let overrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
+      overrides[cleanId] = updatedProd;
+      flenkoSafeStorage.setItem("flenko_edited_products", JSON.stringify(overrides));
     } catch(e) {}
 
-    return { success: true, message: "Product updated successfully" };
+    return { success: true, product: updatedProd };
   },
   async deleteProduct(id) {
     const token = this.getToken();
     const user = this.getUser() || {};
     const userId = user.id || 1;
     const cacheKey = `flenko_seller_products_${userId}`;
+    const cleanId = String(id);
 
+    // 1. Add to permanent tombstone list
     try {
-      await this.fetchWithFallback(`/products/${id}`, {
-        method: "DELETE",
-        headers: token ? { "Authorization": `Bearer ${token}` } : {}
-      });
+      let deletedIds = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
+      if (!Array.isArray(deletedIds)) deletedIds = [];
+      if (!deletedIds.includes(cleanId)) {
+        deletedIds.push(cleanId);
+        flenkoSafeStorage.setItem("flenko_deleted_product_ids", JSON.stringify(deletedIds));
+      }
     } catch(e) {}
 
+    // 2. Remove from edited overrides if present
+    try {
+      let overrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
+      if (overrides[cleanId]) {
+        delete overrides[cleanId];
+        flenkoSafeStorage.setItem("flenko_edited_products", JSON.stringify(overrides));
+      }
+    } catch(e) {}
+
+    // 3. Remove from all local storage caches
     const removeFromList = (storageKey) => {
       try {
         let list = JSON.parse(localStorage.getItem(storageKey) || "[]");
         if (Array.isArray(list)) {
-          list = list.filter(p => String(p.id) !== String(id));
+          list = list.filter(p => String(p.id) !== cleanId);
           flenkoSafeStorage.setItem(storageKey, JSON.stringify(list));
         }
       } catch(e) {}
@@ -1597,6 +1661,16 @@ const auth = {
     removeFromList("flenko_custom_products");
     removeFromList("flenko_public_products");
     removeFromList("flenko_public_products_cache");
+
+    // 4. Try backend delete
+    try {
+      await this.fetchWithFallback(`/products/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
+    } catch(e) {
+      console.warn("Backend delete product warning:", e);
+    }
 
     return { success: true, message: "Product deleted successfully" };
   },
