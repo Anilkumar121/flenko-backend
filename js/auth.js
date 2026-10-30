@@ -1210,66 +1210,104 @@ const auth = {
     const token = this.getToken();
     const user = this.getUser() || {};
     const userId = user.id || 1;
+    const isMasterAdmin = (user.role === "admin" || userId === 1);
     const cacheKey = `flenko_seller_products_${userId}`;
     let products = [];
 
+    // Helper: deduplicate products list by id and trimmed name
+    const dedupe = (arr) => {
+      const seen = new Set();
+      const res = [];
+      arr.forEach(p => {
+        if (!p || !p.name) return;
+        const uid = String(p.id || p.name.toLowerCase().trim());
+        if (!seen.has(uid)) {
+          seen.add(uid);
+          res.push(p);
+        }
+      });
+      return res;
+    };
+
     // 1. Try loading from live backend API
     try {
-      const res = await this.fetchWithFallback(`/products`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      const endpoint = isMasterAdmin ? "/products?all=true" : "/products";
+      const res = await this.fetchWithFallback(endpoint, {
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
       if (res && res.ok) {
         const data = await res.json();
-        if (data && Array.isArray(data.products) && data.products.length > 0) {
-          products = data.products;
-          try {
-            flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
-            flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(products));
-          } catch(e) {}
-          return { products };
+        if (data && Array.isArray(data.products)) {
+          products = isMasterAdmin ? data.products : data.products.filter(p => String(p.supplier_id) === String(userId));
         }
       }
     } catch(e) {
-      console.warn('Network getProducts warning:', e);
+      console.warn("Network getProducts warning:", e);
     }
 
-    // 2. Try loading from user-specific cache
+    // 2. Load from local cache keys with strict ownership check for non-admins
+    let localSellerProds = [];
     try {
-      const cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-      if (Array.isArray(cached) && cached.length > 0) {
-        products = cached;
-        return { products };
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+      if (Array.isArray(cached)) {
+        if (isMasterAdmin) localSellerProds.push(...cached);
+        else localSellerProds.push(...cached.filter(p => String(p.supplier_id) === String(userId)));
+      }
+    } catch(e) {}
+    try {
+      const gCached = JSON.parse(localStorage.getItem("flenko_seller_products") || "[]");
+      if (Array.isArray(gCached)) {
+        if (isMasterAdmin) localSellerProds.push(...gCached);
+        else localSellerProds.push(...gCached.filter(p => String(p.supplier_id) === String(userId) || (user.company_name && p.supplier_name && p.supplier_name.toLowerCase() === user.company_name.toLowerCase())));
+      }
+    } catch(e) {}
+    try {
+      const cProds = JSON.parse(localStorage.getItem("flenko_custom_products") || "[]");
+      if (Array.isArray(cProds)) {
+        if (isMasterAdmin) {
+          localSellerProds.push(...cProds);
+        } else {
+          localSellerProds.push(...cProds.filter(p => String(p.supplier_id) === String(userId) || (user.company_name && p.supplier_name && p.supplier_name.toLowerCase() === user.company_name.toLowerCase())));
+        }
       }
     } catch(e) {}
 
-    // 3. Try loading from general seller products cache
-    try {
-      const gCached = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
-      if (Array.isArray(gCached) && gCached.length > 0) {
-        products = gCached;
-        return { products };
-      }
-    } catch(e) {}
-
-    // 4. Try loading from static catalog products.json for this supplier!
-    try {
-      const catRes = await fetch('products.json');
-      if (catRes && catRes.ok) {
-        const allProds = await catRes.json();
-        if (Array.isArray(allProds)) {
-          const suppProds = allProds.filter(p => String(p.supplier_id) === String(userId) || (userId === 1 && !p.supplier_id));
-          if (suppProds.length > 0) {
-            products = suppProds;
-            try {
-              flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
-              flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(products));
-            } catch(e) {}
+    // 3. For Master Admin, also merge all static catalog products
+    if (isMasterAdmin) {
+      try {
+        const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
+        if (catRes && catRes.ok) {
+          const allProds = await catRes.json();
+          if (Array.isArray(allProds)) {
+            products = dedupe([...products, ...localSellerProds, ...allProds]);
             return { products };
           }
         }
+      } catch(catErr) {}
+    } else {
+      // 4. For regular seller: merge live products with their local products + static items strictly matching their ID
+      try {
+        const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
+        if (catRes && catRes.ok) {
+          const allProds = await catRes.json();
+          if (Array.isArray(allProds)) {
+            const suppProds = allProds.filter(p => String(p.supplier_id) === String(userId) || (user.company_name && p.supplier_name && p.supplier_name.toLowerCase() === user.company_name.toLowerCase()));
+            products = dedupe([...localSellerProds, ...products, ...suppProds]);
+          }
+        }
+      } catch(e) {
+        products = dedupe([...localSellerProds, ...products]);
       }
-    } catch(catErr) {}
+      
+      // Update local storage so seller products stay cached
+      try {
+        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
+      } catch(e) {}
 
+      return { products };
+    }
+
+    products = dedupe([...localSellerProds, ...products]);
     return { products };
   },
   async addProduct(formData) {
@@ -1279,42 +1317,42 @@ const auth = {
     const cacheKey = `flenko_seller_products_${userId}`;
 
     // Safely parse formData fields
-    let name = '';
-    let category = 'General B2B';
-    let country = 'India';
+    let name = "";
+    let category = "General B2B";
+    let country = "India";
     let price = null;
     let moq = 1;
-    let unit = 'Pieces';
+    let unit = "Pieces";
     let stock_quantity = 500;
-    let image_url = 'assets/images/logo.png';
+    let image_url = "assets/images/logo.png";
 
     try {
-      if (formData && typeof formData.get === 'function') {
-        name = (formData.get('name') || '').toString().trim();
-        category = (formData.get('category') || 'General B2B').toString().trim();
-        country = (formData.get('country') || 'India').toString().trim();
-        const pRaw = formData.get('price');
-        price = (pRaw !== undefined && pRaw !== null && pRaw !== '' && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
-        moq = parseInt(formData.get('moq')) || 1;
-        unit = (formData.get('unit') || 'Pieces').toString().trim();
-        stock_quantity = parseInt(formData.get('stock_quantity')) || 500;
-        const imgData = formData.get('image_data');
-        if (imgData && typeof imgData === 'string' && (imgData.startsWith('data:image') || imgData.startsWith('http') || imgData.includes('assets/'))) {
+      if (formData && typeof formData.get === "function") {
+        name = (formData.get("name") || "").toString().trim();
+        category = (formData.get("category") || "General B2B").toString().trim();
+        country = (formData.get("country") || "India").toString().trim();
+        const pRaw = formData.get("price");
+        price = (pRaw !== undefined && pRaw !== null && pRaw !== "" && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
+        moq = parseInt(formData.get("moq")) || 1;
+        unit = (formData.get("unit") || "Pieces").toString().trim();
+        stock_quantity = parseInt(formData.get("stock_quantity")) || 500;
+        const imgData = formData.get("image_data");
+        if (imgData && typeof imgData === "string" && (imgData.startsWith("data:image") || imgData.startsWith("http") || imgData.includes("assets/"))) {
           image_url = imgData;
-        } else if (formData.get('existing_image_url')) {
-          image_url = formData.get('existing_image_url');
+        } else if (formData.get("existing_image_url")) {
+          image_url = formData.get("existing_image_url");
         }
-      } else if (formData && typeof formData === 'object') {
-        name = (formData.name || '').toString().trim();
-        category = (formData.category || 'General B2B').toString().trim();
-        country = (formData.country || 'India').toString().trim();
+      } else if (formData && typeof formData === "object") {
+        name = (formData.name || "").toString().trim();
+        category = (formData.category || "General B2B").toString().trim();
+        country = (formData.country || "India").toString().trim();
         const pRaw = formData.price;
-        price = (pRaw !== undefined && pRaw !== null && pRaw !== '' && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
+        price = (pRaw !== undefined && pRaw !== null && pRaw !== "" && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
         moq = parseInt(formData.moq) || 1;
-        unit = (formData.unit || 'Pieces').toString().trim();
+        unit = (formData.unit || "Pieces").toString().trim();
         stock_quantity = parseInt(formData.stock_quantity) || 500;
         const imgData = formData.image_data || formData.image_url;
-        if (imgData && typeof imgData === 'string' && (imgData.startsWith('data:image') || imgData.startsWith('http') || imgData.includes('assets/'))) {
+        if (imgData && typeof imgData === "string" && (imgData.startsWith("data:image") || imgData.startsWith("http") || imgData.includes("assets/"))) {
           image_url = imgData;
         }
       }
@@ -1322,55 +1360,96 @@ const auth = {
 
     const autoSeoTags = `buy ${name} wholesale, best ${name} supplier, ${name} manufacturers in ${country}, top quality ${category}`;
 
+    // Get seller profile details for universal storefront & public cards
+    let sProfile = {};
+    try {
+      sProfile = JSON.parse(localStorage.getItem("flenko_seller_profile") || "{}");
+    } catch(e) {}
+
+    const supplierName = user.company_name || user.name || sProfile.company_name || "Verified Supplier";
+    const supplierPhone = user.phone || sProfile.phone || "";
+    const supplierWhatsapp = user.whatsapp || user.phone || sProfile.whatsapp || sProfile.phone || "";
+    const supplierSlug = sProfile.subdomain || (user.company_name ? user.company_name.toLowerCase().replace(/[^a-z0-9]/g, "-") : "store");
+    const city = user.city || sProfile.city || "Industrial Hub";
+
     // 1. Try sending to live server backend
     let resData = null;
     try {
-      const res = await this.fetchWithFallback(`/products`, {
-        method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      const res = await this.fetchWithFallback("/products", {
+        method: "POST",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
         body: formData
       });
       if (res && res.ok) {
         resData = await res.json();
       }
     } catch(e) {
-      console.warn('Network add product unavailable, saving to local store:', e);
+      console.warn("Network add product unavailable, saving to local store:", e);
     }
 
     // 2. Prepare the verified saved product record
-    const savedProduct = (resData && resData.product) ? resData.product : {
+    const savedProduct = (resData && resData.product) ? {
+      ...resData.product,
+      supplier_name: resData.product.supplier_name || supplierName,
+      supplier_phone: resData.product.supplier_phone || supplierPhone,
+      supplier_whatsapp: resData.product.supplier_whatsapp || supplierWhatsapp,
+      supplier_slug: resData.product.supplier_slug || supplierSlug,
+      city: resData.product.city || city,
+      country: resData.product.country || country
+    } : {
       id: Date.now(),
       supplier_id: userId,
-      name: name || 'New Product',
+      supplier_name: supplierName,
+      supplier_phone: supplierPhone,
+      supplier_whatsapp: supplierWhatsapp,
+      supplier_slug: supplierSlug,
+      name: name || "New Product",
       price: price,
       category: category,
       moq: moq,
       unit: unit,
       stock_quantity: stock_quantity,
+      city: city,
       country: country,
       image_url: image_url,
       seo_tags: autoSeoTags,
+      is_verified: true,
+      tradeAssurance: true,
       created_at: new Date().toISOString()
     };
 
-    // 3. Guarantee local persistence across all storage keys
+    // 3. Guarantee local persistence across ALL storage keys
     try {
-      let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      // User-specific cache
+      let cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
       if (!Array.isArray(cached)) cached = [];
       cached = cached.filter(p => p.id !== savedProduct.id && p.name !== savedProduct.name);
       cached.unshift(savedProduct);
       flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
-      flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(cached));
+      flenkoSafeStorage.setItem("flenko_seller_products", JSON.stringify(cached));
 
-      // Also append to global public products cache so search immediately indexes it
-      let pubProds = JSON.parse(localStorage.getItem('flenko_public_products') || '[]');
+      // Global custom products key (read by Admin Dashboard and Marketplace)
+      let customProds = JSON.parse(localStorage.getItem("flenko_custom_products") || "[]");
+      if (!Array.isArray(customProds)) customProds = [];
+      customProds = customProds.filter(p => p.id !== savedProduct.id && p.name !== savedProduct.name);
+      customProds.unshift(savedProduct);
+      flenkoSafeStorage.setItem("flenko_custom_products", JSON.stringify(customProds));
+
+      // Public products cache (read by products.html and index.html)
+      let pubProds = JSON.parse(localStorage.getItem("flenko_public_products") || "[]");
       if (Array.isArray(pubProds)) {
         pubProds = pubProds.filter(p => p.id !== savedProduct.id);
         pubProds.unshift(savedProduct);
-        flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(pubProds));
+        flenkoSafeStorage.setItem("flenko_public_products", JSON.stringify(pubProds));
+      }
+      let pubCache = JSON.parse(localStorage.getItem("flenko_public_products_cache") || "[]");
+      if (Array.isArray(pubCache)) {
+        pubCache = pubCache.filter(p => p.id !== savedProduct.id);
+        pubCache.unshift(savedProduct);
+        flenkoSafeStorage.setItem("flenko_public_products_cache", JSON.stringify(pubCache));
       }
     } catch(sErr) {
-      console.warn('Local product cache save warning:', sErr);
+      console.warn("Local product cache save warning:", sErr);
     }
 
     // 4. Return success response ALWAYS so the UI never blocks the user
@@ -1389,40 +1468,40 @@ const auth = {
     const userId = user.id || 1;
     const cacheKey = `flenko_seller_products_${userId}`;
 
-    let name = '';
-    let category = 'General B2B';
-    let country = 'India';
+    let name = "";
+    let category = "General B2B";
+    let country = "India";
     let price = null;
     let moq = 1;
-    let unit = 'Pieces';
+    let unit = "Pieces";
     let stock_quantity = 500;
     let image_url = null;
 
     try {
-      if (formData && typeof formData.get === 'function') {
-        name = (formData.get('name') || '').toString().trim();
-        category = (formData.get('category') || 'General B2B').toString().trim();
-        country = (formData.get('country') || 'India').toString().trim();
-        const pRaw = formData.get('price');
-        price = (pRaw !== undefined && pRaw !== null && pRaw !== '' && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
-        moq = parseInt(formData.get('moq')) || 1;
-        unit = (formData.get('unit') || 'Pieces').toString().trim();
-        stock_quantity = parseInt(formData.get('stock_quantity')) || 500;
-        const imgData = formData.get('image_data');
-        if (imgData && typeof imgData === 'string' && (imgData.startsWith('data:image') || imgData.startsWith('http') || imgData.includes('assets/'))) {
+      if (formData && typeof formData.get === "function") {
+        name = (formData.get("name") || "").toString().trim();
+        category = (formData.get("category") || "General B2B").toString().trim();
+        country = (formData.get("country") || "India").toString().trim();
+        const pRaw = formData.get("price");
+        price = (pRaw !== undefined && pRaw !== null && pRaw !== "" && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
+        moq = parseInt(formData.get("moq")) || 1;
+        unit = (formData.get("unit") || "Pieces").toString().trim();
+        stock_quantity = parseInt(formData.get("stock_quantity")) || 500;
+        const imgData = formData.get("image_data");
+        if (imgData && typeof imgData === "string" && (imgData.startsWith("data:image") || imgData.startsWith("http") || imgData.includes("assets/"))) {
           image_url = imgData;
         }
-      } else if (formData && typeof formData === 'object') {
-        name = (formData.name || '').toString().trim();
-        category = (formData.category || 'General B2B').toString().trim();
-        country = (formData.country || 'India').toString().trim();
+      } else if (formData && typeof formData === "object") {
+        name = (formData.name || "").toString().trim();
+        category = (formData.category || "General B2B").toString().trim();
+        country = (formData.country || "India").toString().trim();
         const pRaw = formData.price;
-        price = (pRaw !== undefined && pRaw !== null && pRaw !== '' && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
+        price = (pRaw !== undefined && pRaw !== null && pRaw !== "" && !isNaN(Number(pRaw))) ? Number(pRaw) : null;
         moq = parseInt(formData.moq) || 1;
-        unit = (formData.unit || 'Pieces').toString().trim();
+        unit = (formData.unit || "Pieces").toString().trim();
         stock_quantity = parseInt(formData.stock_quantity) || 500;
         const imgData = formData.image_data || formData.image_url;
-        if (imgData && typeof imgData === 'string' && (imgData.startsWith('data:image') || imgData.startsWith('http') || imgData.includes('assets/'))) {
+        if (imgData && typeof imgData === "string" && (imgData.startsWith("data:image") || imgData.startsWith("http") || imgData.includes("assets/"))) {
           image_url = imgData;
         }
       }
@@ -1431,19 +1510,19 @@ const auth = {
     let resData = null;
     try {
       const res = await this.fetchWithFallback(`/products/${id}`, {
-        method: 'PUT',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        method: "PUT",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
         body: formData
       });
       if (res && res.ok) {
         resData = await res.json();
       }
     } catch(e) {
-      console.warn('Network edit product warning:', e);
+      console.warn("Network edit product warning:", e);
     }
 
     try {
-      let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      let cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
       if (!Array.isArray(cached)) cached = [];
       const idx = cached.findIndex(p => String(p.id) === String(id));
       let updatedProd = null;
@@ -1463,32 +1542,32 @@ const auth = {
         };
       }
       if (updatedProd) {
-        if (idx !== -1) {
-          cached[idx] = updatedProd;
-        } else {
-          cached.unshift(updatedProd);
-        }
+        if (idx !== -1) cached[idx] = updatedProd;
+        else cached.unshift(updatedProd);
         flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
-        flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(cached));
-        // Keep public products catalog in sync for immediate search
-        try {
-          let pubProds = JSON.parse(localStorage.getItem('flenko_public_products') || '[]');
-          if (Array.isArray(pubProds)) {
-            const pIdx = pubProds.findIndex(p => String(p.id) === String(id));
-            if (pIdx !== -1) {
-              pubProds[pIdx] = { ...pubProds[pIdx], ...updatedProd };
-            } else {
-              pubProds.unshift(updatedProd);
+        flenkoSafeStorage.setItem("flenko_seller_products", JSON.stringify(cached));
+
+        // Sync to custom products across all caches
+        const updateInList = (storageKey) => {
+          try {
+            let list = JSON.parse(localStorage.getItem(storageKey) || "[]");
+            if (Array.isArray(list)) {
+              const pIdx = list.findIndex(p => String(p.id) === String(id));
+              if (pIdx !== -1) list[pIdx] = { ...list[pIdx], ...updatedProd };
+              else list.unshift(updatedProd);
+              flenkoSafeStorage.setItem(storageKey, JSON.stringify(list));
             }
-            flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(pubProds));
-          }
-        } catch(pubErr) {}
+          } catch(e) {}
+        };
+        updateInList("flenko_custom_products");
+        updateInList("flenko_public_products");
+        updateInList("flenko_public_products_cache");
 
         return { success: true, product: updatedProd };
       }
     } catch(e) {}
 
-    return { success: true, message: 'Product updated successfully' };
+    return { success: true, message: "Product updated successfully" };
   },
   async deleteProduct(id) {
     const token = this.getToken();
@@ -1498,28 +1577,28 @@ const auth = {
 
     try {
       await this.fetchWithFallback(`/products/${id}`, {
-        method: 'DELETE',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        method: "DELETE",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
     } catch(e) {}
 
-    try {
-      let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-      if (Array.isArray(cached)) {
-        cached = cached.filter(p => String(p.id) !== String(id));
-        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
-        flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(cached));
-        try {
-          let pubProds = JSON.parse(localStorage.getItem('flenko_public_products') || '[]');
-          if (Array.isArray(pubProds)) {
-            pubProds = pubProds.filter(p => String(p.id) !== String(id));
-            flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(pubProds));
-          }
-        } catch(pubErr) {}
-      }
-    } catch(e) {}
+    const removeFromList = (storageKey) => {
+      try {
+        let list = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        if (Array.isArray(list)) {
+          list = list.filter(p => String(p.id) !== String(id));
+          flenkoSafeStorage.setItem(storageKey, JSON.stringify(list));
+        }
+      } catch(e) {}
+    };
 
-    return { success: true, message: 'Product deleted successfully' };
+    removeFromList(cacheKey);
+    removeFromList("flenko_seller_products");
+    removeFromList("flenko_custom_products");
+    removeFromList("flenko_public_products");
+    removeFromList("flenko_public_products_cache");
+
+    return { success: true, message: "Product deleted successfully" };
   },
   async getBuyerRfqs() {
     const token = this.getToken();

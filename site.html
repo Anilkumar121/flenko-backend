@@ -424,7 +424,7 @@
           Leading Manufacturer & Wholesale Supplier
         </h1>
         <p class="hero-tagline" id="heroTagline">
-          Manufacturing high-quality corrugated boxes, packaging tapes, and industrial supplies with factory-direct pricing and nationwide dispatch.
+          Official B2B Manufacturer and Wholesale Exporter with factory-direct bulk pricing and verified Trade Assurance.
         </p>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
           <a href="#products" class="btn btn-primary" style="background:#0284c7; border:none; padding: 0.75rem 1.75rem; font-weight:700; font-size:0.95rem;">
@@ -866,23 +866,39 @@
 
       // 3. Load products (merging local custom seller products first)
       try {
-        const u = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
+        const u = (typeof auth !== "undefined" && typeof auth.getUser === "function") ? auth.getUser() : null;
         const uId = (u && u.id) || (matchedSupp && (matchedSupp.id || matchedSupp.user_id)) || 1;
-        const localProds = JSON.parse(localStorage.getItem(`flenko_seller_products_${uId}`) || localStorage.getItem('flenko_seller_products') || localStorage.getItem('flenko_custom_products') || '[]');
-        if (Array.isArray(localProds) && localProds.length > 0) {
-          matchedProducts = [...localProds];
-        }
+        const suppName = (matchedSupp && matchedSupp.company_name) ? matchedSupp.company_name.toLowerCase().trim() : "";
+        const keysToCheck = [`flenko_seller_products_${uId}`, "flenko_seller_products", "flenko_custom_products"];
+        const seen = new Set();
+        keysToCheck.forEach(k => {
+          try {
+            const arr = JSON.parse(localStorage.getItem(k) || "[]");
+            if (Array.isArray(arr)) {
+              arr.forEach(p => {
+                if (p && p.name) {
+                  const matchId = String(p.supplier_id) === String(uId) || (suppName && p.supplier_name && p.supplier_name.toLowerCase().trim() === suppName);
+                  if (matchId && !seen.has(String(p.id || p.name))) {
+                    seen.add(String(p.id || p.name));
+                    matchedProducts.push(p);
+                  }
+                }
+              });
+            }
+          } catch(e) {}
+        });
       } catch(e) {}
 
       try {
-        const pRes = await fetch('products.json');
+        const pRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
         if (pRes.ok) {
           const prodsList = await pRes.json();
-          if (matchedSupp) {
+          if (matchedSupp && Array.isArray(prodsList)) {
             const filteredProds = prodsList.filter(p => 
               String(p.supplier_id) === String(matchedSupp.id) ||
               String(p.supplier_id) === String(matchedSupp.user_id) ||
-              (p.supplier_slug && p.supplier_slug === matchedSupp.slug)
+              (p.supplier_slug && p.supplier_slug === matchedSupp.slug) ||
+              (p.supplier_name && matchedSupp.company_name && p.supplier_name.toLowerCase().trim() === matchedSupp.company_name.toLowerCase().trim())
             );
             if (filteredProds.length > 0) {
               const existingIds = new Set(matchedProducts.map(p => String(p.id)));
@@ -893,9 +909,6 @@
                 }
               });
             }
-          }
-          if (matchedProducts.length === 0) {
-            matchedProducts = prodsList.slice(0, 8);
           }
         }
       } catch(e) {}

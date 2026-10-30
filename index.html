@@ -1441,6 +1441,33 @@
           return match ? match.flag : (cName === 'United States' ? '🇺🇸' : (cName === 'Germany' ? '🇩🇪' : (cName === 'China' ? '🇨🇳' : (cName === 'United Arab Emirates' ? '🇦🇪' : '🇮🇳'))));
         };
 
+        // Dual-Engine Homepage Sync: Merge seller custom products at the top
+        let customProds = [];
+        try {
+          const seen = new Set();
+          const keys = ["flenko_custom_products", "flenko_seller_products", "flenko_public_products"];
+          try {
+            const u = (typeof auth !== "undefined" && auth.getUser) ? auth.getUser() : null;
+            if (u && u.id) keys.unshift("flenko_seller_products_" + u.id);
+          } catch(e) {}
+          keys.forEach(k => {
+            const arr = JSON.parse(localStorage.getItem(k) || "[]");
+            if (Array.isArray(arr)) {
+              arr.forEach(p => {
+                if (p && p.name && !seen.has(String(p.id || p.name))) {
+                  seen.add(String(p.id || p.name));
+                  customProds.push(p);
+                }
+              });
+            }
+          });
+        } catch(e) {}
+
+        const cIds = new Set(customProds.map(p => String(p.id)));
+        const cNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
+        const filteredRaw = (rawList || []).filter(p => !cIds.has(String(p.id)) && !cNames.has((p.name || "").toLowerCase().trim()));
+        rawList = [...customProds, ...filteredRaw];
+
         if (rawList && rawList.length > 0) {
           homeProducts = rawList.map(p => ({
             id: p.id,

@@ -490,7 +490,7 @@
         const imageFile = document.getElementById('pImage').files[0];
         if (imageFile) {
           try {
-            const dataUrl = await resizeImageToDataUrl(imageFile, 1200, 1200, 0.85);
+            const dataUrl = await resizeImageToDataUrl(imageFile, 600, 600, 0.75);
             if (dataUrl) formData.append('image_data', dataUrl);
           } catch(e) {}
           formData.append('image', imageFile);
@@ -577,7 +577,7 @@
         }
         if (imageFile) {
           try {
-            const dataUrl = await resizeImageToDataUrl(imageFile, 1200, 1200, 0.85);
+            const dataUrl = await resizeImageToDataUrl(imageFile, 600, 600, 0.75);
             if (dataUrl) formData.append('image_data', dataUrl);
           } catch(e) {}
           formData.append('image', imageFile);

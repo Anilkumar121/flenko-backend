@@ -2121,49 +2121,7 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
     let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId]);
     let products = prodRes.rows || [];
 
-    if (products.length === 0 && targetUserId === 1) {
-      products = [
-        {
-          id: 101,
-          supplier_id: 1,
-          name: 'Heavy-Duty Corrugated Boxes (3-Ply & 5-Ply)',
-          price: 24.50,
-          category: 'Packaging & Printing',
-          moq: 500,
-          unit: 'Boxes',
-          stock_quantity: 50000,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80',
-          description: 'High-burst strength corrugated packaging boxes designed for logistics, e-commerce, and export cargo.'
-        },
-        {
-          id: 102,
-          supplier_id: 1,
-          name: 'Custom Printed BOPP Packaging Tape (65 Micron)',
-          price: 45.00,
-          category: 'Packaging & Printing',
-          moq: 120,
-          unit: 'Rolls',
-          stock_quantity: 12000,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1628135408465-985227ce11e3?auto=format&fit=crop&w=400&q=80',
-          description: 'Industrial-grade tamper-evident adhesive tapes with custom logo printing for brand protection.'
-        },
-        {
-          id: 103,
-          supplier_id: 1,
-          name: 'Industrial Stretch Wrapping Film (23 Micron)',
-          price: 180.00,
-          category: 'Packaging & Printing',
-          moq: 50,
-          unit: 'Rolls',
-          stock_quantity: 8500,
-          country: 'India',
-          image_url: 'https://images.unsplash.com/photo-1574749377484-9543e3e4a2ea?auto=format&fit=crop&w=400&q=80',
-          description: 'Puncture-resistant linear low-density polyethylene (LLDPE) cast stretch film for pallet containment.'
-        }
-      ];
-    }
+// No mock/sample products injected
 
     // Fetch supplier's reviews
     let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId]);
@@ -3029,6 +2987,39 @@ app.get('/api/products', authMiddleware, async (req, res) => {
   }
 });
 
+async function syncProductsCatalogFile(dbInstance) {
+  try {
+    const res = await dbInstance.query(`
+      SELECT p.*, 
+             COALESCE(b.company_name, u.name, 'Verified Supplier') AS supplier_name, 
+             b.logo_url AS supplier_logo, 
+             COALESCE(b.city, u.city, 'Industrial Hub') AS city,
+             COALESCE(p.country, b.country, 'India') AS country,
+             b.slug AS supplier_slug,
+             COALESCE(b.phone, u.phone, '') AS supplier_phone,
+             COALESCE(b.whatsapp, b.phone, u.phone, '') AS supplier_whatsapp
+      FROM products p
+      LEFT JOIN businesses b ON p.supplier_id = b.user_id
+      LEFT JOIN users u ON p.supplier_id = u.id
+      ORDER BY p.id ASC
+    `);
+    const list = res.rows || [];
+    if (list.length > 0) {
+      const pPath = path.join(__dirname, '..', 'products.json');
+      fs.writeFileSync(pPath, JSON.stringify(list, null, 2), 'utf8');
+      const dbJsonPath = path.join(__dirname, 'database', 'db.json');
+      if (fs.existsSync(dbJsonPath)) {
+        try {
+          const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
+          dbData.products = list;
+          fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    console.warn('[Catalog Auto-Sync notice]:', e.message);
+  }
+}
 // Route: Add a Product (With Custom/Auto-Categorization, Country & Stock Quantity)
 app.post('/api/products', authMiddleware, upload.single('image'), async (req, res) => {
   const { name, price, category, moq, unit, stock_quantity, country } = req.body;
@@ -3160,6 +3151,7 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
     // Auto-sync seller product count and products catalog to Google Sheets
     googleSheetsService.syncSellerToGoogleSheet(effectiveSupplierId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
     googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
+    syncProductsCatalogFile(db).catch(() => {});
 
     res.json({ success: true, product: newProd.rows[0], seo_generated: autoSeoTags, category: effectiveCategory, country: effectiveCountry });
   } catch (error) {
@@ -3257,6 +3249,7 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
     const suppId = (updated.rows && updated.rows[0] && updated.rows[0].supplier_id) || req.user.id;
     googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
     googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
+    syncProductsCatalogFile(db).catch(() => {});
 
     res.json({ success: true, product: updated.rows[0], category: effectiveCategory, country: effectiveCountry });
   } catch (error) {
@@ -3276,6 +3269,7 @@ app.delete('/api/products/:id', authMiddleware, async (req, res) => {
     const suppId = (deleted.rows && deleted.rows[0] && deleted.rows[0].supplier_id) || req.user.id;
     googleSheetsService.syncSellerToGoogleSheet(suppId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
     googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
+    syncProductsCatalogFile(db).catch(() => {});
 
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
@@ -3352,6 +3346,7 @@ app.post('/api/products/sync-bulk', authMiddleware, async (req, res) => {
     if (insertedCount > 0) {
       googleSheetsService.syncSellerToGoogleSheet(effectiveSupplierId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
       googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
+    syncProductsCatalogFile(db).catch(() => {});
     }
 
     // Return the updated list of products for this supplier
@@ -4250,6 +4245,7 @@ setTimeout(async () => {
         console.log(`📊 [Google Sheets Startup Sync] Auto-synced ${result.count} sellers on boot.`);
       }
       googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
+    syncProductsCatalogFile(db).catch(() => {});
     }
 
     // 4. Backfill any missing SEO slugs for 100% crawlability

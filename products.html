@@ -724,9 +724,51 @@
         return serviceUnits.includes(u) || serviceWords.some(w => text.includes(w));
       }
 
+      function getLocalCustomProducts() {
+        const list = [];
+        const seen = new Set();
+        const sources = [
+          "flenko_custom_products",
+          "flenko_seller_products",
+          "flenko_public_products"
+        ];
+        try {
+          const u = (typeof auth !== "undefined" && auth.getUser) ? auth.getUser() : null;
+          if (u && u.id) sources.unshift("flenko_seller_products_" + u.id);
+        } catch(e) {}
+
+        sources.forEach(key => {
+          try {
+            const arr = JSON.parse(localStorage.getItem(key) || "[]");
+            if (Array.isArray(arr)) {
+              arr.forEach(item => {
+                if (item && item.name) {
+                  const uid = String(item.id || item.name.toLowerCase().trim());
+                  if (!seen.has(uid)) {
+                    seen.add(uid);
+                    list.push(item);
+                  }
+                }
+              });
+            }
+          } catch(e) {}
+        });
+        return list;
+      }
+
       function formatAndStoreProducts(rawList) {
-        if (!Array.isArray(rawList) || rawList.length === 0) return;
-        allProducts = rawList.map(p => ({
+        if (!Array.isArray(rawList)) rawList = [];
+
+        // Dual-Engine Merge: Always prioritize seller added products at the very top!
+        const customProds = getLocalCustomProducts();
+        const customIds = new Set(customProds.map(p => String(p.id)));
+        const customNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
+
+        const incomingFiltered = rawList.filter(p => !customIds.has(String(p.id)) && !customNames.has((p.name || "").toLowerCase().trim()));
+        const mergedList = [...customProds, ...incomingFiltered];
+        if (mergedList.length === 0) return;
+
+        allProducts = mergedList.map(p => ({
           id: p.id,
           name: p.name,
           slug: p.slug || '',
