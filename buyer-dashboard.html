@@ -470,7 +470,7 @@
                 <h4>${l.product_needed}</h4>
                 <span class="badge" style="background:#e0f2fe; color:var(--color-blue-primary);">${l.status || 'Sent'}</span>
               </div>
-              <div class="meta">Sent on: ${new Date(l.created_at).toLocaleDateString()}</div>
+              <div class="meta">Sent on: ${(l.created_at && !isNaN(new Date(l.created_at).getTime())) ? new Date(l.created_at).toLocaleDateString() : (l.created_at || 'Recently')}</div>
               <p style="font-size: 0.85rem; color: var(--color-text-main);">${l.details}</p>
             </div>
           `).join('');

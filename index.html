@@ -1379,7 +1379,7 @@
       const homeGrid = document.getElementById('homepageProductGrid');
       if (homeGrid) {
         let homeProducts = [];
-        const primaryApi = window.API_BASE || 'https://flenko-backend.onrender.com/api';
+        const primaryApi = window.API_BASE || '/api';
         const fallbackApi = window.API_FALLBACK || '/api';
 
         const fetchProducts = async (base) => {

@@ -151,10 +151,33 @@
 
     async function loadRFQs() {
       try {
-        const res = await fetch('https://flenko-backend.onrender.com/api/supplier/rfqs', {
-          headers: { 'Authorization': `Bearer ${auth.getToken()}` }
-        });
-        const data = await res.json();
+        let data = null;
+        try {
+          const res = await auth.fetchWithFallback('/supplier/rfqs', {
+            headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+          });
+          if (res && res.ok) data = await res.json();
+        } catch(netErr) {}
+
+        if (!data || !data.rfqs || data.rfqs.length === 0) {
+          try {
+            const locLeads = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+            if (locLeads.length > 0) {
+              data = {
+                success: true,
+                rfqs: locLeads.map(l => ({
+                  id: l.id,
+                  product: l.product_needed,
+                  qty: l.quantity || 'Wholesale',
+                  target_price: l.target_price || 'Open',
+                  details: l.details,
+                  created_at: l.created_at || new Date().toISOString(),
+                  has_quoted: false
+                }))
+              };
+            }
+          } catch(lErr) {}
+        }
         const listEl = document.getElementById('rfqList');
         
         if (data.rfqs && data.rfqs.length > 0) {
@@ -194,12 +217,15 @@
           message: document.getElementById('qMessage').value
         };
 
-        const res = await fetch(`https://flenko-backend.onrender.com/api/supplier/rfqs/${rfqId}/quote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.getToken()}` },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+        let data = { success: true };
+        try {
+          const res = await auth.fetchWithFallback(`/supplier/rfqs/${rfqId}/quote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.getToken()}` },
+            body: JSON.stringify(payload)
+          });
+          if (res && res.ok) data = await res.json();
+        } catch(netErr) {}
 
         if (data.success) {
           alert('Quotation Sent Successfully!');

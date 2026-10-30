@@ -362,6 +362,23 @@
             } catch(e) {}
           }
 
+          try {
+            const user = (typeof auth !== 'undefined' && auth.getUser()) || {};
+            const rfqObj = {
+              id: (result && result.lead_id) || Date.now(),
+              buyer_id: user.id || 1,
+              product: `${prodName} (Qty: ${qtyVal} ${unitVal})`,
+              qty: `${qtyVal} ${unitVal}`,
+              target_price: null,
+              details: `Destination: ${cityVal} (${countryVal}).\n\nRequirements: ${detailsVal}`,
+              created_at: new Date().toISOString(),
+              quotes: []
+            };
+            const rList = JSON.parse(localStorage.getItem('flenko_buyer_rfqs') || '[]');
+            rList.unshift(rfqObj);
+            localStorage.setItem('flenko_buyer_rfqs', JSON.stringify(rList.slice(0, 50)));
+          } catch(rErr) {}
+
           if (result && result.success) {
             msg.innerHTML = '✅ <strong>RFQ successfully broadcast!</strong> Verified suppliers will send you competitive quotes shortly.';
             msg.style.color = '#028867';

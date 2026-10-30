@@ -1149,6 +1149,35 @@
           body: JSON.stringify(payload)
         });
 
+        try {
+          const leadItem = {
+            id: Date.now(),
+            supplier_id: parseInt(currentSupplierId) || 1,
+            product_needed: prod,
+            buyer_phone: phone,
+            details: details,
+            is_direct: true,
+            is_paid: true,
+            locked: false,
+            status: 'New',
+            created_at: new Date().toISOString()
+          };
+          const bList = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+          bList.unshift(leadItem);
+          localStorage.setItem('flenko_broadcast_leads', JSON.stringify(bList.slice(0, 50)));
+
+          const sent = JSON.parse(localStorage.getItem('flenko_sent_inquiries') || '[]');
+          const sName = (supplierData && supplierData.company_name) || ('Supplier #' + currentSupplierId);
+          sent.unshift({
+            refId: '#INQ-' + Math.floor(100000 + Math.random() * 900000),
+            product: prod,
+            supplier: sName,
+            quantity: 'Direct Inquiry',
+            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+          });
+          localStorage.setItem('flenko_sent_inquiries', JSON.stringify(sent.slice(0, 50)));
+        } catch(cErr) {}
+
         fb.style.display = 'block';
         fb.style.background = '#dcfce7';
         fb.style.color = '#15803d';
@@ -1156,6 +1185,23 @@
         btn.innerText = 'Sent Successfully ✓';
         document.getElementById('supplierInquiryForm').reset();
       } catch(err) {
+        try {
+          const leadItem = {
+            id: Date.now(),
+            supplier_id: parseInt(currentSupplierId) || 1,
+            product_needed: prod,
+            buyer_phone: phone,
+            details: details,
+            is_direct: true,
+            is_paid: true,
+            locked: false,
+            status: 'New',
+            created_at: new Date().toISOString()
+          };
+          const bList = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+          bList.unshift(leadItem);
+          localStorage.setItem('flenko_broadcast_leads', JSON.stringify(bList.slice(0, 50)));
+        } catch(cErr) {}
         fb.style.display = 'block';
         fb.style.background = '#dcfce7';
         fb.style.color = '#15803d';

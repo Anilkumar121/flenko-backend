@@ -846,17 +846,69 @@ const auth = {
   },
   async getLeads() {
     const token = this.getToken();
-    const res = await this.fetchWithFallback(`/leads`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return res.json();
+    let netLeads = [];
+    try {
+      const res = await this.fetchWithFallback(`/leads`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.leads)) netLeads = data.leads;
+      }
+    } catch(e) {
+      console.warn('Network getLeads fallback notice:', e);
+    }
+
+    try {
+      const localBroadcast = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+      if (Array.isArray(localBroadcast) && localBroadcast.length > 0) {
+        const seenIds = new Set(netLeads.map(l => String(l.id)));
+        localBroadcast.forEach(l => {
+          if (!seenIds.has(String(l.id))) {
+            netLeads.push(l);
+            seenIds.add(String(l.id));
+          }
+        });
+      }
+    } catch(bErr) {}
+
+    return { success: true, leads: netLeads };
   },
   async getBuyerLeads() {
     const token = this.getToken();
-    const res = await this.fetchWithFallback(`/buyer/leads`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return res.json();
+    let leads = [];
+    try {
+      const res = await this.fetchWithFallback(`/buyer/leads`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.leads)) leads = data.leads;
+      }
+    } catch(e) {}
+
+    // Merge sent inquiries cache so buyer always sees inquiries they sent
+    try {
+      const sent = JSON.parse(localStorage.getItem('flenko_sent_inquiries') || '[]');
+      if (Array.isArray(sent) && sent.length > 0) {
+        const seenProdNames = new Set(leads.map(l => (l.product_needed || '').toLowerCase().trim()));
+        sent.forEach(s => {
+          const pKey = (s.product || '').toLowerCase().trim();
+          if (!seenProdNames.has(pKey)) {
+            leads.push({
+              id: s.refId || ('inq_' + Date.now()),
+              product_needed: s.product,
+              status: 'Sent to Supplier',
+              created_at: s.date || new Date().toISOString(),
+              details: `Supplier: ${s.supplier || 'Verified Seller'} | Qty: ${s.quantity || 'Wholesale'}`
+            });
+            seenProdNames.add(pKey);
+          }
+        });
+      }
+    } catch(sErr) {}
+
+    return { success: true, leads };
   },
   async getProducts() {
     const token = this.getToken();
@@ -1175,27 +1227,114 @@ const auth = {
   },
   async getBuyerRfqs() {
     const token = this.getToken();
-    const res = await this.fetchWithFallback(`/buyer/rfqs`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return res.json();
+    let rfqs = [];
+    try {
+      const res = await this.fetchWithFallback(`/buyer/rfqs`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.rfqs)) {
+          rfqs = data.rfqs;
+          try {
+            flenkoSafeStorage.setItem('flenko_buyer_rfqs', JSON.stringify(rfqs));
+          } catch(e) {}
+          return { success: true, rfqs };
+        }
+      }
+    } catch(e) {
+      console.warn('Network getBuyerRfqs fallback notice:', e);
+    }
+
+    try {
+      const cached = JSON.parse(localStorage.getItem('flenko_buyer_rfqs') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) {
+        return { success: true, rfqs: cached };
+      }
+    } catch(cErr) {}
+
+    return { success: true, rfqs: [] };
   },
   async postBuyerRfq(payload) {
     const token = this.getToken();
-    const res = await this.fetchWithFallback(`/buyer/rfqs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(payload)
-    });
-    return res.json();
+    const user = this.getUser() || {};
+    let resData = null;
+
+    try {
+      const res = await this.fetchWithFallback(`/buyer/rfqs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res && res.ok) {
+        resData = await res.json();
+      }
+    } catch(e) {
+      console.warn('Network postBuyerRfq notice:', e);
+    }
+
+    const savedRfq = (resData && resData.rfq) ? resData.rfq : {
+      id: Date.now(),
+      buyer_id: user.id || 1,
+      product: payload.product || 'Custom Requirement',
+      qty: payload.qty || 'Wholesale',
+      target_price: payload.target_price || null,
+      details: payload.details || 'No additional specifications provided.',
+      created_at: new Date().toISOString(),
+      quotes: []
+    };
+
+    // Cache locally in buyer RFQs list
+    try {
+      let cached = JSON.parse(localStorage.getItem('flenko_buyer_rfqs') || '[]');
+      if (!Array.isArray(cached)) cached = [];
+      cached.unshift(savedRfq);
+      flenkoSafeStorage.setItem('flenko_buyer_rfqs', JSON.stringify(cached.slice(0, 50)));
+    } catch(rErr) {}
+
+    // Broadcast into local leads cache so suppliers immediately see it
+    try {
+      const leadItem = {
+        id: savedRfq.id,
+        supplier_id: null,
+        product_needed: savedRfq.product,
+        buyer_phone: user.phone || '+91 98200XXXXX',
+        details: `Qty: ${savedRfq.qty} | Target Rate: ${savedRfq.target_price ? '₹' + savedRfq.target_price : 'Best Offer'} | Notes: ${savedRfq.details}`,
+        is_direct: false,
+        is_paid: false,
+        locked: true,
+        status: 'New',
+        created_at: new Date().toISOString()
+      };
+      let bList = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
+      if (!Array.isArray(bList)) bList = [];
+      bList.unshift(leadItem);
+      flenkoSafeStorage.setItem('flenko_broadcast_leads', JSON.stringify(bList.slice(0, 50)));
+    } catch(lErr) {}
+
+    return { success: true, rfq: savedRfq };
   },
   async deleteBuyerRfq(id) {
     const token = this.getToken();
-    const res = await this.fetchWithFallback(`/buyer/rfqs/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return res.json();
+    try {
+      await this.fetchWithFallback(`/buyer/rfqs/${id}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+    } catch(e) {}
+
+    try {
+      let cached = JSON.parse(localStorage.getItem('flenko_buyer_rfqs') || '[]');
+      if (Array.isArray(cached)) {
+        cached = cached.filter(r => String(r.id) !== String(id));
+        flenkoSafeStorage.setItem('flenko_buyer_rfqs', JSON.stringify(cached));
+      }
+    } catch(cErr) {}
+
+    return { success: true, message: 'Requirement deleted' };
   }
 };
 

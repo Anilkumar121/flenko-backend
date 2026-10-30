@@ -3381,11 +3381,11 @@ app.get('/api/public/products', async (req, res) => {
     const safeProducts = (prods.rows || []).map(p => {
       let img = p.image_url || 'assets/images/logo.png';
       if (img.startsWith('/assets/')) {
-        img = `https://flenko-backend.onrender.com${img}`;
+        if (img.startsWith("/")) img = img.slice(1);
       }
       let logo = p.supplier_logo;
       if (logo && logo.startsWith('/assets/')) {
-        logo = `https://flenko-backend.onrender.com${logo}`;
+        if (logo.startsWith("/")) logo = logo.slice(1);
       }
       return {
         ...p,
@@ -3491,6 +3491,10 @@ app.get('/api/supplier/rfqs', authMiddleware, async (req, res) => {
         return searchTerms.some(term => pName.includes(term) || pCat.includes(term));
       });
     });
+
+    if (relevantRfqs.length === 0 && allRfqs.rows && allRfqs.rows.length > 0) {
+      relevantRfqs = allRfqs.rows.slice(0, 25);
+    }
 
     // Check if supplier has already quoted
     const rfqsStatus = await Promise.all(relevantRfqs.map(async (r) => {

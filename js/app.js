@@ -30,7 +30,7 @@ async function renderHomepageProducts() {
   
   let allProducts = [];
   const primaryApi = window.API_BASE || '/api';
-  const fallbackApi = window.API_FALLBACK || 'https://flenko-backend.onrender.com/api';
+  const fallbackApi = window.API_FALLBACK || '/api';
 
   const fetchProductsFrom = async (base) => {
     try {
