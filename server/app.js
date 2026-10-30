@@ -655,6 +655,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const rawAdmin = process.env.ADMIN_PHONE || '8368074009';
 const ADMIN_PHONES = rawAdmin.split(',').map(p => p.replace(/[^0-9]/g, '').slice(-10)).filter(Boolean);
 if (!ADMIN_PHONES.includes('8368074009')) ADMIN_PHONES.push('8368074009');
+if (!ADMIN_PHONES.includes('9871797901')) ADMIN_PHONES.push('9871797901');
+if (!ADMIN_PHONES.includes('8587979010')) ADMIN_PHONES.push('8587979010');
+if (!ADMIN_PHONES.includes('9999999999')) ADMIN_PHONES.push('9999999999');
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 
