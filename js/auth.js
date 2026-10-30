@@ -145,8 +145,8 @@ const flenkoSafeStorage = {
     try {
       const cloned = Array.isArray(obj) ? [...obj] : { ...obj };
       for (const k in cloned) {
-        if (typeof cloned[k] === 'string' && cloned[k].startsWith('data:image') && cloned[k].length > 30000) {
-          cloned[k] = ''; // Remove oversized local base64 to save storage
+        if (typeof cloned[k] === 'string' && cloned[k].startsWith('data:image') && cloned[k].length > 100000) {
+          cloned[k] = 'assets/images/logo.png'; // Fallback to standard asset instead of blank empty string
         } else if (typeof cloned[k] === 'object' && cloned[k] !== null) {
           cloned[k] = this.stripHeavyImages(cloned[k]);
         }
@@ -213,7 +213,8 @@ const auth = {
       return ct.includes('text/html');
     };
 
-    const fetchWithTimeout = async (url, opts, ms = 3500) => {
+    const defaultTimeoutMs = (options && ((typeof FormData !== "undefined" && options.body instanceof FormData) || (urlPath && urlPath.includes("/products")))) ? 25000 : 8000;
+    const fetchWithTimeout = async (url, opts, ms = defaultTimeoutMs) => {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), ms);
       try {
@@ -874,8 +875,8 @@ const auth = {
         if (data && Array.isArray(data.products) && data.products.length > 0) {
           products = data.products;
           try {
-            flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(products)));
-            flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(products)));
+            flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
+            flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(products));
           } catch(e) {}
           return { products };
         }
@@ -912,8 +913,8 @@ const auth = {
           if (suppProds.length > 0) {
             products = suppProds;
             try {
-              flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(products)));
-              flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(products)));
+              flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
+              flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(products));
             } catch(e) {}
             return { products };
           }
@@ -952,6 +953,8 @@ const auth = {
         const imgData = formData.get('image_data');
         if (imgData && typeof imgData === 'string' && (imgData.startsWith('data:image') || imgData.startsWith('http') || imgData.includes('assets/'))) {
           image_url = imgData;
+        } else if (formData.get('existing_image_url')) {
+          image_url = formData.get('existing_image_url');
         }
       } else if (formData && typeof formData === 'object') {
         name = (formData.name || '').toString().trim();
@@ -1008,15 +1011,15 @@ const auth = {
       if (!Array.isArray(cached)) cached = [];
       cached = cached.filter(p => p.id !== savedProduct.id && p.name !== savedProduct.name);
       cached.unshift(savedProduct);
-      flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
-      flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
+      flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
+      flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(cached));
 
       // Also append to global public products cache so search immediately indexes it
       let pubProds = JSON.parse(localStorage.getItem('flenko_public_products') || '[]');
       if (Array.isArray(pubProds)) {
         pubProds = pubProds.filter(p => p.id !== savedProduct.id);
         pubProds.unshift(savedProduct);
-        flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(pubProds)));
+        flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(pubProds));
       }
     } catch(sErr) {
       console.warn('Local product cache save warning:', sErr);
@@ -1117,8 +1120,8 @@ const auth = {
         } else {
           cached.unshift(updatedProd);
         }
-        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
-        flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
+        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
+        flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(cached));
         // Keep public products catalog in sync for immediate search
         try {
           let pubProds = JSON.parse(localStorage.getItem('flenko_public_products') || '[]');
@@ -1129,7 +1132,7 @@ const auth = {
             } else {
               pubProds.unshift(updatedProd);
             }
-            flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(pubProds)));
+            flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(pubProds));
           }
         } catch(pubErr) {}
 
@@ -1156,13 +1159,13 @@ const auth = {
       let cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
       if (Array.isArray(cached)) {
         cached = cached.filter(p => String(p.id) !== String(id));
-        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
-        flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(cached)));
+        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
+        flenkoSafeStorage.setItem('flenko_seller_products', JSON.stringify(cached));
         try {
           let pubProds = JSON.parse(localStorage.getItem('flenko_public_products') || '[]');
           if (Array.isArray(pubProds)) {
             pubProds = pubProds.filter(p => String(p.id) !== String(id));
-            flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(flenkoSafeStorage.stripHeavyImages(pubProds)));
+            flenkoSafeStorage.setItem('flenko_public_products', JSON.stringify(pubProds));
           }
         } catch(pubErr) {}
       }

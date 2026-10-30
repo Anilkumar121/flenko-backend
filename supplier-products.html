@@ -265,6 +265,9 @@
         </div>
         <div class="form-group">
           <label class="form-label">Upload Product Image</label>
+          <div id="addImgPreview" style="margin-bottom: 8px; display: none;">
+            <img id="addImgPreviewEl" src="assets/images/logo.png" onerror="this.onerror=null; this.src='assets/images/logo.png';" style="max-height: 90px; max-width: 130px; border-radius: 6px; border: 1px solid #cbd5e1; object-fit: cover; display: block;">
+          </div>
           <input type="file" id="pImage" name="image" class="form-control" accept="image/*" required>
         </div>
         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
@@ -286,6 +289,41 @@
       populateCategoryDropdowns();
       await loadProducts();
     });
+    // Real-time live image preview listeners
+    const addImgInp = document.getElementById('pImage');
+    if (addImgInp) {
+      addImgInp.addEventListener('change', async function() {
+        const f = this.files[0];
+        const prevWrap = document.getElementById('addImgPreview');
+        const prevEl = document.getElementById('addImgPreviewEl');
+        if (f && prevWrap && prevEl) {
+          const thumb = await resizeImageToDataUrl(f, 400, 400, 0.75);
+          if (thumb) {
+            prevEl.src = thumb;
+            prevWrap.style.display = 'block';
+          }
+        } else if (prevWrap) {
+          prevWrap.style.display = 'none';
+        }
+      });
+    }
+
+    const editImgInp = document.getElementById('eImage');
+    if (editImgInp) {
+      editImgInp.addEventListener('change', async function() {
+        const f = this.files[0];
+        const prevWrap = document.getElementById('editCurrentImageWrap');
+        const prevEl = document.getElementById('editCurrentImage');
+        if (f && prevWrap && prevEl) {
+          const thumb = await resizeImageToDataUrl(f, 400, 400, 0.75);
+          if (thumb) {
+            prevEl.src = thumb;
+            prevWrap.style.display = 'block';
+          }
+        }
+      });
+    }
+
 
     async function loadProducts() {
       const data = await auth.getProducts();
@@ -294,7 +332,7 @@
       if (window.currentProducts.length > 0) {
         grid.innerHTML = window.currentProducts.map(p => `
           <div class="product-edit-card">
-            <img src="${p.image_url}" alt="${p.name}">
+            <img src="${p.image_url || 'assets/images/logo.png'}" alt="${p.name}" onerror="this.onerror=null; this.src='assets/images/logo.png';" style="width: 100%; height: 120px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 1rem;">
             <h4 style="font-size: 0.875rem; margin-bottom: 0.25rem;">${p.name}</h4>
             <div style="font-size: 0.72rem; color: #028867; font-weight: 600; margin-bottom: 0.35rem;">
               🏷️ ${p.category || 'General B2B'} &nbsp;|&nbsp; 🌍 ${p.country || 'India'}
@@ -364,7 +402,7 @@
       datalist.innerHTML = Array.from(options).map(opt => `<option value="${opt}">`).join('');
     }
 
-    function resizeImageToDataUrl(file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) {
+    function resizeImageToDataUrl(file, maxWidth = 800, maxHeight = 800, quality = 0.75) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -401,6 +439,8 @@
       if (form) form.reset();
       const pImg = document.getElementById('pImage');
       if (pImg) pImg.value = '';
+      const addPrev = document.getElementById('addImgPreview');
+      if (addPrev) addPrev.style.display = 'none';
       const pCat = document.getElementById('pCategoryInput');
       if (pCat) pCat.value = '';
       const pPrice = document.getElementById('pPrice');
@@ -493,6 +533,12 @@
       document.getElementById('eUnit').value = p.unit || 'Pieces';
       document.getElementById('eStock').value = p.stock_quantity || 500;
       syncUnitLabels('edit');
+      const editPrevWrap = document.getElementById('editCurrentImageWrap');
+      const editPrevImg = document.getElementById('editCurrentImage');
+      if (editPrevWrap && editPrevImg) {
+        editPrevImg.src = p.image_url || 'assets/images/logo.png';
+        editPrevWrap.style.display = 'block';
+      }
       document.getElementById('editProductModal').style.display = 'flex';
     }
 
@@ -525,6 +571,10 @@
         formData.append('stock_quantity', document.getElementById('eStock').value || 500);
         
         const imageFile = document.getElementById('eImage').files[0];
+        const existingProd = (window.currentProducts || []).find(x => x.id == editingProductId);
+        if (existingProd && existingProd.image_url) {
+          formData.append('existing_image_url', existingProd.image_url);
+        }
         if (imageFile) {
           try {
             const dataUrl = await resizeImageToDataUrl(imageFile, 1200, 1200, 0.85);
@@ -664,6 +714,10 @@
         </div>
         <div class="form-group">
           <label class="form-label">Update Product Image (Optional)</label>
+          <div id="editCurrentImageWrap" style="margin-bottom: 8px; display: none;">
+            <small style="color: #64748b; display: block; margin-bottom: 4px; font-weight: 600;">Current Product Image:</small>
+            <img id="editCurrentImage" src="assets/images/logo.png" onerror="this.onerror=null; this.src='assets/images/logo.png';" style="max-height: 90px; max-width: 130px; border-radius: 6px; border: 1px solid #cbd5e1; object-fit: cover; display: block;">
+          </div>
           <input type="file" id="eImage" class="form-control" accept="image/*">
         </div>
         <button type="submit" id="editBtn" class="btn btn-primary" style="width: 100%;">Update Product</button>

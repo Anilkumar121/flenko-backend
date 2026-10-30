@@ -3009,10 +3009,28 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   const cleanStock = parseInt(stock_quantity) || 500;
   
   const backendHost = getBackendHost(req);
-  const image_url = (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image'))
-    ? req.body.image_data
-    : (req.file ? (fileToDataUri(req.file) || `${backendHost}/assets/images/products/${req.file.filename}`) : (req.body.image_url || 'assets/images/logo.png'));
-  
+  let image_url = 'assets/images/logo.png';
+  if (req.file && req.file.filename) {
+    image_url = 'assets/images/products/' + req.file.filename;
+  } else if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image')) {
+    try {
+      const matches = req.body.image_data.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+      if (matches) {
+        const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1].replace(/[^a-zA-Z0-9]/g, '');
+        const buffer = Buffer.from(matches[2], 'base64');
+        const fname = 'prod-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + '.' + (ext || 'jpg');
+        fs.writeFileSync(path.join(uploadDir, fname), buffer);
+        image_url = 'assets/images/products/' + fname;
+      } else {
+        image_url = req.body.image_data;
+      }
+    } catch(err) {
+      console.warn('Could not save base64 image to disk:', err.message);
+      image_url = req.body.image_data;
+    }
+  } else if (req.body.image_url) {
+    image_url = req.body.image_url;
+  }
   // Auto-SEO Generator
   const autoSeoTags = `buy ${cleanName} wholesale, best ${cleanName} supplier, ${cleanName} manufacturers in ${effectiveCountry}, top quality ${effectiveCategory}`;
 
@@ -3174,13 +3192,24 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
     let updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, slug = $8, seo_title = $9, seo_description = $10, is_service = $11 WHERE id = $12 RETURNING *';
     let params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, productSlug, meta.title, meta.description, isServiceListing, productId];
 
-    if (req.file) {
-      const dataUri = fileToDataUri(req.file);
-      const image_url = dataUri || `${backendHost}/assets/images/products/${req.file.filename}`;
+    if (req.file && req.file.filename) {
+      const image_url = 'assets/images/products/' + req.file.filename;
       updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11, is_service = $12 WHERE id = $13 RETURNING *';
       params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, isServiceListing, productId];
-    } else if (req.body.image_data) {
-      const image_url = req.body.image_data;
+    } else if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image')) {
+      let image_url = req.body.image_data;
+      try {
+        const matches = req.body.image_data.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        if (matches) {
+          const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1].replace(/[^a-zA-Z0-9]/g, '');
+          const buffer = Buffer.from(matches[2], 'base64');
+          const fname = 'prod-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + '.' + (ext || 'jpg');
+          fs.writeFileSync(path.join(uploadDir, fname), buffer);
+          image_url = 'assets/images/products/' + fname;
+        }
+      } catch(err) {
+        console.warn('Could not save base64 image on edit:', err.message);
+      }
       updateQuery = 'UPDATE products SET name = $1, price = $2, category = $3, moq = $4, unit = $5, stock_quantity = $6, country = $7, image_url = $8, slug = $9, seo_title = $10, seo_description = $11, is_service = $12 WHERE id = $13 RETURNING *';
       params = [cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', cleanStock, effectiveCountry, image_url, productSlug, meta.title, meta.description, isServiceListing, productId];
     }

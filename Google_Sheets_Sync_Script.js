@@ -263,7 +263,6 @@ function doGet(e) {
         count: sellers.length,
         sellers: sellers
       })).setMimeType(ContentService.MimeType.JSON);
-    }
   } catch(err) {}
 
   return ContentService.createTextOutput(JSON.stringify({
