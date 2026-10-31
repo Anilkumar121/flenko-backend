@@ -125,8 +125,7 @@ const flenkoSafeStorage = {
     const keysToPurge = [
       'flenko_public_products_cache',
       'flenko_cached_leads',
-      'flenko_temp_preview',
-      'flenko_custom_categories'
+      'flenko_temp_preview'
     ];
     keysToPurge.forEach(k => {
       try { localStorage.removeItem(k); } catch(e) {}
@@ -134,7 +133,8 @@ const flenkoSafeStorage = {
     try {
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith('flenko_temp') || key.startsWith('flenko_cache'))) {
+        // Only remove temporary cache/preview keys; NEVER touch profile, products, users or auth tokens
+        if (key && (key.startsWith('flenko_temp_') || key.startsWith('flenko_cache_'))) {
           localStorage.removeItem(key);
         }
       }
@@ -145,8 +145,10 @@ const flenkoSafeStorage = {
     try {
       const cloned = Array.isArray(obj) ? [...obj] : { ...obj };
       for (const k in cloned) {
-        if (typeof cloned[k] === 'string' && cloned[k].startsWith('data:image') && cloned[k].length > 100000) {
-          cloned[k] = 'assets/images/logo.png'; // Fallback to standard asset instead of blank empty string
+        // Protect brand logos and supplier identity - NEVER replace logos!
+        if (k === 'logo_url' || k === 'logo' || k === 'supplier_logo') continue;
+        if (typeof cloned[k] === 'string' && cloned[k].startsWith('data:image') && cloned[k].length > 400000) {
+          cloned[k] = 'assets/images/logo.png';
         } else if (typeof cloned[k] === 'object' && cloned[k] !== null) {
           cloned[k] = this.stripHeavyImages(cloned[k]);
         }
@@ -278,8 +280,7 @@ const auth = {
   },
   setUser(user) {
     if (!user) return;
-    const cleanUser = flenkoSafeStorage.stripHeavyImages(user);
-    flenkoSafeStorage.setItem('flenko_user', JSON.stringify(cleanUser));
+    flenkoSafeStorage.setItem('flenko_user', JSON.stringify(user));
   },
   getUser() {
     try {
@@ -338,7 +339,7 @@ const auth = {
       if (bObj.company_name && /^\d+$/.test(bObj.company_name.trim())) {
         delete bObj.company_name;
       }
-      flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(flenkoSafeStorage.stripHeavyImages(bObj)));
+      flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(bObj));
 
       const u = this.getUser() || {};
       u.business = { ...(u.business || {}), ...bObj };
@@ -501,7 +502,7 @@ const auth = {
       } else {
         list.push(user);
       }
-      flenkoSafeStorage.setItem('flenko_registered_users', JSON.stringify(flenkoSafeStorage.stripHeavyImages(list)));
+      flenkoSafeStorage.setItem('flenko_registered_users', JSON.stringify(list));
 
       // Asynchronously sync to server database in background
       if (user.password) {
@@ -938,7 +939,7 @@ const auth = {
             for (const [k, v] of Object.entries(data.user.business)) {
               if (v !== null && v !== undefined && v !== '') merged[k] = v;
             }
-            flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(flenkoSafeStorage.stripHeavyImages(merged)));
+            flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(merged));
           } catch(e) {}
         }
       }

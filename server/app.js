@@ -3046,14 +3046,31 @@ async function syncProductsCatalogFile(dbInstance) {
       ORDER BY p.id ASC
     `);
     const list = res.rows || [];
-    if (list.length > 0) {
-      const pPath = path.join(__dirname, '..', 'products.json');
-      fs.writeFileSync(pPath, JSON.stringify(list, null, 2), 'utf8');
+    const pPath = path.join(__dirname, '..', 'products.json');
+    let existingOnDisk = [];
+    if (fs.existsSync(pPath)) {
+      try {
+        existingOnDisk = JSON.parse(fs.readFileSync(pPath, 'utf8')) || [];
+      } catch(e) {}
+    }
+    const mergedMap = new Map();
+    existingOnDisk.forEach(p => {
+      if (p && (p.id || p.name)) mergedMap.set(String(p.id || p.name), p);
+    });
+    list.forEach(p => {
+      if (p && (p.id || p.name)) {
+        const key = String(p.id || p.name);
+        mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...p });
+      }
+    });
+    const mergedList = Array.from(mergedMap.values());
+    if (mergedList.length > 0) {
+      fs.writeFileSync(pPath, JSON.stringify(mergedList, null, 2), 'utf8');
       const dbJsonPath = path.join(__dirname, 'database', 'db.json');
       if (fs.existsSync(dbJsonPath)) {
         try {
           const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
-          dbData.products = list;
+          dbData.products = mergedList;
           fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
         } catch(e) {}
       }
@@ -4253,14 +4270,11 @@ app.post('/api/admin/clean-demo-data', async (req, res) => {
   }
 
   try {
-    await db.query('DELETE FROM products');
-    await db.query('DELETE FROM businesses');
-    await db.query("DELETE FROM users WHERE role != 'admin' AND id != 1");
-    await db.query('DELETE FROM reviews');
-    await db.query('DELETE FROM leads');
-    await db.query('DELETE FROM rfqs');
-    await db.query('DELETE FROM quotations');
-    res.json({ success: true, message: 'All demo products, buyers, and sellers removed successfully!' });
+    // Only delete listings and test records explicitly marked as demo/sample/test
+    await db.query("DELETE FROM products WHERE LOWER(name) LIKE '%demo%' OR LOWER(name) LIKE '%sample%' OR LOWER(name) LIKE '%test%'");
+    await db.query("DELETE FROM businesses WHERE LOWER(company_name) LIKE '%demo%' OR LOWER(company_name) LIKE '%sample%'");
+    await db.query("DELETE FROM users WHERE role != 'admin' AND id != 1 AND (LOWER(name) LIKE '%demo%' OR LOWER(name) LIKE '%test%')");
+    res.json({ success: true, message: 'Demo and sample records cleaned up. Real seller accounts and products are fully preserved!' });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }

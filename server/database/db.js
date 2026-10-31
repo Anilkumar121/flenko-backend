@@ -78,6 +78,42 @@ mockDB.reviews = mockDB.reviews || [];
 mockDB.products = mockDB.products || [];
 
 
+// Merge existing products.json and suppliers.json into mockDB so data is never lost across restarts
+const pJsonPathInit = path.resolve(__dirname, '../../products.json');
+if (fs.existsSync(pJsonPathInit)) {
+  try {
+    const diskProds = JSON.parse(fs.readFileSync(pJsonPathInit, 'utf8'));
+    if (Array.isArray(diskProds) && diskProds.length > 0) {
+      const pMap = new Map();
+      (mockDB.products || []).forEach(p => { if (p && (p.id || p.name)) pMap.set(String(p.id || p.name), p); });
+      diskProds.forEach(p => {
+        if (p && (p.id || p.name)) {
+          const key = String(p.id || p.name);
+          if (!pMap.has(key)) pMap.set(key, p);
+        }
+      });
+      mockDB.products = Array.from(pMap.values());
+    }
+  } catch(e) {}
+}
+
+const sJsonPathInit = path.resolve(__dirname, '../../suppliers.json');
+if (fs.existsSync(sJsonPathInit)) {
+  try {
+    const diskSupps = JSON.parse(fs.readFileSync(sJsonPathInit, 'utf8'));
+    if (Array.isArray(diskSupps) && diskSupps.length > 0) {
+      const bMap = new Map();
+      (mockDB.businesses || []).forEach(b => { if (b && b.id) bMap.set(String(b.id), b); });
+      diskSupps.forEach(b => {
+        if (b && b.id && !bMap.has(String(b.id))) {
+          bMap.set(String(b.id), b);
+        }
+      });
+      mockDB.businesses = Array.from(bMap.values());
+    }
+  } catch(e) {}
+}
+
 // Preserve all registered users, businesses and products across restarts
 mockDB.users = mockDB.users || [];
 mockDB.businesses = mockDB.businesses || [];
@@ -122,14 +158,28 @@ if (!hasMasterAdmin) {
 function saveMockDB() {
   try {
     fs.writeFileSync(mockDbPath, JSON.stringify(mockDB, null, 2), 'utf8');
-    // Also keep root products.json and suppliers.json in sync for ultra-fast CDN/domain caching
+    // Also keep root products.json and suppliers.json in sync for ultra-fast CDN/domain caching (merge to prevent losing products)
     if (Array.isArray(mockDB.products) && mockDB.products.length > 0) {
       const pJsonPath = path.resolve(__dirname, '../../products.json');
-      fs.writeFileSync(pJsonPath, JSON.stringify(mockDB.products, null, 2), 'utf8');
+      let existingP = [];
+      if (fs.existsSync(pJsonPath)) {
+        try { existingP = JSON.parse(fs.readFileSync(pJsonPath, 'utf8')) || []; } catch(e) {}
+      }
+      const pMap = new Map();
+      existingP.forEach(p => { if (p && (p.id || p.name)) pMap.set(String(p.id || p.name), p); });
+      mockDB.products.forEach(p => { if (p && (p.id || p.name)) pMap.set(String(p.id || p.name), { ...(pMap.get(String(p.id || p.name)) || {}), ...p }); });
+      fs.writeFileSync(pJsonPath, JSON.stringify(Array.from(pMap.values()), null, 2), 'utf8');
     }
     if (Array.isArray(mockDB.businesses) && mockDB.businesses.length > 0) {
       const sJsonPath = path.resolve(__dirname, '../../suppliers.json');
-      fs.writeFileSync(sJsonPath, JSON.stringify(mockDB.businesses, null, 2), 'utf8');
+      let existingS = [];
+      if (fs.existsSync(sJsonPath)) {
+        try { existingS = JSON.parse(fs.readFileSync(sJsonPath, 'utf8')) || []; } catch(e) {}
+      }
+      const sMap = new Map();
+      existingS.forEach(b => { if (b && b.id) sMap.set(String(b.id), b); });
+      mockDB.businesses.forEach(b => { if (b && b.id) sMap.set(String(b.id), { ...(sMap.get(String(b.id)) || {}), ...b }); });
+      fs.writeFileSync(sJsonPath, JSON.stringify(Array.from(sMap.values()), null, 2), 'utf8');
     }
   } catch (err) {
     console.error('Error saving db.json:', err);
@@ -1204,7 +1254,11 @@ module.exports = {
       return { rows: [] };
     }
     if (textHas('DELETE FROM products') && !textHas('WHERE id')) {
-      mockDB.products = [];
+      // Only purge items explicitly matching demo, sample or test
+      mockDB.products = (mockDB.products || []).filter(p => {
+        const n = (p.name || '').toLowerCase();
+        return !n.includes('demo') && !n.includes('sample') && !n.includes('test');
+      });
       saveMockDB();
       return { rows: [] };
     }
