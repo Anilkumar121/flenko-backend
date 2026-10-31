@@ -719,6 +719,7 @@ async function restoreSellersFromGoogleSheet() {
     }
 
     let restoredCount = 0;
+    const demoNames = ['rana pratap', 'dahag', 'ck enterprise', 'global pack', 'apex tool', 'shree ram', 'varun beverage', 'metro steel'];
     for (const s of data.sellers) {
       const cleanPhone = (s.phone || '').toString().replace(/[^0-9]/g, '');
       const cleanPhone10 = cleanPhone.slice(-10);
@@ -727,6 +728,8 @@ async function restoreSellersFromGoogleSheet() {
       const ownerName = (s.owner_name || s.name || compName).trim();
 
       if (!cleanPhone10 && !cleanEmail) continue;
+      // Never resurrect legacy demo seller fixtures
+      if (demoNames.some(d => compName.toLowerCase().includes(d) || ownerName.toLowerCase().includes(d))) continue;
 
       // Check if user already exists
       let existingUser = null;
@@ -825,6 +828,11 @@ async function restoreProductsFromGoogleSheet() {
       const suppId = parseInt(p.supplier_id) || 1;
       const key = `${suppId}_${pName.toLowerCase()}`;
       if (existingNames.has(key)) continue;
+
+      // Only restore products if supplier actually exists in users table and is not admin
+      const suppCheck = await db.query('SELECT id, role FROM users WHERE id = $1', [suppId]);
+      if (!suppCheck.rows || suppCheck.rows.length === 0) continue;
+      if (suppId === 1 && suppCheck.rows[0].role === 'admin') continue;
 
       const pPrice = (p.price !== undefined && p.price !== null && p.price !== '' && !isNaN(Number(p.price))) ? Number(p.price) : null;
       const pCat = p.category || 'General B2B';

@@ -28,31 +28,25 @@ window.API_FALLBACK = (typeof window !== 'undefined' && (window.location.hostnam
 // Preloaded Verified Directory Suppliers
 const PRELOADED_SUPPLIERS = [];
 
-// Automatic Fresh Storage Stamp: Clears previous demo data once while keeping all future registrations permanent
-const FLENKO_DATA_VERSION = 'flenko_v3_clean';
+// Automatic Fresh Storage Stamp: Clears legacy cached demo traces once
+const FLENKO_DATA_VERSION = 'flenko_v4_clean';
 if (typeof localStorage !== 'undefined') {
   try {
     const curVer = localStorage.getItem('flenko_data_version');
     if (curVer !== FLENKO_DATA_VERSION) {
       const legacyKeys = [
-        'flenko_registered_users',
-        'flenko_custom_products',
-        'flenko_seller_products',
-        'flenko_public_products',
-        'flenko_public_products_cache',
         'flenko_broadcast_leads',
         'flenko_admin_leads_cache',
         'flenko_cached_leads',
         'flenko_deleted_product_ids',
-        'flenko_edited_products',
-        'flenko_seller_profile'
+        'flenko_edited_products'
       ];
       legacyKeys.forEach(k => {
         try { localStorage.removeItem(k); } catch(e) {}
       });
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith('flenko_seller_products_') || key.startsWith('flenko_temp_') || key.startsWith('flenko_cache_'))) {
+        if (key && (key.startsWith('flenko_temp_') || key.startsWith('flenko_cache_'))) {
           localStorage.removeItem(key);
         }
       }
@@ -61,38 +55,9 @@ if (typeof localStorage !== 'undefined') {
   } catch(e) {}
 }
 
-// Automatic Fresh Storage Stamp: Clears previous demo data once while keeping all future registrations permanent
-const FLENKO_DATA_VERSION = 'flenko_v3_clean';
-if (typeof localStorage !== 'undefined') {
-  try {
-    const curVer = localStorage.getItem('flenko_data_version');
-    if (curVer !== FLENKO_DATA_VERSION) {
-      const legacyKeys = [
-        'flenko_registered_users',
-        'flenko_custom_products',
-        'flenko_seller_products',
-        'flenko_public_products',
-        'flenko_public_products_cache',
-        'flenko_broadcast_leads',
-        'flenko_admin_leads_cache',
-        'flenko_cached_leads',
-        'flenko_deleted_product_ids',
-        'flenko_edited_products',
-        'flenko_seller_profile'
-      ];
-      legacyKeys.forEach(k => {
-        try { localStorage.removeItem(k); } catch(e) {}
-      });
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('flenko_seller_products_') || key.startsWith('flenko_temp_') || key.startsWith('flenko_cache_'))) {
-          localStorage.removeItem(key);
-        }
-      }
-      localStorage.setItem('flenko_data_version', FLENKO_DATA_VERSION);
-    }
-  } catch(e) {}
-}
+
+
+
 
 // Quota-Safe LocalStorage Manager: Prevents QuotaExceededError across all browsers
 const flenkoSafeStorage = {
@@ -1191,6 +1156,7 @@ const auth = {
     };
 
     // 1. Try loading from live backend API
+    let resDataProds = null;
     try {
       const endpoint = isMasterAdmin ? "/products?all=true" : "/products";
       const res = await this.fetchWithFallback(endpoint, {
@@ -1199,6 +1165,7 @@ const auth = {
       if (res && res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.products)) {
+          resDataProds = data.products;
           products = isMasterAdmin ? data.products : data.products.filter(matchesUser);
         }
       }
@@ -1263,6 +1230,10 @@ const auth = {
         try {
           flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
         } catch(e) {}
+        // If server had 0 products or was recently restarted, trigger background self-healing
+        if (!isMasterAdmin && (!resDataProds || resDataProds.length === 0)) {
+          this.syncSellerSession().catch(() => {});
+        }
       } else {
         try {
           const prevCached = JSON.parse(localStorage.getItem(cacheKey) || "[]");

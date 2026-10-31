@@ -420,8 +420,8 @@
     <div class="site-hero-content">
       <div>
         <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-          <div id="heroBrandLogoWrap" style="display:none;">
-            <img id="heroBrandLogo" src="" alt="Brand Logo" style="max-height: 55px; max-width: 220px; object-fit: contain; background: #ffffff; padding: 6px 14px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: block;">
+          <div id="heroBrandLogoWrap" style="display:none; margin-bottom: 0.5rem;">
+            <img id="heroBrandLogo" src="" alt="Brand Logo" style="max-height: 52px; max-width: 200px; object-fit: contain; background: rgba(255,255,255,0.95); padding: 5px 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: block;">
           </div>
           <span class="paid-trusted-gold-tag" id="paidTrustedBadge" style="display:none;">
             🏆 PAID VERIFIED SELLER ✓
@@ -1086,16 +1086,20 @@
       document.getElementById('navCompanyName').innerText = supplier.company_name;
       document.getElementById('navSubdomainBadge').innerText = 'Official Verified Storefront';
       if (supplier.logo_url) {
+        let cleanLogo = supplier.logo_url;
+        if (cleanLogo && cleanLogo.startsWith('/') && !cleanLogo.startsWith('//') && !cleanLogo.startsWith('data:')) {
+          cleanLogo = cleanLogo.slice(1);
+        }
         const logoEl = document.getElementById('navLogoImg');
         if (logoEl) {
-          logoEl.src = supplier.logo_url;
+          logoEl.src = cleanLogo;
           logoEl.onerror = () => { logoEl.src = 'assets/images/logo.png'; };
         }
-        if (supplier.logo_url !== 'assets/images/logo.png') {
+        if (cleanLogo !== 'assets/images/logo.png') {
           const heroLogo = document.getElementById('heroBrandLogo');
           const heroWrap = document.getElementById('heroBrandLogoWrap');
           if (heroLogo && heroWrap) {
-            heroLogo.src = supplier.logo_url;
+            heroLogo.src = cleanLogo;
             heroWrap.style.display = 'inline-block';
           }
         }

@@ -1764,9 +1764,15 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
   // Use production backend host for image URL if on cloud, otherwise request host
   const backendHost = getBackendHost(req);
   let logo_url = null;
-  if (req.file) {
-    const dataUri = fileToDataUri(req.file);
-    logo_url = dataUri || `${backendHost}/assets/images/logos/${req.file.filename}`;
+  if (req.body.logo_url && typeof req.body.logo_url === 'string' && req.body.logo_url.startsWith('data:image')) {
+    logo_url = req.body.logo_url;
+  } else if (req.file) {
+    if (req.file.size && req.file.size <= 200 * 1024) {
+      const dataUri = fileToDataUri(req.file);
+      logo_url = dataUri || `assets/images/logos/${req.file.filename}`;
+    } else {
+      logo_url = `assets/images/logos/${req.file.filename}`;
+    }
   } else if (req.body.logo_url) {
     logo_url = req.body.logo_url;
   }
@@ -2307,6 +2313,30 @@ app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
     let userId = parseInt(req.user.id) || 1;
     if (userId > 2147483640) userId = (userId % 2000000000) + 10;
     let { subdomain, tagline } = req.body;
+
+    // Verify user exists in database to satisfy foreign key constraint
+    let userCheck = await db.query('SELECT id, phone, name, city FROM users WHERE id = $1', [userId]);
+    if (!userCheck.rows || userCheck.rows.length === 0) {
+      if (req.user && req.user.phone) {
+        const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
+        if (cleanP) {
+          const phoneUser = await db.query('SELECT id, phone, name, city FROM users WHERE phone LIKE $1', ['%' + cleanP]);
+          if (phoneUser.rows && phoneUser.rows.length > 0) {
+            userId = phoneUser.rows[0].id;
+            userCheck = phoneUser;
+          }
+        }
+      }
+      if (!userCheck.rows || userCheck.rows.length === 0) {
+        try {
+          const insU = await db.query(
+            'INSERT INTO users (id, phone, name, role) VALUES ($1, $2, $3, $4) ON CONFLICT (phone) DO UPDATE SET name = $3 RETURNING id, phone, name, city',
+            [userId, (req.user && req.user.phone) || ('+91' + Date.now().toString().slice(-10)), (req.user && req.user.name) || 'Verified Supplier', 'supplier']
+          );
+          if (insU.rows && insU.rows[0]) userId = insU.rows[0].id;
+        } catch(uErr) {}
+      }
+    }
 
     // Fetch user & business
     let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [userId]);
@@ -3067,7 +3097,17 @@ app.get('/api/products', authMiddleware, async (req, res) => {
     if (isMasterAdmin && req.query.all === 'true') {
       prods = await db.query('SELECT * FROM products ORDER BY created_at DESC');
     } else {
-      prods = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY created_at DESC', [req.user.id]);
+      let targetId = req.user ? req.user.id : null;
+      if (req.user && req.user.phone) {
+        const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
+        if (cleanP) {
+          const uCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
+          if (uCheck.rows && uCheck.rows.length > 0) {
+            targetId = uCheck.rows[0].id;
+          }
+        }
+      }
+      prods = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY created_at DESC', [targetId]);
     }
     res.json({ products: prods.rows || [] });
   } catch (error) {
@@ -3094,33 +3134,14 @@ async function syncProductsCatalogFile(dbInstance) {
     `);
     const list = res.rows || [];
     const pPath = path.join(__dirname, '..', 'products.json');
-    let existingOnDisk = [];
-    if (fs.existsSync(pPath)) {
+    fs.writeFileSync(pPath, JSON.stringify(list, null, 2), 'utf8');
+    const dbJsonPath = path.join(__dirname, 'database', 'db.json');
+    if (fs.existsSync(dbJsonPath)) {
       try {
-        existingOnDisk = JSON.parse(fs.readFileSync(pPath, 'utf8')) || [];
+        const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
+        dbData.products = list;
+        fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
       } catch(e) {}
-    }
-    const mergedMap = new Map();
-    existingOnDisk.forEach(p => {
-      if (p && (p.id || p.name)) mergedMap.set(String(p.id || p.name), p);
-    });
-    list.forEach(p => {
-      if (p && (p.id || p.name)) {
-        const key = String(p.id || p.name);
-        mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...p });
-      }
-    });
-    const mergedList = Array.from(mergedMap.values());
-    if (mergedList.length > 0) {
-      fs.writeFileSync(pPath, JSON.stringify(mergedList, null, 2), 'utf8');
-      const dbJsonPath = path.join(__dirname, 'database', 'db.json');
-      if (fs.existsSync(dbJsonPath)) {
-        try {
-          const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
-          dbData.products = mergedList;
-          fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
-        } catch(e) {}
-      }
     }
   } catch(e) {
     console.warn('[Catalog Auto-Sync notice]:', e.message);
@@ -4459,34 +4480,13 @@ setInterval(async () => {
   }
 }, GOOGLE_SHEETS_SYNC_INTERVAL_MS);
 
-// Initial re-hydration and sync after server boot
+// Startup routines after server boot
 setTimeout(async () => {
   try {
-    // 1. If database only has Master Admin, attempt to re-hydrate sellers from Google Sheet cloud backup
-    try {
-      const userCountRes = await db.query('SELECT COUNT(*) as cnt FROM users');
-      const count = parseInt((userCountRes.rows && userCountRes.rows[0] && userCountRes.rows[0].cnt) || 0, 10);
-      if (count <= 1) {
-        console.log('🔄 Checking Google Sheet backup for seller accounts to restore...');
-        await googleSheetsService.restoreSellersFromGoogleSheet();
-      }
-    } catch(rErr) {
-      console.warn('Re-hydration check non-fatal warning:', rErr.message);
-    }
+    // Legacy demo data auto-rehydration permanently disabled to prevent overwriting new sellers/products
+    console.log('✅ [Flenko Engine] Clean boot verified. Preserving registered sellers, buyers and products.');
 
-    // 2. Restore products from Google Sheet cloud backup if database has 0 products
-    try {
-      const prodCountRes = await db.query('SELECT COUNT(*) as cnt FROM products');
-      const pCount = parseInt((prodCountRes.rows && prodCountRes.rows[0] && prodCountRes.rows[0].cnt) || 0, 10);
-      if (pCount === 0) {
-        console.log('🔄 Checking Google Sheet backup for products to restore...');
-        await googleSheetsService.restoreProductsFromGoogleSheet();
-      }
-    } catch(pErr) {
-      console.warn('Product re-hydration check non-fatal warning:', pErr.message);
-    }
-
-    // 3. Perform startup sync to Google Sheet
+    // 1. Perform startup sync of current sellers to Google Sheet (if configured)
     const webhook = await googleSheetsService.getWebhookUrl();
     if (webhook && !webhook.includes('_test') && webhook.startsWith('http')) {
       const result = await googleSheetsService.syncAllSellersToGoogleSheet();
@@ -4494,10 +4494,10 @@ setTimeout(async () => {
         console.log(`📊 [Google Sheets Startup Sync] Auto-synced ${result.count} sellers on boot.`);
       }
       googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
-    syncProductsCatalogFile(db).catch(() => {});
+      syncProductsCatalogFile(db).catch(() => {});
     }
 
-    // 4. Backfill any missing SEO slugs for 100% crawlability
+    // 2. Backfill any missing SEO slugs for 100% crawlability
     seoService.backfillSeoSlugs(db).catch(e => console.warn('[SEO Engine] Boot backfill notice:', e.message));
   } catch (e) {}
 }, 10000);
