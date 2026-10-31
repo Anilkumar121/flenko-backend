@@ -799,7 +799,23 @@
           supplierInfo = data.supplier || {};
           siteProducts = data.products || [];
           siteReviews = data.reviews || [];
-          renderWebsite(supplierInfo, data.stats || {});
+
+          // Auto-heal logo from local storage if server returned null or default placeholder
+          if (!supplierInfo.logo_url || supplierInfo.logo_url === 'assets/images/logo.png') {
+            try {
+              const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+              const loggedUser = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
+              const localLogo = localSeller.logo_url || localSeller.logo || (loggedUser && (loggedUser.logo_url || loggedUser.logo));
+              if (localLogo) supplierInfo.logo_url = localLogo;
+            } catch(e) {}
+          }
+
+          // If server returned 0 products for this supplier, merge local and static products
+          if (!Array.isArray(siteProducts) || siteProducts.length === 0) {
+            siteProducts = await loadLocalSiteProducts(supplierInfo);
+          }
+
+          renderWebsite(supplierInfo, { ...(data.stats || {}), total_products: siteProducts.length });
         } else {
           await fallbackDefaultStore();
         }
@@ -807,6 +823,88 @@
         console.warn('Network error fetching website data, using fallback:', err);
         await fallbackDefaultStore();
       }
+    }
+
+    async function loadLocalSiteProducts(supp) {
+      const sId = (supp && (supp.id || supp.user_id)) || 1;
+      const sName = (supp && supp.company_name ? supp.company_name : '').toLowerCase().trim();
+      const sPhone = (supp && (supp.phone || (supp.contact && supp.contact.phone)) ? (supp.phone || supp.contact.phone).replace(/[^0-9]/g, '').slice(-10) : '');
+      const sSlug = (supp && supp.subdomain ? supp.subdomain : '').toLowerCase().trim();
+
+      const matched = [];
+      const seen = new Set();
+
+      const keys = [`flenko_seller_products_${sId}`, 'flenko_seller_products', 'flenko_custom_products', 'flenko_public_products'];
+      keys.forEach(k => {
+        try {
+          const arr = JSON.parse(localStorage.getItem(k) || '[]');
+          if (Array.isArray(arr)) {
+            arr.forEach(p => {
+              if (!p || !p.name) return;
+              const pSuppId = String(p.supplier_id || '');
+              const pSuppName = (p.supplier_name || '').toLowerCase().trim();
+              const pSuppPhone = (p.supplier_phone || '').replace(/[^0-9]/g, '').slice(-10);
+              const pSuppSlug = (p.supplier_slug || '').toLowerCase().trim();
+
+              const match = (pSuppId && pSuppId === String(sId)) ||
+                            (sName && pSuppName && (pSuppName === sName || pSuppName.includes(sName) || sName.includes(pSuppName))) ||
+                            (sPhone && pSuppPhone && pSuppPhone === sPhone) ||
+                            (sSlug && pSuppSlug && pSuppSlug === sSlug);
+              if (match) {
+                const uid = String(p.id || p.name);
+                if (!seen.has(uid)) {
+                  seen.add(uid);
+                  matched.push(p);
+                }
+              }
+            });
+          }
+        } catch(e) {}
+      });
+
+      try {
+        const catRes = await fetch('products.json?v=' + Math.floor(Date.now() / 60000));
+        if (catRes && catRes.ok) {
+          const allProds = await catRes.json();
+          if (Array.isArray(allProds)) {
+            allProds.forEach(p => {
+              if (!p || !p.name) return;
+              const pSuppId = String(p.supplier_id || '');
+              const pSuppName = (p.supplier_name || '').toLowerCase().trim();
+              const pSuppPhone = (p.supplier_phone || '').replace(/[^0-9]/g, '').slice(-10);
+              const pSuppSlug = (p.supplier_slug || '').toLowerCase().trim();
+
+              const match = (pSuppId && pSuppId === String(sId)) ||
+                            (sName && pSuppName && (pSuppName === sName || pSuppName.includes(sName) || sName.includes(pSuppName))) ||
+                            (sPhone && pSuppPhone && pSuppPhone === sPhone) ||
+                            (sSlug && pSuppSlug && pSuppSlug === sSlug);
+              if (match) {
+                const uid = String(p.id || p.name);
+                if (!seen.has(uid)) {
+                  seen.add(uid);
+                  matched.push(p);
+                }
+              }
+            });
+          }
+        }
+      } catch(e) {}
+
+      // Apply tombstones and edited overrides
+      let deletedIds = new Set();
+      try {
+        const dList = JSON.parse(localStorage.getItem('flenko_deleted_product_ids') || '[]');
+        if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
+      } catch(e) {}
+
+      let editedOverrides = {};
+      try {
+        editedOverrides = JSON.parse(localStorage.getItem('flenko_edited_products') || '{}');
+      } catch(e) {}
+
+      return matched
+        .filter(p => !deletedIds.has(String(p.id)))
+        .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p);
     }
 
     async function fallbackDefaultStore() {
@@ -842,7 +940,8 @@
             whatsapp: localSeller.whatsapp || localSeller.phone || (loggedUser && loggedUser.phone) || '',
             subdomain: localSeller.subdomain || activeSubdomain || 'store',
             is_verified: true,
-            is_paid_trusted: Boolean(localSeller.is_paid_trusted)
+            is_paid_trusted: Boolean(localSeller.is_paid_trusted),
+            logo_url: localSeller.logo_url || localSeller.logo || (loggedUser && (loggedUser.logo_url || loggedUser.logo)) || 'assets/images/logo.png'
           };
         }
       } catch(e) {}
@@ -963,7 +1062,11 @@
       document.getElementById('navCompanyName').innerText = supplier.company_name;
       document.getElementById('navSubdomainBadge').innerText = 'Official Verified Storefront';
       if (supplier.logo_url) {
-        document.getElementById('navLogoImg').src = supplier.logo_url;
+        const logoEl = document.getElementById('navLogoImg');
+        if (logoEl) {
+          logoEl.src = supplier.logo_url;
+          logoEl.onerror = () => { logoEl.src = 'assets/images/logo.png'; };
+        }
       }
 
       // Top bar

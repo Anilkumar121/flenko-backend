@@ -341,7 +341,7 @@
         year_est: (serverBiz && serverBiz.year_est) || localBiz.year_est || '',
         phone: (serverBiz && serverBiz.phone) || localBiz.phone || loggedUser.phone || '',
         whatsapp: (serverBiz && serverBiz.whatsapp) || localBiz.whatsapp || (serverBiz && serverBiz.phone) || localBiz.phone || loggedUser.phone || '',
-        logo_url: (serverBiz && serverBiz.logo_url) || localBiz.logo_url || null
+        logo_url: (serverBiz && serverBiz.logo_url) || localBiz.logo_url || localBiz.logo || (loggedUser && (loggedUser.logo_url || loggedUser.logo)) || null
       };
 
       document.getElementById('companyName').value = merged.company_name;
@@ -357,6 +357,7 @@
       if (document.getElementById('bizWhatsapp')) document.getElementById('bizWhatsapp').value = merged.whatsapp;
       
       if (merged.logo_url) {
+        selectedLogoDataUrl = merged.logo_url;
         document.getElementById('logoPreview').src = merged.logo_url;
       }
     });
@@ -403,7 +404,7 @@
       const file = e.target.files[0];
       if (file) {
         try {
-          const compressed = await compressImage(file, 220, 220, 0.70);
+          const compressed = await compressImage(file, 200, 200, 0.72);
           if (compressed) {
             selectedLogoDataUrl = compressed;
             document.getElementById('logoPreview').src = compressed;
@@ -480,8 +481,9 @@
         currentProfile.year_est = yearEst;
         currentProfile.phone = bPhone;
         currentProfile.whatsapp = bWa;
-        if (selectedLogoDataUrl && selectedLogoDataUrl.length < 40000) {
+        if (selectedLogoDataUrl) {
           currentProfile.logo_url = selectedLogoDataUrl;
+          currentProfile.logo = selectedLogoDataUrl;
         }
 
         if (window.flenkoSafeStorage) {
@@ -496,6 +498,10 @@
         user.city = bCity;
         if (bPhone) user.phone = bPhone;
         user.business = { ...(user.business || {}), ...currentProfile };
+        if (currentProfile.logo_url) {
+          user.logo_url = currentProfile.logo_url;
+          user.logo = currentProfile.logo_url;
+        }
         auth.setUser(user);
 
         // 2. Call auth.saveBusinessProfile (which handles dual-engine sync with server)
@@ -504,7 +510,10 @@
           data = await auth.saveBusinessProfile(formData);
           if (data && data.business) {
             Object.assign(currentProfile, data.business);
-            if (data.logo_url) currentProfile.logo_url = data.logo_url;
+            if (data.logo_url) {
+              currentProfile.logo_url = data.logo_url;
+              currentProfile.logo = data.logo_url;
+            }
             if (window.flenkoSafeStorage) {
               window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
             }

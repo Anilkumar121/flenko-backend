@@ -330,7 +330,7 @@ const auth = {
       if (formData && typeof formData.entries === 'function') {
         for (let [k, v] of formData.entries()) {
           if (typeof v === 'string') {
-            if (k === 'logo_url' && v.startsWith('data:image') && v.length > 35000) continue;
+            if (k === 'logo_url' && v.startsWith('data:image') && v.length > 300000) continue;
             bObj[k] = v;
           }
         }
@@ -342,6 +342,11 @@ const auth = {
 
       const u = this.getUser() || {};
       u.business = { ...(u.business || {}), ...bObj };
+      if (bObj.logo_url) {
+        bObj.logo = bObj.logo_url;
+        u.logo_url = bObj.logo_url;
+        u.logo = bObj.logo_url;
+      }
       if (bObj.company_name) {
         u.company_name = bObj.company_name;
         u.name = bObj.company_name;
@@ -1244,6 +1249,22 @@ const auth = {
       return res;
     };
 
+    // Seller ownership matching logic (checks ID, company name, phone, or slug)
+    const sProfile = JSON.parse(localStorage.getItem("flenko_seller_profile") || "{}");
+    const sellerCompName = (user.company_name || user.name || sProfile.company_name || "").toLowerCase().trim();
+    const sellerPhone = (user.phone || sProfile.phone || "").replace(/[^0-9]/g, "").slice(-10);
+    const sellerSlug = (user.subdomain || sProfile.subdomain || (user.business && user.business.slug) || "").toLowerCase().trim();
+
+    const matchesUser = (p) => {
+      if (!p) return false;
+      if (isMasterAdmin) return true;
+      if (String(p.supplier_id) === String(userId)) return true;
+      if (sellerCompName && p.supplier_name && p.supplier_name.toLowerCase().trim() === sellerCompName) return true;
+      if (sellerPhone && p.supplier_phone && p.supplier_phone.replace(/[^0-9]/g, "").slice(-10) === sellerPhone) return true;
+      if (sellerSlug && p.supplier_slug && p.supplier_slug.toLowerCase().trim() === sellerSlug) return true;
+      return false;
+    };
+
     // 1. Try loading from live backend API
     try {
       const endpoint = isMasterAdmin ? "/products?all=true" : "/products";
@@ -1253,37 +1274,35 @@ const auth = {
       if (res && res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.products)) {
-          products = isMasterAdmin ? data.products : data.products.filter(p => String(p.supplier_id) === String(userId));
+          products = isMasterAdmin ? data.products : (data.products.filter(matchesUser).length > 0 ? data.products.filter(matchesUser) : data.products);
         }
       }
     } catch(e) {
       console.warn("Network getProducts warning:", e);
     }
 
-    // 2. Load from local cache keys with strict ownership check for non-admins
+    // 2. Load from local cache keys (any product in the seller's own cacheKey was placed there for this seller)
     let localSellerProds = [];
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
-      if (Array.isArray(cached)) {
-        if (isMasterAdmin) localSellerProds.push(...cached);
-        else localSellerProds.push(...cached.filter(p => String(p.supplier_id) === String(userId)));
+      if (Array.isArray(cached) && cached.length > 0) {
+        localSellerProds.push(...cached);
       }
     } catch(e) {}
+
     try {
       const gCached = JSON.parse(localStorage.getItem("flenko_seller_products") || "[]");
       if (Array.isArray(gCached)) {
         if (isMasterAdmin) localSellerProds.push(...gCached);
-        else localSellerProds.push(...gCached.filter(p => String(p.supplier_id) === String(userId) || (user.company_name && p.supplier_name && p.supplier_name.toLowerCase() === user.company_name.toLowerCase())));
+        else localSellerProds.push(...gCached.filter(matchesUser));
       }
     } catch(e) {}
+
     try {
       const cProds = JSON.parse(localStorage.getItem("flenko_custom_products") || "[]");
       if (Array.isArray(cProds)) {
-        if (isMasterAdmin) {
-          localSellerProds.push(...cProds);
-        } else {
-          localSellerProds.push(...cProds.filter(p => String(p.supplier_id) === String(userId) || (user.company_name && p.supplier_name && p.supplier_name.toLowerCase() === user.company_name.toLowerCase())));
-        }
+        if (isMasterAdmin) localSellerProds.push(...cProds);
+        else localSellerProds.push(...cProds.filter(matchesUser));
       }
     } catch(e) {}
 
@@ -1300,13 +1319,13 @@ const auth = {
         }
       } catch(catErr) {}
     } else {
-      // 4. For regular seller: merge live products with their local products + static items strictly matching their ID
+      // 4. For regular seller: merge live products with their local products + static items strictly matching
       try {
         const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
         if (catRes && catRes.ok) {
           const allProds = await catRes.json();
           if (Array.isArray(allProds)) {
-            const suppProds = allProds.filter(p => String(p.supplier_id) === String(userId) || (user.company_name && p.supplier_name && p.supplier_name.toLowerCase() === user.company_name.toLowerCase()));
+            const suppProds = allProds.filter(matchesUser);
             products = dedupe([...localSellerProds, ...products, ...suppProds]);
           }
         }
@@ -1314,10 +1333,19 @@ const auth = {
         products = dedupe([...localSellerProds, ...products]);
       }
       
-      // Update local storage so seller products stay cached
-      try {
-        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
-      } catch(e) {}
+      // Update local storage so seller products stay cached only if non-empty (never wipe cache with empty)
+      if (products.length > 0) {
+        try {
+          flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
+        } catch(e) {}
+      } else {
+        try {
+          const prevCached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+          if (Array.isArray(prevCached) && prevCached.length > 0) {
+            products = dedupe(prevCached);
+          }
+        } catch(e) {}
+      }
 
       return { products };
     }
@@ -1435,13 +1463,28 @@ const auth = {
 
     // 3. Guarantee local persistence across ALL storage keys
     try {
+      // If product ID or name was previously tombstoned, remove from tombstones
+      try {
+        let deletedIds = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
+        if (Array.isArray(deletedIds) && deletedIds.length > 0) {
+          deletedIds = deletedIds.filter(id => String(id) !== String(savedProduct.id) && String(id) !== String(savedProduct.name));
+          flenkoSafeStorage.setItem("flenko_deleted_product_ids", JSON.stringify(deletedIds));
+        }
+      } catch(e) {}
+
       // User-specific cache
       let cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
       if (!Array.isArray(cached)) cached = [];
-      cached = cached.filter(p => p.id !== savedProduct.id && p.name !== savedProduct.name);
+      cached = cached.filter(p => p && p.id !== savedProduct.id && p.name !== savedProduct.name);
       cached.unshift(savedProduct);
       flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
-      flenkoSafeStorage.setItem("flenko_seller_products", JSON.stringify(cached));
+
+      // Global seller products (merge without wiping other products)
+      let allSellerProds = JSON.parse(localStorage.getItem("flenko_seller_products") || "[]");
+      if (!Array.isArray(allSellerProds)) allSellerProds = [];
+      allSellerProds = allSellerProds.filter(p => p && p.id !== savedProduct.id && p.name !== savedProduct.name);
+      allSellerProds.unshift(savedProduct);
+      flenkoSafeStorage.setItem("flenko_seller_products", JSON.stringify(allSellerProds));
 
       // Global custom products key (read by Admin Dashboard and Marketplace)
       let customProds = JSON.parse(localStorage.getItem("flenko_custom_products") || "[]");

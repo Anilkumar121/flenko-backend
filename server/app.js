@@ -1885,6 +1885,22 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
       };
       res.json({ success: true, message: 'Business created successfully', business: updatedBusiness, logo_url });
     }
+    // Update suppliers.json on disk with new logo and business details
+    try {
+      const sPath = path.join(__dirname, '..', 'suppliers.json');
+      if (fs.existsSync(sPath) && updatedBusiness) {
+        const sList = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+        if (Array.isArray(sList)) {
+          const idx = sList.findIndex(s => s.id == updatedBusiness.id || s.user_id == targetUserId);
+          if (idx !== -1) {
+            sList[idx] = { ...sList[idx], ...updatedBusiness };
+          } else {
+            sList.unshift(updatedBusiness);
+          }
+          fs.writeFileSync(sPath, JSON.stringify(sList, null, 2), 'utf8');
+        }
+      }
+    } catch(sErr) {}
     // Auto-sync seller updates to Google Sheet
     googleSheetsService.syncSellerToGoogleSheet(targetUserId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
   } catch (error) {
@@ -2121,7 +2137,33 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
     let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId]);
     let products = prodRes.rows || [];
 
-// No mock/sample products injected
+    // Fallback: search products by company name or user_id
+    if (products.length === 0 && business.company_name) {
+      try {
+        const byNameRes = await db.query('SELECT * FROM products WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($1)) ORDER BY id DESC', [business.company_name]);
+        if (byNameRes.rows && byNameRes.rows.length > 0) {
+          products = byNameRes.rows;
+        }
+      } catch(e) {}
+    }
+
+    // Fallback 2: check products.json on disk
+    if (products.length === 0) {
+      try {
+        const pPath = path.join(__dirname, '..', 'products.json');
+        if (fs.existsSync(pPath)) {
+          const pList = JSON.parse(fs.readFileSync(pPath, 'utf8'));
+          if (Array.isArray(pList)) {
+            const compClean = (business.company_name || '').toLowerCase().trim();
+            products = pList.filter(p => 
+              String(p.supplier_id) === String(targetUserId) ||
+              String(p.supplier_id) === String(business.id) ||
+              (p.supplier_name && compClean && p.supplier_name.toLowerCase().trim() === compClean)
+            );
+          }
+        }
+      } catch(e) {}
+    }
 
     // Fetch supplier's reviews
     let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId]);
@@ -3147,6 +3189,25 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       'INSERT INTO products (supplier_id, name, price, category, moq, unit, image_url, seo_tags, stock_quantity, country, slug, seo_title, seo_description, is_indexed, is_service) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
       [effectiveSupplierId, cleanName, cleanPrice, effectiveCategory, cleanMoq, unit || 'Pieces', image_url, autoSeoTags, cleanStock, effectiveCountry, productSlug, meta.title, meta.description, true, isServiceListing]
     );
+
+    // Immediately persist new product to disk in products.json so it is instantly available
+    try {
+      const pPath = path.join(__dirname, '..', 'products.json');
+      if (fs.existsSync(pPath) && newProd.rows && newProd.rows[0]) {
+        const pList = JSON.parse(fs.readFileSync(pPath, 'utf8'));
+        if (Array.isArray(pList)) {
+          const toSave = {
+            ...newProd.rows[0],
+            supplier_name: (supplierBiz && supplierBiz.company_name) || (req.user && (req.user.company_name || req.user.name)) || 'Verified Supplier',
+            city: (supplierBiz && supplierBiz.city) || (req.user && req.user.city) || 'Industrial Hub',
+            country: effectiveCountry,
+            supplier_slug: (supplierBiz && supplierBiz.slug) || ''
+          };
+          pList.unshift(toSave);
+          fs.writeFileSync(pPath, JSON.stringify(pList, null, 2), 'utf8');
+        }
+      }
+    } catch(pSaveErr) {}
 
     // Auto-sync seller product count and products catalog to Google Sheets
     googleSheetsService.syncSellerToGoogleSheet(effectiveSupplierId).catch(e => console.warn('[Google Sheets Sync error]', e.message));

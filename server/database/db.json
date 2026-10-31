@@ -198,7 +198,7 @@
     },
     {
       "id": 10,
-      "user_id": 113,
+      "user_id": 10,
       "company_name": "Surender building material supplier",
       "slug": "surender-building-material-supplier",
       "subdomain": "surenderbuildingmaterial",
@@ -1017,7 +1017,7 @@
   "lead_payments": [],
   "subscription_payments": [],
   "reviews": [],
-  "idCounter": 115,
+  "idCounter": 116,
   "platform_settings": [
     {
       "setting_key": "google_sheet_webhook_url",
