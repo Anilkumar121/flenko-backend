@@ -25,99 +25,74 @@ window.API_FALLBACK = (typeof window !== 'undefined' && (window.location.hostnam
   ? 'http://localhost:3000/api' 
   : '/api';
 
-// Preloaded Verified Directory Suppliers (Ensures instant offline & static-host login without network lag)
-const PRELOADED_SUPPLIERS = [
-  {
-    id: 8,
-    name: "Rana Pratap Technology",
-    company_name: "Rana Pratap Technology",
-    phone: "+918587979010",
-    email: "ranaprataptechenology@gmail.com",
-    role: "supplier",
-    city: "New Delhi",
-    category: "Industrial Machinery"
-  },
-  {
-    id: 7,
-    name: "Rana Pratap Construction",
-    company_name: "Rana Pratap Construction",
-    phone: "+919871797901",
-    email: "ranapratapconstruction@gmail.com",
-    role: "supplier",
-    city: "Delhi NCR",
-    category: "Building & Construction"
-  },
-  {
-    id: 6,
-    name: "Rana Pratap Associates",
-    company_name: "Rana Pratap Associates",
-    phone: "+919871797017",
-    email: "associates.ranapratap@gmail.com",
-    role: "supplier",
-    city: "New Delhi",
-    category: "Legal & Corporate Services"
-  },
-  {
-    id: 10,
-    name: "Surender building material supplier",
-    company_name: "Surender building material supplier",
-    phone: "+919810935446",
-    email: "surender.materials@gmail.com",
-    role: "supplier",
-    city: "Gurugram, Haryana",
-    category: "Building & Construction"
-  },
-  {
-    id: 9,
-    name: "Sohan Lal Enterprises",
-    company_name: "Sohan Lal Enterprises",
-    phone: "+919350464020",
-    email: "sohanlal.enterprises@gmail.com",
-    role: "supplier",
-    city: "Faridabad, Haryana",
-    category: "Industrial Machinery"
-  },
-  {
-    id: 3,
-    name: "Dahag Infra Projecs",
-    company_name: "Dahag Infra Projecs",
-    phone: "+918010101092",
-    email: "dahaginfra@gmail.com",
-    role: "supplier",
-    city: "Greater Noida, UP",
-    category: "Building & Construction"
-  },
-  {
-    id: 4,
-    name: "DANTESHWARI CONSTRUX PVT LTD",
-    company_name: "DANTESHWARI CONSTRUX PVT LTD",
-    phone: "+919990467257",
-    email: "info@danteshwariconstrux.com",
-    role: "supplier",
-    city: "Delhi NCR",
-    category: "Building & Construction"
-  },
-  {
-    id: 2,
-    name: "CK Enterprises",
-    company_name: "CK Enterprises",
-    phone: "+919315694272",
-    email: "ckenterprises.delhi@gmail.com",
-    role: "supplier",
-    city: "Delhi",
-    category: "Packaging & Printing"
-  },
-  {
-    id: 5,
-    name: "Rakshit Enterprise",
-    company_name: "Rakshit Enterprise",
-    phone: "+919871797901",
-    email: "rakshitdahaag@gmail.com",
-    role: "supplier",
-    city: "Noida, UP",
-    category: "Building & Construction"
-  }
-];
+// Preloaded Verified Directory Suppliers
+const PRELOADED_SUPPLIERS = [];
+
+// Automatic Fresh Storage Stamp: Clears previous demo data once while keeping all future registrations permanent
+const FLENKO_DATA_VERSION = 'flenko_v3_clean';
+if (typeof localStorage !== 'undefined') {
+  try {
+    const curVer = localStorage.getItem('flenko_data_version');
+    if (curVer !== FLENKO_DATA_VERSION) {
+      const legacyKeys = [
+        'flenko_registered_users',
+        'flenko_custom_products',
+        'flenko_seller_products',
+        'flenko_public_products',
+        'flenko_public_products_cache',
+        'flenko_broadcast_leads',
+        'flenko_admin_leads_cache',
+        'flenko_cached_leads',
+        'flenko_deleted_product_ids',
+        'flenko_edited_products',
+        'flenko_seller_profile'
+      ];
+      legacyKeys.forEach(k => {
+        try { localStorage.removeItem(k); } catch(e) {}
+      });
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('flenko_seller_products_') || key.startsWith('flenko_temp_') || key.startsWith('flenko_cache_'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      localStorage.setItem('flenko_data_version', FLENKO_DATA_VERSION);
+    }
+  } catch(e) {}
+}
+
+// Automatic Fresh Storage Stamp: Clears previous demo data once while keeping all future registrations permanent
+const FLENKO_DATA_VERSION = 'flenko_v3_clean';
+if (typeof localStorage !== 'undefined') {
+  try {
+    const curVer = localStorage.getItem('flenko_data_version');
+    if (curVer !== FLENKO_DATA_VERSION) {
+      const legacyKeys = [
+        'flenko_registered_users',
+        'flenko_custom_products',
+        'flenko_seller_products',
+        'flenko_public_products',
+        'flenko_public_products_cache',
+        'flenko_broadcast_leads',
+        'flenko_admin_leads_cache',
+        'flenko_cached_leads',
+        'flenko_deleted_product_ids',
+        'flenko_edited_products',
+        'flenko_seller_profile'
+      ];
+      legacyKeys.forEach(k => {
+        try { localStorage.removeItem(k); } catch(e) {}
+      });
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('flenko_seller_products_') || key.startsWith('flenko_temp_') || key.startsWith('flenko_cache_'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      localStorage.setItem('flenko_data_version', FLENKO_DATA_VERSION);
+    }
+  } catch(e) {}
+}
 
 // Quota-Safe LocalStorage Manager: Prevents QuotaExceededError across all browsers
 const flenkoSafeStorage = {
@@ -1144,70 +1119,9 @@ const auth = {
       } catch(e) {}
     }
 
-    // D. Preloaded baseline verified leads if totally empty
+    // D. Ensure clean leads list
     if (combinedLeads.length === 0) {
-      combinedLeads = [
-        {
-          id: 110,
-          is_direct: false,
-          lead_type: 'buy_lead',
-          lead_type_label: 'Buy Lead (Open RFQ)',
-          product_needed: 'Industrial Stainless Steel Fasteners Grade 316',
-          details: 'Requirement for metro infrastructure project. Urgent delivery required in New Delhi.',
-          buyer_id: 101,
-          buyer_name: 'Aditya Aggarwal',
-          buyer_phone: '+919811223344',
-          buyer_email: 'procurement@infraprojects.in',
-          buyer_city: 'New Delhi',
-          supplier_id: null,
-          supplier_name: 'Open Market (All Suppliers)',
-          supplier_phone: '',
-          status: 'New',
-          unlocks_count: 2,
-          unlocked_suppliers: [{ supplier_name: 'Rana Pratap Technology', supplier_phone: '+918587979010' }],
-          created_at: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          id: 109,
-          is_direct: true,
-          lead_type: 'direct',
-          lead_type_label: 'Direct Inquiry',
-          product_needed: 'Pre-Engineered Building Shed Fabrications',
-          details: 'Require 20,000 sq ft industrial PEB shed design and manufacturing with prompt site installation.',
-          buyer_id: 102,
-          buyer_name: 'Vikram Singh',
-          buyer_phone: '+919871797901',
-          buyer_email: 'vikram.singh@industriallogistics.com',
-          buyer_city: 'Gurugram',
-          supplier_id: 7,
-          supplier_name: 'Rana Pratap Construction',
-          supplier_phone: '+919871797901',
-          status: 'Contacted',
-          unlocks_count: 0,
-          unlocked_suppliers: [],
-          created_at: new Date(Date.now() - 7200000).toISOString()
-        },
-        {
-          id: 108,
-          is_direct: false,
-          lead_type: 'buy_lead',
-          lead_type_label: 'Buy Lead (Open RFQ)',
-          product_needed: 'Solar Street Lights Integrated 60W',
-          details: 'Looking for 250 units with lithium battery and 3 years warranty for commercial township lighting.',
-          buyer_id: 103,
-          buyer_name: 'Rohan Mehra',
-          buyer_phone: '+919810101010',
-          buyer_email: 'rohan.mehra@greensolutions.co.in',
-          buyer_city: 'Noida',
-          supplier_id: null,
-          supplier_name: 'Open Market (All Suppliers)',
-          supplier_phone: '',
-          status: 'Verified',
-          unlocks_count: 1,
-          unlocked_suppliers: [{ supplier_name: 'Rana Pratap Solar & Battery Tech', supplier_phone: '+918587979010' }],
-          created_at: new Date(Date.now() - 14400000).toISOString()
-        }
-      ];
+      combinedLeads = [];
     }
 
     const total = combinedLeads.length;

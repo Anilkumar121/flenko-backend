@@ -1433,19 +1433,19 @@
       // Offline / Local fallback stats computation
       try {
         const localUsers = JSON.parse(localStorage.getItem('flenko_registered_users') || '[]');
-        const totalSuppliers = (typeof PRELOADED_SUPPLIERS !== 'undefined' && Array.isArray(PRELOADED_SUPPLIERS)) ? PRELOADED_SUPPLIERS.length : 9;
-        const totalUsers = totalSuppliers + localUsers.length;
+        const totalSuppliers = localUsers.filter(u => u.role === 'supplier').length;
+        const totalUsers = localUsers.length;
         const buyersCount = localUsers.filter(u => u.role === 'buyer').length;
 
         const bLeads = JSON.parse(localStorage.getItem('flenko_broadcast_leads') || '[]');
         const inqs = JSON.parse(localStorage.getItem('flenko_sent_inquiries') || '[]');
         const directCount = inqs.length;
-        const buyCount = bLeads.length + 2;
+        const buyCount = bLeads.length;
         const totalLeads = directCount + buyCount;
 
         const customProds = JSON.parse(localStorage.getItem('flenko_custom_products') || '[]');
-        const totalProducts = 28 + customProds.length;
-        const totalRev = (bLeads.length * 50) + 150;
+        const totalProducts = customProds.length;
+        const totalRev = bLeads.length * 50;
 
         document.getElementById('statUsers').innerText = totalUsers.toLocaleString('en-IN');
         document.getElementById('statUsersBreakdown').innerText = `${totalSuppliers} Suppliers • ${buyersCount} Buyers`;
