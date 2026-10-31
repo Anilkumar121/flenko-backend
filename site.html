@@ -62,21 +62,20 @@
       text-decoration: none;
     }
     .brand-logo-box {
-      min-width: 48px;
-      max-width: 180px;
-      height: 48px;
-      padding: 4px 8px;
+      height: 52px;
+      min-width: 52px;
+      max-width: 220px;
+      padding: 2px;
       border-radius: 8px;
-      border: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      background: #ffffff;
+      background: transparent;
     }
     .brand-logo-box img {
       max-width: 100%;
-      max-height: 100%;
+      max-height: 48px;
       width: auto;
       height: auto;
       object-fit: contain;
@@ -420,7 +419,10 @@
   <section class="site-hero" id="home">
     <div class="site-hero-content">
       <div>
-        <div style="margin-bottom: 1.25rem;">
+        <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div id="heroBrandLogoWrap" style="display:none;">
+            <img id="heroBrandLogo" src="" alt="Brand Logo" style="max-height: 55px; max-width: 220px; object-fit: contain; background: #ffffff; padding: 6px 14px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: block;">
+          </div>
           <span class="paid-trusted-gold-tag" id="paidTrustedBadge" style="display:none;">
             🏆 PAID VERIFIED SELLER ✓
           </span>
@@ -964,6 +966,10 @@
               String(s.user_id) === target ||
               (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(target.replace(/[^a-z0-9]/g, '')))
             );
+            // Default store fallback so storefront is NEVER blank
+            if (!matchedSupp && Array.isArray(suppliersList) && suppliersList.length > 0) {
+              matchedSupp = suppliersList[0];
+            }
           }
         } catch(e) {}
       }
@@ -1053,6 +1059,19 @@
         };
       }
 
+      // If matchedProducts is still empty, load catalog products from products.json so page is never blank
+      if (matchedProducts.length === 0) {
+        try {
+          const pRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
+          if (pRes.ok) {
+            const allProds = await pRes.json();
+            if (Array.isArray(allProds) && allProds.length > 0) {
+              matchedProducts = allProds.slice(0, 8);
+            }
+          }
+        } catch(e) {}
+      }
+
       supplierInfo = matchedSupp;
       siteProducts = matchedProducts;
       siteReviews = [];
@@ -1071,6 +1090,14 @@
         if (logoEl) {
           logoEl.src = supplier.logo_url;
           logoEl.onerror = () => { logoEl.src = 'assets/images/logo.png'; };
+        }
+        if (supplier.logo_url !== 'assets/images/logo.png') {
+          const heroLogo = document.getElementById('heroBrandLogo');
+          const heroWrap = document.getElementById('heroBrandLogoWrap');
+          if (heroLogo && heroWrap) {
+            heroLogo.src = supplier.logo_url;
+            heroWrap.style.display = 'inline-block';
+          }
         }
       }
 

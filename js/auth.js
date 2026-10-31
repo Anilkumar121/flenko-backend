@@ -280,7 +280,17 @@ const auth = {
   },
   setUser(user) {
     if (!user) return;
-    flenkoSafeStorage.setItem('flenko_user', JSON.stringify(user));
+    try {
+      const existing = this.getUser() || {};
+      const merged = { ...existing, ...user };
+      if (!user.business && existing.business) merged.business = existing.business;
+      if (!user.company_name && existing.company_name) merged.company_name = existing.company_name;
+      if (!user.logo_url && existing.logo_url) merged.logo_url = existing.logo_url;
+      if (!user.subdomain && existing.subdomain) merged.subdomain = existing.subdomain;
+      flenkoSafeStorage.setItem('flenko_user', JSON.stringify(merged));
+    } catch(e) {
+      flenkoSafeStorage.setItem('flenko_user', JSON.stringify(user));
+    }
   },
   getUser() {
     try {
@@ -1275,7 +1285,7 @@ const auth = {
       if (res && res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.products)) {
-          products = isMasterAdmin ? data.products : (data.products.filter(matchesUser).length > 0 ? data.products.filter(matchesUser) : data.products);
+          products = isMasterAdmin ? data.products : data.products.filter(matchesUser);
         }
       }
     } catch(e) {

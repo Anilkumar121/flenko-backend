@@ -158,28 +158,14 @@ if (!hasMasterAdmin) {
 function saveMockDB() {
   try {
     fs.writeFileSync(mockDbPath, JSON.stringify(mockDB, null, 2), 'utf8');
-    // Also keep root products.json and suppliers.json in sync for ultra-fast CDN/domain caching (merge to prevent losing products)
-    if (Array.isArray(mockDB.products) && mockDB.products.length > 0) {
+    // Keep root products.json and suppliers.json in sync with current mockDB state
+    if (Array.isArray(mockDB.products)) {
       const pJsonPath = path.resolve(__dirname, '../../products.json');
-      let existingP = [];
-      if (fs.existsSync(pJsonPath)) {
-        try { existingP = JSON.parse(fs.readFileSync(pJsonPath, 'utf8')) || []; } catch(e) {}
-      }
-      const pMap = new Map();
-      existingP.forEach(p => { if (p && (p.id || p.name)) pMap.set(String(p.id || p.name), p); });
-      mockDB.products.forEach(p => { if (p && (p.id || p.name)) pMap.set(String(p.id || p.name), { ...(pMap.get(String(p.id || p.name)) || {}), ...p }); });
-      fs.writeFileSync(pJsonPath, JSON.stringify(Array.from(pMap.values()), null, 2), 'utf8');
+      fs.writeFileSync(pJsonPath, JSON.stringify(mockDB.products, null, 2), 'utf8');
     }
-    if (Array.isArray(mockDB.businesses) && mockDB.businesses.length > 0) {
+    if (Array.isArray(mockDB.businesses)) {
       const sJsonPath = path.resolve(__dirname, '../../suppliers.json');
-      let existingS = [];
-      if (fs.existsSync(sJsonPath)) {
-        try { existingS = JSON.parse(fs.readFileSync(sJsonPath, 'utf8')) || []; } catch(e) {}
-      }
-      const sMap = new Map();
-      existingS.forEach(b => { if (b && b.id) sMap.set(String(b.id), b); });
-      mockDB.businesses.forEach(b => { if (b && b.id) sMap.set(String(b.id), { ...(sMap.get(String(b.id)) || {}), ...b }); });
-      fs.writeFileSync(sJsonPath, JSON.stringify(Array.from(sMap.values()), null, 2), 'utf8');
+      fs.writeFileSync(sJsonPath, JSON.stringify(mockDB.businesses, null, 2), 'utf8');
     }
   } catch (err) {
     console.error('Error saving db.json:', err);
@@ -393,6 +379,7 @@ async function ensureTables() {
 }
 
 let isConnectedToPostgres = false;
+let isNeonQuotaExceeded = false;
 let lastDbError = null;
 let lastConnectedAt = null;
 let reconnectTimer = null;
@@ -401,10 +388,19 @@ pool.on('error', (err) => {
   console.error('⚠️ PostgreSQL pool idle error:', err.message);
   isConnectedToPostgres = false;
   lastDbError = err.message;
-  scheduleReconnect();
+  if (err && (err.code === '53000' || (err.message && err.message.toLowerCase().includes('quota')))) {
+    isNeonQuotaExceeded = true;
+    useMock = true;
+  } else {
+    scheduleReconnect();
+  }
 });
 
 async function checkAndConnectDb() {
+  if (isNeonQuotaExceeded) {
+    useMock = true;
+    return false;
+  }
   if (!hasDatabaseUrl) {
     useMock = true;
     console.warn('ℹ️ No DATABASE_URL found. Operating in high-performance local persistent mode (db.json).');
@@ -428,9 +424,11 @@ async function checkAndConnectDb() {
     lastDbError = err.message;
     const isQuota = err && (err.code === '53000' || (err.message && err.message.toLowerCase().includes('quota')));
     if (isQuota) {
+      isNeonQuotaExceeded = true;
       console.warn('⚠️ Cloud PostgreSQL monthly compute quota reached. Automatically operating in high-performance local persistent store (db.json).');
     } else {
       console.warn(`⚠️ PostgreSQL connection notice: ${err.message}. Operating in local persistent mode (db.json).`);
+      scheduleReconnect();
     }
     isConnectedToPostgres = false;
     useMock = true;
@@ -439,7 +437,7 @@ async function checkAndConnectDb() {
 }
 
 function scheduleReconnect() {
-  if (reconnectTimer || !hasDatabaseUrl) return;
+  if (isNeonQuotaExceeded || reconnectTimer || !hasDatabaseUrl) return;
   reconnectTimer = setTimeout(async () => {
     reconnectTimer = null;
     await checkAndConnectDb();
@@ -451,8 +449,10 @@ let initialConnectPromise = checkAndConnectDb();
 
 module.exports = {
   query: async (text, params = []) => {
-    // If PostgreSQL is connected and active, query PostgreSQL with strict 3-second timeout
-    if (hasDatabaseUrl && isConnectedToPostgres) {
+    if (isNeonQuotaExceeded) {
+      useMock = true;
+      isConnectedToPostgres = false;
+    } else if (hasDatabaseUrl && isConnectedToPostgres) {
       try {
         const queryPromise = pool.query(text, params);
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('PostgreSQL query timed out (3000ms)')), 3000));
@@ -462,9 +462,11 @@ module.exports = {
         useMock = true;
         const isQuota = err && (err.code === '53000' || (err.message && err.message.toLowerCase().includes('quota')));
         if (isQuota) {
+          isNeonQuotaExceeded = true;
           console.warn('⚠️ PostgreSQL quota exceeded. Transparently serving query from local store (db.json).');
         } else {
           console.warn(`⚠️ PostgreSQL query error (${err.message}). Transparently serving from local store (db.json).`);
+          scheduleReconnect();
         }
         // Seamlessly continue to mockDB fallback below instead of throwing!
       }
@@ -590,6 +592,7 @@ module.exports = {
           if (u.phone === p || (uPhoneDigits && pDigits && uPhoneDigits === pDigits)) return true;
           if (p10 && p10.length >= 7 && (uPhone10 === p10 || (uPhoneDigits && uPhoneDigits.endsWith(p10)))) return true;
           if (u.id && u.id.toString() === p) return true;
+          if (u.role && u.role.toLowerCase() === pLower) return true;
         }
         return false;
       });
@@ -736,26 +739,32 @@ module.exports = {
       return { rows };
     }
     if (textHas('INSERT INTO businesses')) {
+      const colMatch = text.match(/INSERT\s+INTO\s+businesses\s*\(([^)]+)\)/i);
       const newBiz = {
         id: mockDB.idCounter++,
-        user_id: params[0],
-        company_name: params[1],
-        gst_number: params[2],
-        business_type: params[3],
-        address: params[4],
-        city: params[5],
-        category: params[6],
-        logo_url: params[7] || null,
-        country: params[8] || 'India',
-        about: params[9] || '',
-        subdomain: params[10] || null,
-        is_paid_trusted: params[11] || false,
-        website_enabled: params[12] || false,
-        website_tagline: params[13] || null,
-        is_verified: true,
-        year_est: params[10] || params[9] || '',
         created_at: new Date()
       };
+      if (colMatch) {
+        const cols = colMatch[1].split(',').map(c => c.trim());
+        cols.forEach((col, idx) => {
+          if (idx < params.length) {
+            newBiz[col] = params[idx];
+          }
+        });
+      } else {
+        newBiz.user_id = params[0];
+        newBiz.company_name = params[1];
+        newBiz.gst_number = params[2];
+        newBiz.business_type = params[3];
+        newBiz.address = params[4];
+        newBiz.city = params[5];
+        newBiz.category = params[6];
+        newBiz.logo_url = params[7] || null;
+        newBiz.country = params[8] || 'India';
+        newBiz.about = params[9] || '';
+      }
+      if (newBiz.is_verified === undefined) newBiz.is_verified = true;
+      mockDB.businesses = mockDB.businesses || [];
       mockDB.businesses.push(newBiz);
       saveMockDB();
       return { rows: [newBiz] };
@@ -809,29 +818,27 @@ module.exports = {
       // Parse SQL SET assignments dynamically to map each column to its exact param
       const setMatch = text.match(/SET\s+([\s\S]+?)\s+WHERE/i);
       if (setMatch) {
-        const assignments = setMatch[1].split(',');
-        for (const assign of assignments) {
-          const parts = assign.trim().split('=');
-          if (parts.length === 2) {
-            const col = parts[0].trim();
-            const valExpr = parts[1].trim();
-            const pIdxMatch = valExpr.match(/\$(\d+)/);
-            if (pIdxMatch) {
-              const pIdx = parseInt(pIdxMatch[1]) - 1;
-              if (pIdx >= 0 && pIdx < params.length && params[pIdx] !== undefined) {
-                if (col === 'company_name' && /^\d+$/.test(String(params[pIdx]).trim())) {
-                  // Ignore numeric-only company names like "100"
-                } else {
-                  biz[col] = params[pIdx];
-                }
+        const regex = /([a-zA-Z0-9_]+)\s*=\s*([^,]+(?:\([^)]*\)[^,]*)*)/g;
+        let match;
+        while ((match = regex.exec(setMatch[1])) !== null) {
+          const col = match[1].trim();
+          const valExpr = match[2].trim();
+          const pIdxMatch = valExpr.match(/\$(\d+)/);
+          if (pIdxMatch) {
+            const pIdx = parseInt(pIdxMatch[1]) - 1;
+            if (pIdx >= 0 && pIdx < params.length && params[pIdx] !== undefined) {
+              if (col === 'company_name' && /^\d+$/.test(String(params[pIdx]).trim())) {
+                // Ignore numeric-only company names like "100"
+              } else {
+                biz[col] = params[pIdx];
               }
-            } else if (valExpr.toLowerCase() === 'true') {
-              biz[col] = true;
-            } else if (valExpr.toLowerCase() === 'false') {
-              biz[col] = false;
-            } else if (valExpr.toLowerCase() === 'null') {
-              biz[col] = null;
             }
+          } else if (valExpr.toLowerCase() === 'true') {
+            biz[col] = true;
+          } else if (valExpr.toLowerCase() === 'false') {
+            biz[col] = false;
+          } else if (valExpr.toLowerCase() === 'null') {
+            biz[col] = null;
           }
         }
       }

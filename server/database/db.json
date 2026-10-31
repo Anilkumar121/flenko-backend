@@ -339,6 +339,24 @@
       "is_paid_trusted": true,
       "logo_url": "assets/images/logo.png",
       "created_at": "2026-10-14T10:00:00.000Z"
+    },
+    {
+      "id": 115,
+      "company_name": "Verified Supplier",
+      "gst_number": "",
+      "business_type": "Manufacturer & Wholesaler",
+      "address": "",
+      "city": "Industrial Hub",
+      "category": "General B2B",
+      "logo_url": null,
+      "country": "India",
+      "about": "",
+      "subdomain": null,
+      "is_paid_trusted": false,
+      "website_enabled": false,
+      "is_verified": true,
+      "year_est": "",
+      "created_at": "2026-10-31T07:57:14.403Z"
     }
   ],
   "leads": [
@@ -1017,7 +1035,7 @@
   "lead_payments": [],
   "subscription_payments": [],
   "reviews": [],
-  "idCounter": 116,
+  "idCounter": 117,
   "platform_settings": [
     {
       "setting_key": "google_sheet_webhook_url",

@@ -826,6 +826,16 @@ app.post('/api/auth/register', async (req, res) => {
           googleSheetsService.syncSellerToGoogleSheet(existingUser.id).catch(e => console.warn('[Google Sheets Sync error]', e.message));
         }
 
+        let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1 ORDER BY id DESC LIMIT 1', [existingUser.id]);
+        let userBiz = (bizRes.rows && bizRes.rows.length > 0) ? bizRes.rows[0] : null;
+        if (!userBiz) {
+          const pDigits = (existingUser.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+          if (pDigits) {
+            const pBiz = await db.query('SELECT * FROM businesses WHERE phone LIKE $1 OR whatsapp LIKE $1 ORDER BY id DESC LIMIT 1', ['%' + pDigits]);
+            if (pBiz.rows && pBiz.rows.length > 0) userBiz = pBiz.rows[0];
+          }
+        }
+
         const token = jwt.sign({ id: existingUser.id, phone: existingUser.phone, role: finalRole, email: existingUser.email }, JWT_SECRET, { expiresIn: '30d' });
         return res.json({
           success: true,
@@ -838,7 +848,11 @@ app.post('/api/auth/register', async (req, res) => {
             email: existingUser.email,
             name: existingUser.name,
             role: finalRole,
-            subscription: existingUser.subscription || 'free'
+            company_name: (userBiz && userBiz.company_name) || existingUser.name,
+            logo_url: (userBiz && userBiz.logo_url) || null,
+            subdomain: (userBiz && userBiz.subdomain) || null,
+            subscription: existingUser.subscription || (userBiz && userBiz.subscription) || 'free',
+            business: userBiz
           }
         });
       } else {
@@ -883,6 +897,9 @@ app.post('/api/auth/register', async (req, res) => {
       googleSheetsService.syncSellerToGoogleSheet(user.id).catch(e => console.warn('[Google Sheets Sync error]', e.message));
     }
 
+    let bizResFresh = await db.query('SELECT * FROM businesses WHERE user_id = $1 ORDER BY id DESC LIMIT 1', [user.id]);
+    let userBizFresh = (bizResFresh.rows && bizResFresh.rows.length > 0) ? bizResFresh.rows[0] : null;
+
     const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
 
     res.json({
@@ -894,7 +911,11 @@ app.post('/api/auth/register', async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
-        subscription: user.subscription || 'free'
+        company_name: (userBizFresh && userBizFresh.company_name) || user.name,
+        logo_url: (userBizFresh && userBizFresh.logo_url) || null,
+        subdomain: (userBizFresh && userBizFresh.subdomain) || null,
+        subscription: user.subscription || (userBizFresh && userBizFresh.subscription) || 'free',
+        business: userBizFresh
       }
     });
   } catch (error) {
@@ -983,6 +1004,21 @@ app.post('/api/auth/login', async (req, res) => {
       }
     }
 
+    // Fetch business record for this user
+    let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1 ORDER BY id DESC LIMIT 1', [user.id]);
+    let userBiz = (bizRes.rows && bizRes.rows.length > 0) ? bizRes.rows[0] : null;
+    if (!userBiz) {
+      const phoneDigits = (user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+      if (phoneDigits) {
+        const pBiz = await db.query('SELECT * FROM businesses WHERE phone LIKE $1 OR whatsapp LIKE $1 ORDER BY id DESC LIMIT 1', ['%' + phoneDigits]);
+        if (pBiz.rows && pBiz.rows.length > 0) userBiz = pBiz.rows[0];
+      }
+    }
+
+    const companyName = (userBiz && userBiz.company_name) || user.name || 'Verified Supplier';
+    const logoUrl = (userBiz && userBiz.logo_url) || null;
+    const subdomain = (userBiz && userBiz.subdomain) || null;
+
     const token = jwt.sign({ id: user.id, phone: user.phone, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
 
     res.json({
@@ -993,8 +1029,12 @@ app.post('/api/auth/login', async (req, res) => {
         phone: user.phone,
         email: user.email,
         name: user.name,
+        company_name: companyName,
+        logo_url: logoUrl,
+        subdomain: subdomain,
         role: user.role,
-        subscription: user.subscription || 'free'
+        subscription: user.subscription || (userBiz && userBiz.subscription) || 'free',
+        business: userBiz
       }
     });
   } catch (error) {
@@ -2119,6 +2159,13 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
       });
     }
 
+    // Fallback: If rawSub is 'store', 'demo', or business not found, fallback to first verified business in DB
+    if (!business) {
+      const allBiz = await db.query('SELECT * FROM businesses ORDER BY id ASC');
+      if (allBiz.rows && allBiz.rows.length > 0) {
+        business = allBiz.rows.find(b => b.is_verified) || allBiz.rows[0];
+      }
+    }
 
     if (!business) {
       return res.status(404).json({ error: 'Seller website not found' });
