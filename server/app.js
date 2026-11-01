@@ -107,6 +107,18 @@ function fileToDataUri(file) {
   }
 }
 
+function normalizeProductImageUrl(url) {
+  if (!url) return 'assets/images/logo.png';
+  const u = String(url).trim();
+  if (u.startsWith('data:image')) return u;
+  if (u.startsWith('http://') || u.startsWith('https://')) return u;
+  if (u.startsWith('assets/images/products/') || u.startsWith('/assets/images/products/')) {
+    const cleanPath = u.replace(/^\/+/, '');
+    return 'https://flenko-backend.onrender.com/' + cleanPath;
+  }
+  return u;
+}
+
 // Serve uploaded images and static assets
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
 app.use('/css', express.static(path.join(__dirname, '../css')));
@@ -2044,6 +2056,12 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
     let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId || business.user_id]);
     let products = prodRes.rows || [];
 
+    // Normalize product image URLs
+    products = products.map(p => {
+      p.image_url = normalizeProductImageUrl(p.image_url);
+      return p;
+    });
+
     // Fetch supplier's reviews
     let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId || business.user_id]);
     let reviews = revRes.rows || [];
@@ -2217,6 +2235,12 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
         }
       } catch(e) {}
     }
+
+    // Normalize product image URLs
+    products = products.map(p => {
+      p.image_url = normalizeProductImageUrl(p.image_url);
+      return p;
+    });
 
     // Fetch supplier's reviews
     let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId]);
@@ -3134,7 +3158,11 @@ app.get('/api/products', authMiddleware, async (req, res) => {
         ORDER BY p.created_at DESC
       `, [targetId, cleanP ? ('%' + cleanP) : '%__none__']);
     }
-    res.json({ products: prods.rows || [] });
+    const formattedProds = (prods.rows || []).map(p => {
+      p.image_url = normalizeProductImageUrl(p.image_url);
+      return p;
+    });
+    res.json({ products: formattedProds });
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -3157,7 +3185,10 @@ async function syncProductsCatalogFile(dbInstance) {
       LEFT JOIN users u ON p.supplier_id = u.id
       ORDER BY p.id ASC
     `);
-    const list = res.rows || [];
+    const list = (res.rows || []).map(p => {
+      p.image_url = normalizeProductImageUrl(p.image_url);
+      return p;
+    });
     const pPath = path.join(__dirname, '..', 'products.json');
     fs.writeFileSync(pPath, JSON.stringify(list, null, 2), 'utf8');
     const dbJsonPath = path.join(__dirname, 'database', 'db.json');
@@ -3184,26 +3215,17 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   
   const backendHost = getBackendHost(req);
   let image_url = 'assets/images/logo.png';
-  if (req.file && req.file.filename) {
-    image_url = 'assets/images/products/' + req.file.filename;
-  } else if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image')) {
-    try {
-      const matches = req.body.image_data.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
-      if (matches) {
-        const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1].replace(/[^a-zA-Z0-9]/g, '');
-        const buffer = Buffer.from(matches[2], 'base64');
-        const fname = 'prod-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + '.' + (ext || 'jpg');
-        fs.writeFileSync(path.join(uploadDir, fname), buffer);
-        image_url = 'assets/images/products/' + fname;
-      } else {
-        image_url = req.body.image_data;
-      }
-    } catch(err) {
-      console.warn('Could not save base64 image to disk:', err.message);
-      image_url = req.body.image_data;
+  if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image')) {
+    image_url = req.body.image_data;
+  } else if (req.file) {
+    const dataUri = fileToDataUri(req.file);
+    if (dataUri) {
+      image_url = dataUri;
+    } else {
+      image_url = `https://flenko-backend.onrender.com/assets/images/products/${req.file.filename}`;
     }
   } else if (req.body.image_url) {
-    image_url = req.body.image_url;
+    image_url = normalizeProductImageUrl(req.body.image_url);
   }
   // Auto-SEO Generator
   const autoSeoTags = `buy ${cleanName} wholesale, best ${cleanName} supplier, ${cleanName} manufacturers in ${effectiveCountry}, top quality ${effectiveCategory}`;
@@ -3348,23 +3370,17 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
   
   try {
     let image_url = null;
-    if (req.file && req.file.filename) {
-      image_url = 'assets/images/products/' + req.file.filename;
-    } else if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image')) {
-      try {
-        const matches = req.body.image_data.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
-        if (matches) {
-          const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1].replace(/[^a-zA-Z0-9]/g, '');
-          const buffer = Buffer.from(matches[2], 'base64');
-          const fname = 'prod-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + '.' + (ext || 'jpg');
-          fs.writeFileSync(path.join(uploadDir, fname), buffer);
-          image_url = 'assets/images/products/' + fname;
-        }
-      } catch(err) {
-        console.warn('Could not save base64 image on edit:', err.message);
+    if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image')) {
+      image_url = req.body.image_data;
+    } else if (req.file) {
+      const dataUri = fileToDataUri(req.file);
+      if (dataUri) {
+        image_url = dataUri;
+      } else {
+        image_url = `https://flenko-backend.onrender.com/assets/images/products/${req.file.filename}`;
       }
     } else if (req.body.image_url || req.body.existing_image_url) {
-      image_url = req.body.image_url || req.body.existing_image_url;
+      image_url = normalizeProductImageUrl(req.body.image_url || req.body.existing_image_url);
     }
 
     const serviceKeywords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy'];
@@ -3703,10 +3719,7 @@ app.get('/api/public/products', async (req, res) => {
     }
 
     const safeProducts = (prods.rows || []).map(p => {
-      let img = p.image_url || 'assets/images/logo.png';
-      if (img.startsWith('/assets/')) {
-        if (img.startsWith("/")) img = img.slice(1);
-      }
+      let img = normalizeProductImageUrl(p.image_url);
       let logo = p.supplier_logo;
       if (logo && logo.startsWith('/assets/')) {
         if (logo.startsWith("/")) logo = logo.slice(1);

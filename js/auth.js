@@ -22,6 +22,20 @@ window.API_FALLBACK = (typeof window !== 'undefined' && (window.location.hostnam
   ? 'http://localhost:3000/api' 
   : '/api';
 
+// Universal Product Image URL Normalizer
+function formatProductImageUrl(url) {
+  if (!url) return 'assets/images/logo.png';
+  const u = String(url).trim();
+  if (u.startsWith('data:image')) return u;
+  if (u.startsWith('http://') || u.startsWith('https://')) return u;
+  if (u.startsWith('assets/images/products/') || u.startsWith('/assets/images/products/')) {
+    const cleanPath = u.replace(/^\/+/, '');
+    return 'https://flenko-backend.onrender.com/' + cleanPath;
+  }
+  return u;
+}
+window.formatProductImageUrl = formatProductImageUrl;
+
 // Preloaded Verified Directory Suppliers
 const PRELOADED_SUPPLIERS = [];
 

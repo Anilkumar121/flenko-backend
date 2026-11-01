@@ -1504,7 +1504,7 @@
             price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
             moq: p.moq || 1,
             unit: p.unit || 'Pieces',
-            image: p.image_url || 'assets/images/logo.png',
+            image: (window.formatProductImageUrl ? window.formatProductImageUrl(p.image_url) : p.image_url) || 'assets/images/logo.png',
             badge: (p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? 'Paid Trusted' : 'VERIFIED PRO',
             is_paid_trusted: !!(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted))
           }));
