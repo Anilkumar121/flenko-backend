@@ -2,7 +2,7 @@
 
 // Universal API Base with auto-detection & fallback
 function detectApiBase() {
-  if (typeof window === 'undefined') return '/api';
+  if (typeof window === 'undefined') return 'https://flenko-backend.onrender.com/api';
   if (window.FLENKO_API_URL) return window.FLENKO_API_URL;
   try {
     const customApi = localStorage.getItem('flenko_api_url');
@@ -12,11 +12,8 @@ function detectApiBase() {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return window.location.port === '3000' ? '/api' : 'http://localhost:3000/api';
   }
-  if (window.location.protocol === 'file:') {
-    return 'http://localhost:3000/api';
-  }
-  // On live custom domain, relative '/api' is always same-origin and never causes CORS or DNS errors
-  return '/api';
+  // Production live backend on Render (connected to permanent Neon Cloud PostgreSQL)
+  return 'https://flenko-backend.onrender.com/api';
 }
 
 const API_BASE = detectApiBase();
@@ -29,7 +26,7 @@ window.API_FALLBACK = (typeof window !== 'undefined' && (window.location.hostnam
 const PRELOADED_SUPPLIERS = [];
 
 // Automatic Fresh Storage Stamp: Clears legacy cached demo traces once
-const FLENKO_DATA_VERSION = 'flenko_v5_clean';
+const FLENKO_DATA_VERSION = 'flenko_v6_live';
 if (typeof localStorage !== 'undefined') {
   try {
     const curVer = localStorage.getItem('flenko_data_version');
@@ -39,21 +36,11 @@ if (typeof localStorage !== 'undefined') {
         'flenko_admin_leads_cache',
         'flenko_cached_leads',
         'flenko_deleted_product_ids',
-        'flenko_edited_products',
-        'flenko_seller_products',
-        'flenko_custom_products',
-        'flenko_public_products',
-        'flenko_public_products_cache'
+        'flenko_edited_products'
       ];
       legacyKeys.forEach(k => {
         try { localStorage.removeItem(k); } catch(e) {}
       });
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('flenko_temp_') || key.startsWith('flenko_cache_'))) {
-          localStorage.removeItem(key);
-        }
-      }
       localStorage.setItem('flenko_data_version', FLENKO_DATA_VERSION);
     }
   } catch(e) {}
@@ -155,11 +142,12 @@ const auth = {
     const fallback = window.API_FALLBACK || primary;
 
     const isHtml = (res) => {
+      if (!res) return false;
       const ct = (res.headers && res.headers.get('content-type')) || '';
       return ct.includes('text/html');
     };
 
-    const defaultTimeoutMs = (options && ((typeof FormData !== "undefined" && options.body instanceof FormData) || (urlPath && urlPath.includes("/products")))) ? 25000 : 8000;
+    const defaultTimeoutMs = (options && ((typeof FormData !== "undefined" && options.body instanceof FormData) || (urlPath && urlPath.includes("/products")))) ? 45000 : 35000;
     const fetchWithTimeout = async (url, opts, ms = defaultTimeoutMs) => {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), ms);
