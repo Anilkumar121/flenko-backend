@@ -3095,19 +3095,44 @@ app.get('/api/products', authMiddleware, async (req, res) => {
     const isMasterAdmin = req.user && (req.user.role === 'admin' || req.user.id === 1);
     let prods;
     if (isMasterAdmin && req.query.all === 'true') {
-      prods = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+      prods = await db.query(`
+        SELECT p.*, 
+               COALESCE(b.company_name, u.name, 'Verified Supplier') AS supplier_name, 
+               b.logo_url AS supplier_logo, 
+               COALESCE(b.city, u.city, 'Industrial Hub') AS city,
+               COALESCE(p.country, b.country, 'India') AS country,
+               b.slug AS supplier_slug,
+               COALESCE(b.phone, u.phone, '') AS supplier_phone,
+               COALESCE(b.whatsapp, b.phone, u.phone, '') AS supplier_whatsapp
+        FROM products p
+        LEFT JOIN businesses b ON p.supplier_id = b.user_id
+        LEFT JOIN users u ON p.supplier_id = u.id
+        ORDER BY p.created_at DESC
+      `);
     } else {
       let targetId = req.user ? req.user.id : null;
-      if (req.user && req.user.phone) {
-        const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
-        if (cleanP) {
-          const uCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
-          if (uCheck.rows && uCheck.rows.length > 0) {
-            targetId = uCheck.rows[0].id;
-          }
+      let cleanP = req.user && req.user.phone ? req.user.phone.replace(/[^0-9]/g, '').slice(-10) : '';
+      if (cleanP) {
+        const uCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
+        if (uCheck.rows && uCheck.rows.length > 0) {
+          targetId = uCheck.rows[0].id;
         }
       }
-      prods = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY created_at DESC', [targetId]);
+      prods = await db.query(`
+        SELECT p.*, 
+               COALESCE(b.company_name, u.name, 'Verified Supplier') AS supplier_name, 
+               b.logo_url AS supplier_logo, 
+               COALESCE(b.city, u.city, 'Industrial Hub') AS city,
+               COALESCE(p.country, b.country, 'India') AS country,
+               b.slug AS supplier_slug,
+               COALESCE(b.phone, u.phone, '') AS supplier_phone,
+               COALESCE(b.whatsapp, b.phone, u.phone, '') AS supplier_whatsapp
+        FROM products p
+        LEFT JOIN businesses b ON p.supplier_id = b.user_id
+        LEFT JOIN users u ON p.supplier_id = u.id
+        WHERE p.supplier_id = $1 OR (u.phone LIKE $2) OR (b.phone LIKE $2) OR (b.whatsapp LIKE $2)
+        ORDER BY p.created_at DESC
+      `, [targetId, cleanP ? ('%' + cleanP) : '%__none__']);
     }
     res.json({ products: prods.rows || [] });
   } catch (error) {

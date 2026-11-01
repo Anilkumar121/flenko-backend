@@ -13,9 +13,9 @@ const poolConfig = activeDatabaseUrl
   ? { 
       connectionString: activeDatabaseUrl, 
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 3000,
-      idleTimeoutMillis: 10000,
-      max: 5
+      connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 30000,
+      max: 10
     }
   : {
       user: process.env.DB_USER,
@@ -23,9 +23,9 @@ const poolConfig = activeDatabaseUrl
       database: process.env.DB_NAME,
       password: process.env.DB_PASSWORD,
       port: process.env.DB_PORT,
-      connectionTimeoutMillis: 3000,
-      idleTimeoutMillis: 10000,
-      max: 5
+      connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 30000,
+      max: 10
     };
 
 const pool = new Pool(poolConfig);
@@ -409,7 +409,7 @@ async function checkAndConnectDb() {
 
   try {
     const queryPromise = pool.query('SELECT 1');
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out (3000ms)')), 3000));
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out (15000ms)')), 15000));
     const res = await Promise.race([queryPromise, timeoutPromise]);
     if (res) {
       isConnectedToPostgres = true;
@@ -441,7 +441,7 @@ function scheduleReconnect() {
   reconnectTimer = setTimeout(async () => {
     reconnectTimer = null;
     await checkAndConnectDb();
-  }, 60000); // Check once per minute, avoiding Neon spin-lock
+  }, 10000); // Check once per 10s on reconnect
 }
 
 // Initial connection attempt
@@ -449,26 +449,33 @@ let initialConnectPromise = checkAndConnectDb();
 
 module.exports = {
   query: async (text, params = []) => {
-    if (isNeonQuotaExceeded) {
-      useMock = true;
-      isConnectedToPostgres = false;
-    } else if (hasDatabaseUrl && isConnectedToPostgres) {
+    if (!isNeonQuotaExceeded && hasDatabaseUrl) {
       try {
         const queryPromise = pool.query(text, params);
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('PostgreSQL query timed out (3000ms)')), 3000));
-        return await Promise.race([queryPromise, timeoutPromise]);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('PostgreSQL query timed out (15000ms)')), 15000));
+        const res = await Promise.race([queryPromise, timeoutPromise]);
+        isConnectedToPostgres = true;
+        useMock = false;
+        return res;
       } catch (err) {
-        isConnectedToPostgres = false;
-        useMock = true;
-        const isQuota = err && (err.code === '53000' || (err.message && err.message.toLowerCase().includes('quota')));
-        if (isQuota) {
-          isNeonQuotaExceeded = true;
-          console.warn('⚠️ PostgreSQL quota exceeded. Transparently serving query from local store (db.json).');
-        } else {
-          console.warn(`⚠️ PostgreSQL query error (${err.message}). Transparently serving from local store (db.json).`);
-          scheduleReconnect();
+        // If timed out or transient error, attempt direct pool.query before falling back
+        try {
+          const directRes = await pool.query(text, params);
+          isConnectedToPostgres = true;
+          useMock = false;
+          return directRes;
+        } catch (directErr) {
+          isConnectedToPostgres = false;
+          useMock = true;
+          const isQuota = directErr && (directErr.code === '53000' || (directErr.message && directErr.message.toLowerCase().includes('quota')));
+          if (isQuota) {
+            isNeonQuotaExceeded = true;
+            console.warn('⚠️ PostgreSQL quota exceeded. Transparently serving query from local store (db.json).');
+          } else {
+            console.warn(`⚠️ PostgreSQL query error (${directErr.message}). Transparently serving from local store (db.json).`);
+            scheduleReconnect();
+          }
         }
-        // Seamlessly continue to mockDB fallback below instead of throwing!
       }
     }
 

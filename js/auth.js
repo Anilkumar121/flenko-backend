@@ -29,7 +29,7 @@ window.API_FALLBACK = (typeof window !== 'undefined' && (window.location.hostnam
 const PRELOADED_SUPPLIERS = [];
 
 // Automatic Fresh Storage Stamp: Clears legacy cached demo traces once
-const FLENKO_DATA_VERSION = 'flenko_v4_clean';
+const FLENKO_DATA_VERSION = 'flenko_v5_clean';
 if (typeof localStorage !== 'undefined') {
   try {
     const curVer = localStorage.getItem('flenko_data_version');
@@ -39,7 +39,11 @@ if (typeof localStorage !== 'undefined') {
         'flenko_admin_leads_cache',
         'flenko_cached_leads',
         'flenko_deleted_product_ids',
-        'flenko_edited_products'
+        'flenko_edited_products',
+        'flenko_seller_products',
+        'flenko_custom_products',
+        'flenko_public_products',
+        'flenko_public_products_cache'
       ];
       legacyKeys.forEach(k => {
         try { localStorage.removeItem(k); } catch(e) {}
@@ -1128,7 +1132,8 @@ const auth = {
       arr.forEach(rawP => {
         if (!rawP || !rawP.name) return;
         const pIdStr = String(rawP.id);
-        if (deletedIds.has(pIdStr)) return;
+        // Only drop if tombstoned and not created in the current live session
+        if (deletedIds.has(pIdStr) && !rawP.created_at) return;
         const p = editedOverrides[pIdStr] ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
         const uid = String(p.id || p.name.toLowerCase().trim());
         if (!seen.has(uid)) {
@@ -1166,7 +1171,8 @@ const auth = {
         const data = await res.json();
         if (data && Array.isArray(data.products)) {
           resDataProds = data.products;
-          products = isMasterAdmin ? data.products : data.products.filter(matchesUser);
+          // The backend /api/products already scopes strictly to the authenticated user
+          products = data.products;
         }
       }
     } catch(e) {
