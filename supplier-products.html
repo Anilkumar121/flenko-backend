@@ -154,10 +154,30 @@
     </aside>
 
     <section>
+      <!-- Unlimited Seller Catalog Announcement Banner -->
+      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%); border: 1.5px solid #86efac; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.6rem;">✨</span>
+          <div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: #15803d;">Unlimited Products &amp; Services Active</div>
+            <div style="font-size: 0.8rem; color: #4b5563;">Your seller account has <strong>Zero Catalog Restrictions</strong>. You can list unlimited wholesale products and contractor services without any limits.</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <span style="background: #16a34a; color: white; font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px;">✓ UNLIMITED CATALOG UNLOCKED</span>
+        </div>
+      </div>
+
       <div class="panel-card">
-        <div class="panel-card-header">
-          Product Catalog
-          <button class="btn btn-primary" onclick="openAddModal()">+ Add New Product</button>
+        <div class="panel-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <span style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">Catalog &amp; Services (<span id="totalListedCount">0</span> Listings)</span>
+            <small style="display: block; font-size: 0.75rem; color: #64748b; font-weight: normal;">No limits on products or contractor services</small>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-outline" style="border-color: #0284c7; color: #0284c7; font-weight: 700;" onclick="openAddModal('service')">+ Add Service / Contractor</button>
+            <button type="button" class="btn btn-primary" onclick="openAddModal('product')">+ Add Product</button>
+          </div>
         </div>
         <div class="catalog-grid" id="productGrid">
           <div style="padding: 2rem; grid-column: 1 / -1; text-align: center;">Loading catalog...</div>
@@ -174,12 +194,26 @@
         <button type="button" onclick="document.getElementById('addProductModal').style.display='none'" style="background: none; border: none; font-size: 1.6rem; cursor: pointer; color: #64748b; line-height: 1;">×</button>
       </div>
       <form id="addProductForm">
+        <!-- Listing Type Selector -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-weight: 700;">Select Listing Type:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <button type="button" id="btnTypeProductAdd" class="btn" onclick="setListingType('product', 'add')" style="padding: 0.65rem 0.5rem; font-weight: 700; font-size: 0.85rem; border: 2px solid #0F4C9B; background: #eff6ff; color: #0F4C9B; border-radius: 8px;">
+              📦 Physical Product
+            </button>
+            <button type="button" id="btnTypeServiceAdd" class="btn" onclick="setListingType('service', 'add')" style="padding: 0.65rem 0.5rem; font-weight: 700; font-size: 0.85rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 8px;">
+              🛠️ Service / Contractor
+            </button>
+          </div>
+          <input type="hidden" id="pIsService" value="false">
+        </div>
+
         <div class="form-group">
-          <label class="form-label">Product / Service Name</label>
-          <input type="text" id="pName" class="form-control" required placeholder="e.g. Legal Case Consultation, Corporate Legal Advisory, Anchor Drilling, Corrugated Box">
+          <label class="form-label" id="pNameLabel">Product Name *</label>
+          <input type="text" id="pName" class="form-control" required placeholder="e.g. Industrial Valve, Corrugated Box, Cotton Fabric">
         </div>
         <div class="form-group">
-          <label class="form-label">Category / Service Industry <small style="color:#028867; font-weight:600;">(Type custom or choose suggestion)</small></label>
+          <label class="form-label" id="pCatLabel">Category / Industry <small style="color:#028867; font-weight:600;">(Type custom or choose suggestion)</small></label>
           <input type="text" id="pCategoryInput" list="categoryDatalist" class="form-control" placeholder="Type category name (e.g. Legal & Professional Services, Construction & Real Estate, Packaging...)" required>
           <datalist id="categoryDatalist"></datalist>
           <small style="font-size:0.75rem; color:#64748b; margin-top:4px; display:block;">
@@ -268,7 +302,8 @@
           <div id="addImgPreview" style="margin-bottom: 8px; display: none;">
             <img id="addImgPreviewEl" src="assets/images/logo.png" onerror="this.onerror=null; this.src='assets/images/logo.png';" style="max-height: 90px; max-width: 130px; border-radius: 6px; border: 1px solid #cbd5e1; object-fit: cover; display: block;">
           </div>
-          <input type="file" id="pImage" name="image" class="form-control" accept="image/*" required>
+          <input type="file" id="pImage" name="image" class="form-control" accept="image/*">
+          <small style="font-size:0.75rem; color:#64748b; display:block; margin-top:4px;">Photo is optional for contractor services. Will default to your company profile logo if left empty.</small>
         </div>
         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
           <button type="button" class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('addProductModal').style.display='none'">Cancel</button>
@@ -328,12 +363,21 @@
     async function loadProducts() {
       const data = await auth.getProducts();
       window.currentProducts = (data && data.products) ? data.products : [];
+      const totalCountEl = document.getElementById('totalListedCount');
+      if (totalCountEl) totalCountEl.innerText = window.currentProducts.length;
       const grid = document.getElementById('productGrid');
       if (window.currentProducts.length > 0) {
         grid.innerHTML = window.currentProducts.map(p => `
           <div class="product-edit-card">
             <img src="${(window.formatProductImageUrl ? window.formatProductImageUrl(p.image_url) : p.image_url) || 'assets/images/logo.png'}" alt="${p.name}" onerror="this.onerror=null; this.src='assets/images/logo.png';" style="width: 100%; height: 120px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 1rem;">
-            <h4 style="font-size: 0.875rem; margin-bottom: 0.25rem;">${p.name}</h4>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+              ${(p.is_service || (p.category && (p.category.toLowerCase().includes('service') || p.category.toLowerCase().includes('contractor'))))
+                ? '<span style="font-size:0.68rem; font-weight:700; background:#e0f2fe; color:#0369a1; padding:2px 7px; border-radius:4px; border:1px solid #bae6fd;">🛠️ Service / Contractor</span>'
+                : '<span style="font-size:0.68rem; font-weight:700; background:#f1f5f9; color:#334155; padding:2px 7px; border-radius:4px; border:1px solid #e2e8f0;">📦 Product</span>'
+              }
+              <span style="font-size:0.68rem; color:#16a34a; font-weight:700;">✓ Unlimited Live</span>
+            </div>
+            <h4 style="font-size: 0.875rem; margin-bottom: 0.25rem; font-weight:700;">${p.name}</h4>
             <div style="font-size: 0.72rem; color: #028867; font-weight: 600; margin-bottom: 0.35rem;">
               🏷️ ${p.category || 'General B2B'} &nbsp;|&nbsp; 🌍 ${p.country || 'India'}
             </div>
@@ -434,9 +478,52 @@
       });
     }
 
-    function openAddModal() {
+    function setListingType(type, formType) {
+      const isService = (type === 'service');
+      const pPrefix = (formType === 'add' ? 'p' : 'e');
+      const hiddenEl = document.getElementById(pPrefix + 'IsService');
+      if (hiddenEl) hiddenEl.value = isService ? 'true' : 'false';
+
+      const btnProd = document.getElementById(formType === 'add' ? 'btnTypeProductAdd' : 'btnTypeProductEdit');
+      const btnServ = document.getElementById(formType === 'add' ? 'btnTypeServiceAdd' : 'btnTypeServiceEdit');
+
+      if (btnProd && btnServ) {
+        if (isService) {
+          btnServ.style.border = '2px solid #0284c7';
+          btnServ.style.background = '#e0f2fe';
+          btnServ.style.color = '#0369a1';
+          btnProd.style.border = '1px solid #cbd5e1';
+          btnProd.style.background = '#ffffff';
+          btnProd.style.color = '#475569';
+        } else {
+          btnProd.style.border = '2px solid #0F4C9B';
+          btnProd.style.background = '#eff6ff';
+          btnProd.style.color = '#0F4C9B';
+          btnServ.style.border = '1px solid #cbd5e1';
+          btnServ.style.background = '#ffffff';
+          btnServ.style.color = '#475569';
+        }
+      }
+
+      const nameLabel = document.getElementById(pPrefix + 'NameLabel');
+      if (nameLabel) nameLabel.innerText = isService ? 'Service / Contracting Work Name *' : 'Product Name *';
+      const nameInp = document.getElementById(pPrefix + 'Name');
+      if (nameInp) nameInp.placeholder = isService ? 'e.g. Demolition Work, Anchor Drilling, Site Excavation, Legal Advisory' : 'e.g. Industrial Valve, Corrugated Box, Cotton Fabric';
+
+      const catLabel = document.getElementById(pPrefix + 'CatLabel');
+      if (catLabel) catLabel.innerHTML = isService ? 'Service Industry / Specialization <small style="color:#028867; font-weight:600;">(Type custom or choose suggestion)</small>' : 'Category / Industry <small style="color:#028867; font-weight:600;">(Type custom or choose suggestion)</small>';
+
+      const unitSelect = document.getElementById(pPrefix + 'Unit');
+      if (unitSelect && isService && (unitSelect.value === 'Pieces' || unitSelect.value === 'Units')) {
+        unitSelect.value = 'Projects';
+        syncUnitLabels(formType);
+      }
+    }
+
+    function openAddModal(defaultType = 'product') {
       const form = document.getElementById('addProductForm');
       if (form) form.reset();
+      setListingType(defaultType, 'add');
       const pImg = document.getElementById('pImage');
       if (pImg) pImg.value = '';
       const addPrev = document.getElementById('addImgPreview');
@@ -486,6 +573,7 @@
         formData.append('moq', document.getElementById('pMoq').value);
         formData.append('unit', document.getElementById('pUnit').value);
         formData.append('stock_quantity', document.getElementById('pStock').value || 500);
+        formData.append('is_service', document.getElementById('pIsService').value === 'true' ? 'true' : 'false');
         
         const imageFile = document.getElementById('pImage').files[0];
         if (imageFile) {
@@ -523,6 +611,8 @@
       const p = (window.currentProducts || []).find(x => String(x.id) === String(id));
       if (!p) return;
       editingProductId = id;
+      const isServ = !!(p.is_service || (p.category && (p.category.toLowerCase().includes('service') || p.category.toLowerCase().includes('contractor'))));
+      setListingType(isServ ? 'service' : 'product', 'edit');
       document.getElementById('eName').value = p.name || '';
       document.getElementById('eCategoryInput').value = p.category || '';
       if (document.getElementById('eCountry')) {
@@ -569,6 +659,7 @@
         formData.append('moq', document.getElementById('eMoq').value);
         formData.append('unit', document.getElementById('eUnit').value);
         formData.append('stock_quantity', document.getElementById('eStock').value || 500);
+        formData.append('is_service', document.getElementById('eIsService').value === 'true' ? 'true' : 'false');
         
         const imageFile = document.getElementById('eImage').files[0];
         const existingProd = (window.currentProducts || []).find(x => x.id == editingProductId);
@@ -625,12 +716,26 @@
         <button onclick="document.getElementById('editProductModal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">×</button>
       </div>
       <form id="editProductForm">
+        <!-- Listing Type Selector -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-weight: 700;">Listing Type:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <button type="button" id="btnTypeProductEdit" class="btn" onclick="setListingType('product', 'edit')" style="padding: 0.65rem 0.5rem; font-weight: 700; font-size: 0.85rem; border: 2px solid #0F4C9B; background: #eff6ff; color: #0F4C9B; border-radius: 8px;">
+              📦 Physical Product
+            </button>
+            <button type="button" id="btnTypeServiceEdit" class="btn" onclick="setListingType('service', 'edit')" style="padding: 0.65rem 0.5rem; font-weight: 700; font-size: 0.85rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 8px;">
+              🛠️ Service / Contractor
+            </button>
+          </div>
+          <input type="hidden" id="eIsService" value="false">
+        </div>
+
         <div class="form-group">
-          <label class="form-label">Product / Service Name</label>
+          <label class="form-label" id="eNameLabel">Product / Service Name *</label>
           <input type="text" id="eName" class="form-control" required placeholder="e.g. Industrial Bakery Oven, Website Development, Corrugated Box">
         </div>
         <div class="form-group">
-          <label class="form-label">Category / Service Industry <small style="color:#028867; font-weight:600;">(Type custom or choose suggestion)</small></label>
+          <label class="form-label" id="eCatLabel">Category / Service Industry <small style="color:#028867; font-weight:600;">(Type custom or choose suggestion)</small></label>
           <input type="text" id="eCategoryInput" list="categoryDatalist" class="form-control" placeholder="Type category name (e.g. Bakery Equipment, Web Development, Packaging...)" required>
           <small style="font-size:0.75rem; color:#64748b; margin-top:4px; display:block;">
             💡 You can type any new category freely — it will automatically be listed on Flenko for buyers!

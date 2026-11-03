@@ -3308,9 +3308,14 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       image_url
     }, supplierBiz);
 
+    if ((!image_url || image_url === 'assets/images/logo.png') && supplierBiz && supplierBiz.logo_url) {
+      image_url = supplierBiz.logo_url;
+    }
+
     const serviceKeywords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy'];
     const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
     const isServiceListing = req.body.is_service === true || req.body.is_service === 'true' || 
+                             req.body.listing_type === 'service' ||
                              serviceUnits.includes((unit || '').toLowerCase().trim()) || 
                              serviceKeywords.some(kw => (cleanName || '').toLowerCase().includes(kw) || (effectiveCategory || '').toLowerCase().includes(kw));
 
@@ -3380,9 +3385,14 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
       image_url = normalizeProductImageUrl(req.body.image_url || req.body.existing_image_url);
     }
 
+    if ((!image_url || image_url === 'assets/images/logo.png') && supplierBiz && supplierBiz.logo_url) {
+      image_url = supplierBiz.logo_url;
+    }
+
     const serviceKeywords = ['service', 'services', 'contractor', 'contractors', 'fabrication', 'installation', 'drilling', 'anchoring', 'demolition', 'design', 'development', 'maintenance', 'repair', 'consulting', 'consultancy'];
     const serviceUnits = ['sq. ft.', 'sq ft', 'meters', 'meter', 'projects', 'project', 'man-days', 'hours', 'hour', 'contracts', 'contract'];
     const isServiceListing = req.body.is_service === true || req.body.is_service === 'true' || 
+                             req.body.listing_type === 'service' ||
                              serviceUnits.includes((unit || '').toLowerCase().trim()) || 
                              serviceKeywords.some(kw => (cleanName || '').toLowerCase().includes(kw) || (effectiveCategory || '').toLowerCase().includes(kw));
 

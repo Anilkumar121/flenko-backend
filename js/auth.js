@@ -1272,6 +1272,8 @@ const auth = {
     let unit = "Pieces";
     let stock_quantity = 500;
     let image_url = "assets/images/logo.png";
+    let is_service = false;
+    let listing_type = "product";
 
     try {
       if (formData && typeof formData.get === "function") {
@@ -1289,6 +1291,11 @@ const auth = {
         } else if (formData.get("existing_image_url")) {
           image_url = formData.get("existing_image_url");
         }
+        const srv = formData.get("is_service");
+        if (srv === true || srv === "true" || formData.get("listing_type") === "service") {
+          is_service = true;
+          listing_type = "service";
+        }
       } else if (formData && typeof formData === "object") {
         name = (formData.name || "").toString().trim();
         category = (formData.category || "General B2B").toString().trim();
@@ -1301,6 +1308,10 @@ const auth = {
         const imgData = formData.image_data || formData.image_url;
         if (imgData && typeof imgData === "string" && (imgData.startsWith("data:image") || imgData.startsWith("http") || imgData.includes("assets/"))) {
           image_url = imgData;
+        }
+        if (formData.is_service === true || formData.is_service === "true" || formData.listing_type === "service") {
+          is_service = true;
+          listing_type = "service";
         }
       }
     } catch(fErr) {}
@@ -1342,7 +1353,9 @@ const auth = {
       supplier_whatsapp: resData.product.supplier_whatsapp || supplierWhatsapp,
       supplier_slug: resData.product.supplier_slug || supplierSlug,
       city: resData.product.city || city,
-      country: resData.product.country || country
+      country: resData.product.country || country,
+      is_service: (resData.product.is_service !== undefined) ? !!resData.product.is_service : is_service,
+      listing_type: resData.product.listing_type || listing_type
     } : {
       id: Date.now(),
       supplier_id: userId,
@@ -1362,6 +1375,8 @@ const auth = {
       seo_tags: autoSeoTags,
       is_verified: true,
       tradeAssurance: true,
+      is_service: is_service,
+      listing_type: listing_type,
       created_at: new Date().toISOString()
     };
 
@@ -1439,6 +1454,8 @@ const auth = {
     let unit = "Pieces";
     let stock_quantity = 500;
     let image_url = null;
+    let is_service = null;
+    let listing_type = null;
 
     try {
       if (formData && typeof formData.get === "function") {
@@ -1456,6 +1473,14 @@ const auth = {
         } else if (formData.get("existing_image_url")) {
           image_url = formData.get("existing_image_url");
         }
+        const srv = formData.get("is_service");
+        if (srv !== null && srv !== undefined) {
+          is_service = srv === true || srv === "true";
+          listing_type = is_service ? "service" : "product";
+        } else if (formData.get("listing_type")) {
+          listing_type = formData.get("listing_type");
+          is_service = listing_type === "service";
+        }
       } else if (formData && typeof formData === "object") {
         name = (formData.name || "").toString().trim();
         category = (formData.category || "General B2B").toString().trim();
@@ -1470,6 +1495,13 @@ const auth = {
           image_url = imgData;
         } else if (formData.existing_image_url) {
           image_url = formData.existing_image_url;
+        }
+        if (formData.is_service !== undefined) {
+          is_service = formData.is_service === true || formData.is_service === "true";
+          listing_type = is_service ? "service" : "product";
+        } else if (formData.listing_type) {
+          listing_type = formData.listing_type;
+          is_service = listing_type === "service";
         }
       }
     } catch(fErr) {}
@@ -1513,7 +1545,9 @@ const auth = {
       moq: moq || resData.product.moq,
       unit: unit || resData.product.unit,
       stock_quantity: stock_quantity || resData.product.stock_quantity,
-      image_url: image_url || resData.product.image_url
+      image_url: image_url || resData.product.image_url,
+      is_service: (resData.product.is_service !== undefined) ? !!resData.product.is_service : (is_service !== null ? is_service : !!(existingProd && existingProd.is_service)),
+      listing_type: resData.product.listing_type || listing_type || (existingProd && existingProd.listing_type) || "product"
     } : {
       ...(existingProd || {}),
       id: existingProd && existingProd.id ? existingProd.id : id,
@@ -1533,6 +1567,8 @@ const auth = {
       city: (existingProd && existingProd.city) || user.city || sProfile.city || "Industrial Hub",
       is_verified: true,
       tradeAssurance: true,
+      is_service: is_service !== null ? is_service : !!(existingProd && existingProd.is_service),
+      listing_type: listing_type || (existingProd && existingProd.listing_type) || "product",
       updated_at: new Date().toISOString()
     };
 

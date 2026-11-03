@@ -973,9 +973,35 @@
       </div>
     </div>
 
+    <!-- Filter Tabs: All Listings | 📦 Physical Products | 🛠️ Services & Contractors -->
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.5rem;">
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;" id="homeFilterTabs">
+        <button type="button" class="home-filter-btn" data-type="all" onclick="filterHomeListings('all')" style="padding:0.45rem 1.1rem; border-radius:999px; border:1px solid #0284c7; background:#0284c7; color:#fff; font-size:0.83rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;">
+          🌐 All Listings (<span id="countAll">0</span>)
+        </button>
+        <button type="button" class="home-filter-btn" data-type="product" onclick="filterHomeListings('product')" style="padding:0.45rem 1.1rem; border-radius:999px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-size:0.83rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;">
+          📦 Physical Products (<span id="countProducts">0</span>)
+        </button>
+        <button type="button" class="home-filter-btn" data-type="service" onclick="filterHomeListings('service')" style="padding:0.45rem 1.1rem; border-radius:999px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-size:0.83rem; font-weight:700; cursor:pointer; transition:all 0.2s ease;">
+          🛠️ Services &amp; Contractors (<span id="countServices">0</span>)
+        </button>
+      </div>
+      <div style="font-size:0.84rem; color:#64748b; font-weight:600;" id="homeShowingSummary">Showing all listings...</div>
+    </div>
+
     <!-- Product Grid Populated with Flenko Cards -->
     <div class="flenko-product-grid" id="homepageProductGrid">
       <!-- Populated via JS -->
+    </div>
+
+    <!-- Load More Container -->
+    <div id="homeLoadMoreWrap" style="text-align:center; margin-top:2.5rem; display:none;">
+      <button type="button" id="homeLoadMoreBtn" onclick="loadMoreHomeListings()" class="btn btn-outline" style="padding:0.75rem 2.5rem; font-size:0.95rem; font-weight:700; border-color:#0284c7; color:#0284c7; border-radius:10px; background:#f0f9ff; cursor:pointer;">
+        Load More Listings ↓
+      </button>
+      <div style="margin-top:0.6rem; font-size:0.82rem; color:#64748b;">
+        Or explore <a href="products.html" style="color:var(--color-flenko-orange); font-weight:700; text-decoration:none;">all 1.5M+ products &amp; services in complete directory →</a>
+      </div>
     </div>
   </main>
 
@@ -1375,23 +1401,260 @@
         } catch(e){}
       }
 
-      // Populate Homepage Product Grid
+      // Populate Homepage Product Grid (Unlimited Products & Services Engine)
       const homeGrid = document.getElementById('homepageProductGrid');
       if (homeGrid) {
-        let homeProducts = [];
         const primaryApi = window.API_BASE || '/api';
         const fallbackApi = window.API_FALLBACK || '/api';
 
-        const fetchProducts = async (base) => {
+        const getFlag = (cName) => {
+          if (!cName) return '📍';
+          const match = (window.FLENKO_COUNTRIES || []).find(c => c.name.toLowerCase() === cName.toLowerCase() || c.code.toLowerCase() === cName.toLowerCase());
+          return match ? match.flag : (cName === 'United States' ? '🇺🇸' : (cName === 'Germany' ? '🇩🇪' : (cName === 'China' ? '🇨🇳' : (cName === 'United Arab Emirates' ? '🇦🇪' : '🇮🇳'))));
+        };
+
+        function processAndMapProducts(list) {
+          let customProds = [];
           try {
-            const res = await fetch(`${base}/public/products?_t=${Date.now()}`);
-            const ct = (res.headers && res.headers.get('content-type')) || '';
-            if (res.ok && !ct.includes('text/html')) {
-              const data = await res.json();
-              return (data && data.products) ? data.products : [];
-            }
+            const seen = new Set();
+            const keys = ["flenko_custom_products", "flenko_seller_products", "flenko_public_products"];
+            try {
+              const u = (typeof auth !== "undefined" && auth.getUser) ? auth.getUser() : null;
+              if (u && u.id) keys.unshift("flenko_seller_products_" + u.id);
+            } catch(e) {}
+            keys.forEach(k => {
+              const arr = JSON.parse(localStorage.getItem(k) || "[]");
+              if (Array.isArray(arr)) {
+                arr.forEach(p => {
+                  if (p && p.name && !seen.has(String(p.id || p.name))) {
+                    seen.add(String(p.id || p.name));
+                    customProds.push(p);
+                  }
+                });
+              }
+            });
           } catch(e) {}
-          return null;
+
+          const cIds = new Set(customProds.map(p => String(p.id)));
+          const cNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
+          const filteredRaw = (list || []).filter(p => !cIds.has(String(p.id)) && !cNames.has((p.name || "").toLowerCase().trim()));
+          let combined = [...customProds, ...filteredRaw];
+
+          let deletedIds = new Set();
+          try {
+            const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
+            if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
+          } catch(e) {}
+
+          let editedOverrides = {};
+          try {
+            editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
+          } catch(e) {}
+
+          combined = combined
+            .filter(p => !deletedIds.has(String(p.id)))
+            .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p);
+
+          return combined.map(p => {
+            const isService = !!(p.is_service === true || p.is_service === 'true' || p.listing_type === 'service');
+            return {
+              id: p.id,
+              name: p.name,
+              slug: p.slug || '',
+              category: p.category || (isService ? 'Contractor & Services' : 'General B2B'),
+              country: p.country || 'India',
+              flag: getFlag(p.country || 'India'),
+              supplier: { 
+                name: p.supplier_name || ('Verified Supplier #' + (p.supplier_id || 1)), 
+                location: (p.city || 'Industrial Hub') + ', ' + (p.country || 'India'),
+                slug: p.supplier_slug || (p.supplier && p.supplier.slug) || ''
+              },
+              supplier_id: p.supplier_id || 1,
+              supplier_slug: p.supplier_slug || (p.supplier && p.supplier.slug) || '',
+              supplier_phone: p.supplier_phone || (p.supplier && p.supplier.phone) || '',
+              supplier_whatsapp: p.supplier_whatsapp || (p.supplier && p.supplier.whatsapp) || '',
+              price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
+              moq: p.moq || 1,
+              unit: p.unit || (isService ? 'Service' : 'Pieces'),
+              image: (window.formatProductImageUrl ? window.formatProductImageUrl(p.image_url) : p.image_url) || 'assets/images/logo.png',
+              is_service: isService,
+              listing_type: isService ? 'service' : 'product',
+              badge: isService ? '🛠️ VERIFIED SERVICE' : ((p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? 'Paid Trusted' : 'VERIFIED PRO'),
+              is_paid_trusted: !!(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted))
+            };
+          });
+        }
+
+        let activeFilter = 'all';
+        let currentDisplayLimit = 36; // Shows ALL 25+ products and services immediately without cutoff!
+
+        function renderGrid() {
+          const list = window.homeProductsList || [];
+          const countAll = list.length;
+          const countProducts = list.filter(p => !p.is_service).length;
+          const countServices = list.filter(p => p.is_service).length;
+
+          const elCountAll = document.getElementById('countAll');
+          const elCountProds = document.getElementById('countProducts');
+          const elCountServs = document.getElementById('countServices');
+          if (elCountAll) elCountAll.innerText = countAll;
+          if (elCountProds) elCountProds.innerText = countProducts;
+          if (elCountServs) elCountServs.innerText = countServices;
+
+          let filtered = list;
+          if (activeFilter === 'product') {
+            filtered = list.filter(p => !p.is_service);
+          } else if (activeFilter === 'service') {
+            filtered = list.filter(p => p.is_service);
+          }
+
+          const showingSummary = document.getElementById('homeShowingSummary');
+          if (showingSummary) {
+            showingSummary.innerText = `Showing ${Math.min(currentDisplayLimit, filtered.length)} of ${filtered.length} verified listings`;
+          }
+
+          if (filtered.length === 0) {
+            homeGrid.innerHTML = `
+              <div style="grid-column:1/-1; padding:3.5rem 2rem; text-align:center; background:var(--color-white); border:1px dashed #cbd5e1; border-radius:var(--radius-lg);">
+                <div style="font-size:3rem; margin-bottom:0.75rem;">${activeFilter === 'service' ? '🛠️' : '🏭'}</div>
+                <h3 style="font-size:1.25rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem;">
+                  ${activeFilter === 'service' ? 'No Services Listed In This Category Yet' : 'Global Wholesale B2B Marketplace'}
+                </h3>
+                <p style="color:#64748b; margin-bottom:1.5rem; max-width:540px; margin-left:auto; margin-right:auto; font-size:0.9rem;">
+                  ${activeFilter === 'service' ? 'Verified contractors and service providers can list unlimited services for free.' : 'Verified suppliers are listing products and services across 22+ industries.'}
+                </p>
+                <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
+                  <a href="sell.html" class="btn btn-orange" style="font-weight:700; padding:0.6rem 1.5rem;">
+                    🏭 Start Listing on Flenko
+                  </a>
+                  <a href="rfq.html" class="btn btn-secondary" style="font-weight:600; padding:0.6rem 1.5rem;">
+                    ✉️ Post Requirement (Free)
+                  </a>
+                </div>
+              </div>
+            `;
+            const lmWrap = document.getElementById('homeLoadMoreWrap');
+            if (lmWrap) lmWrap.style.display = 'none';
+            return;
+          }
+
+          const toDisplay = filtered.slice(0, currentDisplayLimit);
+          homeGrid.innerHTML = toDisplay.map(p => {
+            const sPhone = (p.supplier_phone || (p.supplier && p.supplier.phone) || '').toString().trim();
+            const cleanDigits = sPhone.replace(/[^0-9]/g, '');
+            const waDigits = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
+            const inquiryTopic = p.is_service ? 'contractor service' : 'wholesale order';
+            const waText = encodeURIComponent(`Hi, I am interested in ${inquiryTopic} for "${p.name}". Please share details and best quotation.`);
+            const waUrl = waDigits ? `https://wa.me/${waDigits}?text=${waText}` : '#';
+            const callUrl = sPhone ? (sPhone.startsWith('+') ? `tel:${sPhone}` : `tel:+91${cleanDigits.slice(-10)}`) : '#';
+
+            return `
+            <article class="flenko-card" style="${p.is_service ? 'border-top:3px solid #f59e0b;' : ''}">
+              <div class="flenko-card-img-wrap" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer; position:relative;">
+                <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='assets/images/logo.png'">
+                <span class="flenko-badge" style="position:absolute; top:8px; left:8px; border-radius:4px; padding:3px 8px; font-size:0.68rem; font-weight:700; text-transform:uppercase; ${p.is_service ? 'background:#d97706; color:#ffffff;' : 'background:#0284c7; color:#ffffff;'}">
+                  ${p.is_service ? '🛠️ SERVICE / CONTRACTOR' : p.badge}
+                </span>
+                <span class="flenko-country-flag" title="${p.country}">${p.flag}</span>
+              </div>
+              <div class="flenko-card-body">
+                <div style="font-size:0.72rem; color:${p.is_service ? '#b45309' : '#0284c7'}; font-weight:700; text-transform:uppercase; margin-bottom:0.25rem;">
+                  ${p.is_service ? '🛠️ Verified Contractor Service' : '📦 Factory Wholesale'}
+                </div>
+                <h3 class="flenko-card-title" title="${p.name}">
+                  <a href="${p.slug ? `/products/${p.slug}` : `products.html?q=${encodeURIComponent(p.name)}`}">${p.name}</a>
+                </h3>
+                <div class="flenko-price-main" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
+                  ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
+                    ? `<span class="flenko-price-val">₹${Number(p.price).toLocaleString('en-IN')}</span> <span class="flenko-price-unit">/ ${p.unit}</span>`
+                    : `<span style="color:#0284c7; font-weight:700; font-size:0.85rem;">${p.is_service ? 'Contact for quotation / rates' : 'Contact supplier for best rates'}</span>`
+                  }
+                </div>
+                <div class="flenko-moq-row">
+                  ${p.is_service ? `
+                    <span style="color:#475569; font-weight:600; font-size:0.78rem;">📋 Scope: <strong>${p.unit}</strong></span>
+                    <span style="color:#16a34a; font-weight:600; font-size:0.78rem;">✓ Verified Contractor</span>
+                  ` : `
+                    <span>MOQ: <strong>${p.moq} ${p.unit}</strong></span>
+                    <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
+                  `}
+                </div>
+                <div class="flenko-supplier-box">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
+                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" class="flenko-supp-name" style="text-decoration:none; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="View Supplier Storefront">
+                      ${p.supplier ? p.supplier.name : 'Verified Supplier'}
+                    </a>
+                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
+                      #FLK-SUP-${p.supplier_id || 1}
+                    </a>
+                  </div>
+                  <div class="flenko-supp-loc">📍 ${p.supplier ? p.supplier.location : 'India'}</div>
+                </div>
+                <!-- Direct Quick Call & WhatsApp Buttons -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.35rem; margin-top:0.65rem;">
+                  ${sPhone ? `
+                    <a href="${callUrl}" class="btn" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; padding:0.4rem 0.2rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:2px; border-radius:6px;" title="Direct Call">
+                      📞 Call
+                    </a>
+                    <a href="${waUrl}" target="_blank" class="btn" style="background:#25D366; color:#ffffff; border:none; font-size:0.75rem; font-weight:700; padding:0.4rem 0.2rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:2px; border-radius:6px; box-shadow:0 1px 3px rgba(37,211,102,0.3);" title="WhatsApp">
+                      💬 WhatsApp
+                    </a>
+                  ` : `
+                    <button type="button" class="btn btn-secondary" style="grid-column:1/-1; padding:0.4rem 0.5rem; font-size:0.75rem; font-weight:700;" onclick="openHomeInquiry('${p.id}')">
+                      💬 Contact ${p.is_service ? 'Provider' : 'Supplier'}
+                    </button>
+                  `}
+                </div>
+                <button type="button" class="btn ${p.is_service ? 'btn-primary' : 'btn-orange'}" style="width:100%; font-size:0.78rem; font-weight:700; padding:0.42rem; margin-top:0.35rem; ${p.is_service ? 'background:#0284c7; color:#fff;' : ''}" onclick="openHomeInquiry('${p.id}')">
+                  ${p.is_service ? '🛠️ Book / Request Quote' : '✉️ Send Wholesale RFQ'}
+                </button>
+              </div>
+            </article>
+            `;
+          }).join('');
+
+          // Update Load More button
+          const lmWrap = document.getElementById('homeLoadMoreWrap');
+          const lmBtn = document.getElementById('homeLoadMoreBtn');
+          if (lmWrap && lmBtn) {
+            if (filtered.length > currentDisplayLimit) {
+              lmWrap.style.display = 'block';
+              lmBtn.innerText = `Load More Listings (${filtered.length - currentDisplayLimit} Remaining) ↓`;
+            } else {
+              lmWrap.style.display = 'none';
+            }
+          }
+        }
+
+        window.filterHomeListings = function(type) {
+          activeFilter = type;
+          currentDisplayLimit = 36;
+          document.querySelectorAll('.home-filter-btn').forEach(btn => {
+            if (btn.getAttribute('data-type') === type) {
+              btn.style.background = '#0284c7';
+              btn.style.color = '#ffffff';
+              btn.style.borderColor = '#0284c7';
+            } else {
+              btn.style.background = '#ffffff';
+              btn.style.color = '#475569';
+              btn.style.borderColor = '#cbd5e1';
+            }
+          });
+          renderGrid();
+        };
+
+        window.loadMoreHomeListings = function() {
+          currentDisplayLimit += 36;
+          renderGrid();
+        };
+
+        window.openHomeInquiry = function(id) {
+          const p = (window.homeProductsList || []).find(x => String(x.id) === String(id));
+          if (p && typeof window.openSupplierInquiry === 'function') {
+            window.openSupplierInquiry(p);
+          } else {
+            window.location.href = `products.html?q=${encodeURIComponent(p ? p.name : '')}`;
+          }
         };
 
         let rawList = [];
@@ -1416,11 +1679,17 @@
           } catch(e) {}
         }
 
-        // 3. Background Non-Blocking Revalidation (stale-while-revalidate with 2.5s timeout)
+        // Render initial cached/static list immediately
+        if (rawList && rawList.length > 0) {
+          window.homeProductsList = processAndMapProducts(rawList);
+          renderGrid();
+        }
+
+        // 3. Background Non-Blocking Revalidation: Fetch live items from server and re-render dynamically
         setTimeout(async () => {
           try {
             const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 2500);
+            const timer = setTimeout(() => controller.abort(), 4000);
             const res = await fetch(`${primaryApi}/public/products?_t=${Date.now()}`, { signal: controller.signal });
             clearTimeout(timer);
             if (res.ok) {
@@ -1430,182 +1699,12 @@
                   if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
                   else localStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
                 } catch(e) {}
+                window.homeProductsList = processAndMapProducts(data.products);
+                renderGrid();
               }
             }
           } catch(e) {}
-        }, 100);
-
-        const getFlag = (cName) => {
-          if (!cName) return '📍';
-          const match = (window.FLENKO_COUNTRIES || []).find(c => c.name.toLowerCase() === cName.toLowerCase() || c.code.toLowerCase() === cName.toLowerCase());
-          return match ? match.flag : (cName === 'United States' ? '🇺🇸' : (cName === 'Germany' ? '🇩🇪' : (cName === 'China' ? '🇨🇳' : (cName === 'United Arab Emirates' ? '🇦🇪' : '🇮🇳'))));
-        };
-
-        // Dual-Engine Homepage Sync: Merge seller custom products at the top
-        let customProds = [];
-        try {
-          const seen = new Set();
-          const keys = ["flenko_custom_products", "flenko_seller_products", "flenko_public_products"];
-          try {
-            const u = (typeof auth !== "undefined" && auth.getUser) ? auth.getUser() : null;
-            if (u && u.id) keys.unshift("flenko_seller_products_" + u.id);
-          } catch(e) {}
-          keys.forEach(k => {
-            const arr = JSON.parse(localStorage.getItem(k) || "[]");
-            if (Array.isArray(arr)) {
-              arr.forEach(p => {
-                if (p && p.name && !seen.has(String(p.id || p.name))) {
-                  seen.add(String(p.id || p.name));
-                  customProds.push(p);
-                }
-              });
-            }
-          });
-        } catch(e) {}
-
-        const cIds = new Set(customProds.map(p => String(p.id)));
-        const cNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
-        const filteredRaw = (rawList || []).filter(p => !cIds.has(String(p.id)) && !cNames.has((p.name || "").toLowerCase().trim()));
-        rawList = [...customProds, ...filteredRaw];
-
-        // Apply tombstones and edited overrides
-        let deletedIds = new Set();
-        try {
-          const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
-          if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
-        } catch(e) {}
-
-        let editedOverrides = {};
-        try {
-          editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
-        } catch(e) {}
-
-        rawList = rawList
-          .filter(p => !deletedIds.has(String(p.id)))
-          .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p);
-
-        if (rawList && rawList.length > 0) {
-          homeProducts = rawList.map(p => ({
-            id: p.id,
-            name: p.name,
-            slug: p.slug || '',
-            category: p.category || 'General B2B',
-            country: p.country || 'India',
-            flag: getFlag(p.country || 'India'),
-            supplier: { 
-              name: p.supplier_name || ('Verified Supplier #' + p.supplier_id), 
-              location: (p.city || 'Industrial Hub') + ', ' + (p.country || 'India'),
-              slug: p.supplier_slug || (p.supplier && p.supplier.slug) || ''
-            },
-            supplier_id: p.supplier_id || 1,
-            supplier_slug: p.supplier_slug || (p.supplier && p.supplier.slug) || '',
-            supplier_phone: p.supplier_phone || '',
-            supplier_whatsapp: p.supplier_whatsapp || '',
-            price: (p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0) ? parseFloat(p.price) : null,
-            moq: p.moq || 1,
-            unit: p.unit || 'Pieces',
-            image: (window.formatProductImageUrl ? window.formatProductImageUrl(p.image_url) : p.image_url) || 'assets/images/logo.png',
-            badge: (p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted)) ? 'Paid Trusted' : 'VERIFIED PRO',
-            is_paid_trusted: !!(p.is_paid_trusted || (p.supplier && p.supplier.is_paid_trusted))
-          }));
-        }
-
-        
-
-        window.homeProductsList = homeProducts;
-
-        window.openHomeInquiry = function(id) {
-          const p = (window.homeProductsList || []).find(x => String(x.id) === String(id));
-          if (p && typeof window.openSupplierInquiry === 'function') {
-            window.openSupplierInquiry(p);
-          } else {
-            window.location.href = `products.html?q=${encodeURIComponent(p ? p.name : '')}`;
-          }
-        };
-
-        if (homeProducts.length === 0) {
-          homeGrid.innerHTML = `
-            <div style="grid-column:1/-1; padding:3.5rem 2rem; text-align:center; background:var(--color-white); border:1px dashed #cbd5e1; border-radius:var(--radius-lg);">
-              <div style="font-size:3rem; margin-bottom:0.75rem;">🏭</div>
-              <h3 style="font-size:1.25rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem;">
-                Global Wholesale B2B Marketplace
-              </h3>
-              <p style="color:#64748b; margin-bottom:1.5rem; max-width:540px; margin-left:auto; margin-right:auto; font-size:0.9rem;">
-                Verified suppliers are listing products across 22+ industries. Connect directly with manufacturers or list your products today.
-              </p>
-              <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
-                <a href="sell.html" class="btn btn-orange" style="font-weight:700; padding:0.6rem 1.5rem;">
-                  🏭 Start Selling on Flenko
-                </a>
-                <a href="rfq.html" class="btn btn-secondary" style="font-weight:600; padding:0.6rem 1.5rem;">
-                  ✉️ Post Buying RFQ (Free)
-                </a>
-              </div>
-            </div>
-          `;
-        } else {
-          homeGrid.innerHTML = homeProducts.slice(0, 16).map(p => {
-            const sPhone = (p.supplier_phone || (p.supplier && p.supplier.phone) || '').toString().trim();
-            const cleanDigits = sPhone.replace(/[^0-9]/g, '');
-            const waDigits = cleanDigits.length === 10 ? ('91' + cleanDigits) : cleanDigits;
-            const waText = encodeURIComponent(`Hi, I am interested in wholesale order for "${p.name}". Please share best price and MOQ.`);
-            const waUrl = waDigits ? `https://wa.me/${waDigits}?text=${waText}` : '#';
-            const callUrl = sPhone ? (sPhone.startsWith('+') ? `tel:${sPhone}` : `tel:+91${cleanDigits.slice(-10)}`) : '#';
-            return `
-            <article class="flenko-card">
-              <div class="flenko-card-img-wrap" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
-                <img src="${p.image}" alt="${p.name}" class="flenko-card-img" loading="lazy" onerror="this.src='assets/images/logo.png'">
-                <span class="flenko-badge flenko-badge-blue">${p.badge}</span>
-                <span class="flenko-country-flag" title="${p.country}">${p.flag}</span>
-              </div>
-              <div class="flenko-card-body">
-                <h3 class="flenko-card-title" title="${p.name}">
-                  <a href="${p.slug ? `/products/${p.slug}` : `products.html?q=${encodeURIComponent(p.name)}`}">${p.name}</a>
-                </h3>
-                <div class="flenko-price-main" onclick="openHomeInquiry('${p.id}')" style="cursor:pointer;">
-                  ${(p.price !== null && p.price !== undefined && p.price !== '' && Number(p.price) > 0)
-                    ? `<span class="flenko-price-val">₹${Number(p.price).toLocaleString('en-IN')}</span> <span class="flenko-price-unit">/ ${p.unit}</span>`
-                    : `<span style="color:#0284c7; font-weight:700; font-size:0.85rem;">Contact supplier to get best rates</span>`
-                  }
-                </div>
-                <div class="flenko-moq-row">
-                  <span>MOQ: <strong>${p.moq} ${p.unit}</strong></span>
-                  <span style="color:#16a34a; font-weight:600;">✓ In Stock</span>
-                </div>
-                <div class="flenko-supplier-box">
-                  <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
-                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" class="flenko-supp-name" style="text-decoration:none; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="View Supplier Storefront">
-                      ${p.supplier ? p.supplier.name : 'Verified Supplier'}
-                    </a>
-                    <a href="${p.supplier_slug ? `/suppliers/${p.supplier_slug}` : `supplier-details.html?id=${p.supplier_id || ''}`}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Verified Seller ID">
-                      #FLK-SUP-${p.supplier_id || 1}
-                    </a>
-                  </div>
-                  <div class="flenko-supp-loc">📍 ${p.supplier ? p.supplier.location : 'India'}</div>
-                </div>
-                <!-- Direct Quick Call & WhatsApp Buttons -->
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.35rem; margin-top:0.65rem;">
-                  ${sPhone ? `
-                    <a href="${callUrl}" class="btn" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; padding:0.4rem 0.2rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:2px; border-radius:6px;" title="Direct Call">
-                      📞 Call
-                    </a>
-                    <a href="${waUrl}" target="_blank" class="btn" style="background:#25D366; color:#ffffff; border:none; font-size:0.75rem; font-weight:700; padding:0.4rem 0.2rem; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:2px; border-radius:6px; box-shadow:0 1px 3px rgba(37,211,102,0.3);" title="WhatsApp">
-                      💬 WhatsApp
-                    </a>
-                  ` : `
-                    <button type="button" class="btn btn-secondary" style="grid-column:1/-1; padding:0.4rem 0.5rem; font-size:0.75rem; font-weight:700;" onclick="openHomeInquiry('${p.id}')">
-                      💬 Contact Supplier
-                    </button>
-                  `}
-                </div>
-                <button type="button" class="btn btn-orange" style="width:100%; font-size:0.78rem; font-weight:700; padding:0.42rem; margin-top:0.35rem;" onclick="openHomeInquiry('${p.id}')">
-                  ✉️ Send Wholesale RFQ
-                </button>
-              </div>
-            </article>
-          `;
-          }).join('');
-        }
+        }, 80);
       }
     });
   </script>
