@@ -28,7 +28,11 @@ def create_update_zip():
         '.system_generated',
         '__pycache__',
         'tests',
-        '.neon'
+        '.neon',
+        'products',
+        'services',
+        'suppliers',
+        'wholesale'
     }
 
     exclude_files = {

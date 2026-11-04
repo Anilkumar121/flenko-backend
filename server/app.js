@@ -1580,7 +1580,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 });
 
 // Middleware to verify JWT
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'No token provided' });
 
@@ -1597,26 +1597,32 @@ const authMiddleware = (req, res, next) => {
         req.user = { id: 1, role: 'admin', phone: '8368074009', name: 'Master Admin' };
         return next();
       }
+      let targetUserId = null;
       if (token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_')) {
         const idPart = token.replace('flenko_jwt_local_', '').replace('flenko_jwt_google_', '');
-        let numId = parseInt(idPart) || 1;
-        if (numId > 2147483640) {
-          numId = (numId % 2000000000) + 10;
+        targetUserId = parseInt(idPart) || 1;
+        if (targetUserId > 2147483640) {
+          targetUserId = (targetUserId % 2000000000) + 10;
         }
-        req.user = { id: numId, role: 'supplier', phone: '9876543210', name: 'Verified Supplier' };
-        return next();
+      } else {
+        try {
+          const decoded = jwt.decode(token);
+          if (decoded && (decoded.id || decoded.phone)) {
+            targetUserId = parseInt(decoded.id) || 1;
+            if (targetUserId > 2147483640) targetUserId = (targetUserId % 2000000000) + 10;
+          }
+        } catch(decodeErr) {}
       }
-      try {
-        const decoded = jwt.decode(token);
-        if (decoded && (decoded.id || decoded.phone)) {
-          let numId = parseInt(decoded.id) || 1;
-          if (numId > 2147483640) numId = (numId % 2000000000) + 10;
-          req.user = { ...decoded, id: numId };
-          return next();
-        }
-      } catch(decodeErr) {}
-      if (token.startsWith('flenko_jwt_seller_') || token.startsWith('flenko_jwt_buyer_') || token === 'flenko_token') {
-        req.user = { id: 8, role: 'supplier', phone: '8587979010', name: 'Verified Supplier' };
+
+      if (targetUserId) {
+        try {
+          const uRes = await db.query('SELECT id, phone, name, email, role, subscription, city FROM users WHERE id = $1', [targetUserId]);
+          if (uRes.rows && uRes.rows.length > 0) {
+            req.user = uRes.rows[0];
+            return next();
+          }
+        } catch(dbUerr) {}
+        req.user = { id: targetUserId, role: 'supplier', name: 'Verified Supplier' };
         return next();
       }
     }
@@ -3133,12 +3139,21 @@ app.get('/api/products', authMiddleware, async (req, res) => {
     } else {
       let targetId = req.user ? req.user.id : null;
       let cleanP = req.user && req.user.phone ? req.user.phone.replace(/[^0-9]/g, '').slice(-10) : '';
-      if (cleanP) {
-        const uCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
-        if (uCheck.rows && uCheck.rows.length > 0) {
-          targetId = uCheck.rows[0].id;
-        }
+
+      // Collect all associated IDs for this seller's phone
+      let supplierIdList = targetId ? [targetId] : [];
+      if (cleanP && cleanP.length === 10) {
+        try {
+          const uCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
+          if (uCheck.rows && uCheck.rows.length > 0) {
+            uCheck.rows.forEach(r => {
+              if (r.id && !supplierIdList.includes(r.id)) supplierIdList.push(r.id);
+            });
+          }
+        } catch(e) {}
       }
+      if (supplierIdList.length === 0) supplierIdList = [1];
+
       prods = await db.query(`
         SELECT p.*, 
                COALESCE(b.company_name, u.name, 'Verified Supplier') AS supplier_name, 
@@ -3151,9 +3166,9 @@ app.get('/api/products', authMiddleware, async (req, res) => {
         FROM products p
         LEFT JOIN businesses b ON p.supplier_id = b.user_id
         LEFT JOIN users u ON p.supplier_id = u.id
-        WHERE p.supplier_id = $1 OR (u.phone LIKE $2) OR (b.phone LIKE $2) OR (b.whatsapp LIKE $2)
+        WHERE p.supplier_id = ANY($1::int[]) OR (u.phone LIKE $2) OR (b.phone LIKE $2) OR (b.whatsapp LIKE $2)
         ORDER BY p.created_at DESC
-      `, [targetId, cleanP ? ('%' + cleanP) : '%__none__']);
+      `, [supplierIdList, cleanP ? ('%' + cleanP) : '%__none__']);
     }
     const formattedProds = (prods.rows || []).map(p => {
       p.image_url = normalizeProductImageUrl(p.image_url);

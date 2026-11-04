@@ -1342,7 +1342,30 @@ const auth = {
         resData = await res.json();
       }
     } catch(e) {
-      console.warn("Network add product unavailable, saving to local store:", e);
+      console.warn("Network add product unavailable, retrying with JSON:", e);
+    }
+
+    if (!resData) {
+      try {
+        const jsonPayload = {
+          name, category, country, price, moq, unit, stock_quantity,
+          is_service, listing_type,
+          image_data: image_url
+        };
+        const resJson = await this.fetchWithFallback("/products", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(jsonPayload)
+        });
+        if (resJson && resJson.ok) {
+          resData = await resJson.json();
+        }
+      } catch(je) {
+        console.warn("JSON fallback add product warning:", je);
+      }
     }
 
     // 2. Prepare the verified saved product record
@@ -1533,7 +1556,30 @@ const auth = {
         resData = await res.json();
       }
     } catch(e) {
-      console.warn("Network edit product warning:", e);
+      console.warn("Network edit product warning, retrying with JSON:", e);
+    }
+
+    if (!resData) {
+      try {
+        const jsonPayload = {
+          name, category, country, price, moq, unit, stock_quantity,
+          is_service, listing_type,
+          image_data: image_url
+        };
+        const resJson = await this.fetchWithFallback(`/products/${encodeURIComponent(id)}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(jsonPayload)
+        });
+        if (resJson && resJson.ok) {
+          resData = await resJson.json();
+        }
+      } catch(je) {
+        console.warn("JSON fallback edit product warning:", je);
+      }
     }
 
     const updatedProd = (resData && resData.product) ? {

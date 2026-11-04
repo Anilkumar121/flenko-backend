@@ -120,10 +120,7 @@ async function generateAllSeoPagesAndSitemaps() {
         isService
       });
 
-      // Write to products/<slug>/index.html
-      const pFolder = path.join(productsDir, slug);
-      ensureDir(pFolder);
-      fs.writeFileSync(path.join(pFolder, 'index.html'), html, 'utf8');
+      // Dynamic routes handle serving; count for sitemap
       productCount++;
 
       const pLastmod = p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : TODAY;
@@ -138,9 +135,6 @@ async function generateAllSeoPagesAndSitemaps() {
 
       // If it is a service, also write to services/<slug>/index.html and add to sitemap-services.xml
       if (isService) {
-        const sFolder = path.join(servicesDir, slug);
-        ensureDir(sFolder);
-        fs.writeFileSync(path.join(sFolder, 'index.html'), html, 'utf8');
         serviceCount++;
 
         const servUrl = `${BASE_URL}/services/${encodeURIComponent(slug)}`;
@@ -169,9 +163,6 @@ async function generateAllSeoPagesAndSitemaps() {
         products: suppProducts
       });
 
-      const sFolder = path.join(suppliersDir, slug);
-      ensureDir(sFolder);
-      fs.writeFileSync(path.join(sFolder, 'index.html'), html, 'utf8');
       supplierCount++;
 
       const suppUrl = `${BASE_URL}/suppliers/${encodeURIComponent(slug)}`;
@@ -203,9 +194,6 @@ async function generateAllSeoPagesAndSitemaps() {
         suppliers: catSuppliers
       });
 
-      const cFolder = path.join(wholesaleDir, slug);
-      ensureDir(cFolder);
-      fs.writeFileSync(path.join(cFolder, 'index.html'), html, 'utf8');
       categoryCount++;
 
       const catUrl = `${BASE_URL}/wholesale/${encodeURIComponent(slug)}`;
