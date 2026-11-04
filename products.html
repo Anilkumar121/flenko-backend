@@ -830,10 +830,12 @@
       }
 
       // Step 1: Instant Local Cache (< 5ms)
+      let hasCachedProducts = false;
       try {
         const cached = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
         if (Array.isArray(cached) && cached.length > 0) {
           formatAndStoreProducts(cached);
+          hasCachedProducts = true;
         }
       } catch(e) {}
 
@@ -844,28 +846,53 @@
           const staticList = await staticRes.json();
           if (Array.isArray(staticList) && staticList.length > 0) {
             formatAndStoreProducts(staticList);
-            try {
-              if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(staticList));
-              else localStorage.setItem('flenko_public_products_cache', JSON.stringify(staticList));
-            } catch(e) {}
+            if (!hasCachedProducts) {
+              try {
+                if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(staticList));
+                else localStorage.setItem('flenko_public_products_cache', JSON.stringify(staticList));
+              } catch(e) {}
+            }
           }
         }
       } catch(e) {}
 
-      // Step 3: Background Non-Blocking Revalidation (stale-while-revalidate with 2.5s timeout)
+      // Real-time Event Listeners for Product Add/Delete
+      const refreshProductsCatalog = () => {
+        let list = [];
+        try {
+          list = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
+        } catch(e) {}
+        formatAndStoreProducts(list);
+      };
+      window.addEventListener('flenko:product_added', refreshProductsCatalog);
+      window.addEventListener('flenko:product_deleted', refreshProductsCatalog);
+      window.addEventListener('storage', (e) => {
+        if (e.key && (e.key.includes('product') || e.key === 'flenko_deleted_product_ids')) {
+          refreshProductsCatalog();
+        }
+      });
+
+      // Step 3: Background Non-Blocking Revalidation (stale-while-revalidate with 45s cold start resilience)
       setTimeout(async () => {
         try {
           const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 25000);
-          const res = await fetch(`${primaryApi}/public/products?_t=${Date.now()}`, { signal: controller.signal });
+          const timer = setTimeout(() => controller.abort(), 45000);
+          const res = await fetch(${primaryApi}/public/products?_t=, { signal: controller.signal });
           clearTimeout(timer);
           if (res.ok) {
             const data = await res.json();
             if (data && Array.isArray(data.products) && data.products.length > 0) {
-              formatAndStoreProducts(data.products);
+              let deletedIds = new Set();
               try {
-                if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
-                else localStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
+                const dList = JSON.parse(localStorage.getItem('flenko_deleted_product_ids') || '[]');
+                if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
+              } catch(e) {}
+              const validServerProds = data.products.filter(p => !deletedIds.has(String(p.id)));
+
+              formatAndStoreProducts(validServerProds);
+              try {
+                if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(validServerProds));
+                else localStorage.setItem('flenko_public_products_cache', JSON.stringify(validServerProds));
               } catch(e) {}
             }
           }

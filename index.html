@@ -1688,21 +1688,45 @@
           renderGrid();
         }
 
-        // 3. Background Non-Blocking Revalidation: Fetch live items from server and re-render dynamically
+        // Real-time Event Listeners for Product Add/Delete
+        const refreshProductsGrid = () => {
+          let list = [];
+          try {
+            list = JSON.parse(localStorage.getItem('flenko_public_products_cache') || '[]');
+          } catch(e) {}
+          window.homeProductsList = processAndMapProducts(list);
+          renderGrid();
+        };
+        window.addEventListener('flenko:product_added', refreshProductsGrid);
+        window.addEventListener('flenko:product_deleted', refreshProductsGrid);
+        window.addEventListener('storage', (e) => {
+          if (e.key && (e.key.includes('product') || e.key === 'flenko_deleted_product_ids')) {
+            refreshProductsGrid();
+          }
+        });
+
+        // 3. Background Non-Blocking Revalidation: Fetch live items from server (with 45s cold start resilience)
         setTimeout(async () => {
           try {
             const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 25000);
+            const timer = setTimeout(() => controller.abort(), 45000);
             const res = await fetch(`${primaryApi}/public/products?_t=${Date.now()}`, { signal: controller.signal });
             clearTimeout(timer);
             if (res.ok) {
               const data = await res.json();
               if (data && Array.isArray(data.products) && data.products.length > 0) {
+                let deletedIds = new Set();
                 try {
-                  if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
-                  else localStorage.setItem('flenko_public_products_cache', JSON.stringify(data.products));
+                  const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
+                  if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
                 } catch(e) {}
-                window.homeProductsList = processAndMapProducts(data.products);
+                const validServerProds = data.products.filter(p => !deletedIds.has(String(p.id)));
+
+                try {
+                  if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_public_products_cache', JSON.stringify(validServerProds));
+                  else localStorage.setItem('flenko_public_products_cache', JSON.stringify(validServerProds));
+                } catch(e) {}
+                window.homeProductsList = processAndMapProducts(validServerProds);
                 renderGrid();
               }
             }

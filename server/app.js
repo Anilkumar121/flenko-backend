@@ -3430,6 +3430,7 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       image_url
     }, supplierBiz);
 
+    let supplierBiz = null;
     if ((!image_url || image_url === 'assets/images/logo.png') && supplierBiz && supplierBiz.logo_url) {
       image_url = supplierBiz.logo_url;
     }
@@ -3507,6 +3508,7 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
       image_url = normalizeProductImageUrl(req.body.image_url || req.body.existing_image_url);
     }
 
+    let supplierBiz = null;
     if ((!image_url || image_url === 'assets/images/logo.png') && supplierBiz && supplierBiz.logo_url) {
       image_url = supplierBiz.logo_url;
     }
@@ -4277,11 +4279,54 @@ app.get('/api/admin/products', adminMiddleware, async (req, res) => {
 // Route: Admin Delete Product
 app.delete('/api/admin/products/:id', adminMiddleware, async (req, res) => {
   try {
-    const prodId = parseInt(req.params.id);
-    await db.query('DELETE FROM products WHERE id = $1', [prodId]);
-    res.json({ success: true, message: 'Product deleted' });
+    const rawId = req.params.id;
+    const prodId = parseInt(rawId, 10);
+    const isSafeInt = !isNaN(prodId) && prodId > 0 && prodId <= 2147483647;
+    let suppId = null;
+
+    if (isSafeInt) {
+      const deleted = await db.query('DELETE FROM products WHERE id = $1 RETURNING *', [prodId]);
+      if (deleted.rows && deleted.rows.length > 0 && deleted.rows[0].supplier_id) {
+        suppId = deleted.rows[0].supplier_id;
+      }
+    }
+
+    // Purge from disk products.json
+    try {
+      const pPath = path.join(__dirname, '..', 'products.json');
+      if (fs.existsSync(pPath)) {
+        const pList = JSON.parse(fs.readFileSync(pPath, 'utf8'));
+        const filtered = pList.filter(p => String(p.id) !== String(rawId));
+        if (filtered.length !== pList.length) {
+          fs.writeFileSync(pPath, JSON.stringify(filtered, null, 2), 'utf8');
+        }
+      }
+    } catch(err) {}
+
+    // Purge from disk db.json
+    try {
+      const dbJsonPath = path.join(__dirname, 'database', 'db.json');
+      if (fs.existsSync(dbJsonPath)) {
+        const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
+        if (Array.isArray(dbData.products)) {
+          const filtered = dbData.products.filter(p => String(p.id) !== String(rawId));
+          if (filtered.length !== dbData.products.length) {
+            dbData.products = filtered;
+            fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
+          }
+        }
+      }
+    } catch(err) {}
+
+    if (suppId) {
+      googleSheetsService.syncSellerToGoogleSheet(suppId).catch(() => {});
+    }
+    googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
+    syncProductsCatalogFile(db).catch(() => {});
+
+    res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete product' });
+    res.status(500).json({ error: 'Failed to delete product: ' + error.message });
   }
 });
 
