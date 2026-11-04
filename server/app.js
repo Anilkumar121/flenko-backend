@@ -1703,20 +1703,21 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
     }
 
     // fetch business details
-    let bizRes = await db.query('SELECT * FROM businesses WHERE user_id = $1', [user.id]);
+    const cleanPhone = (user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+    let bizRes = await db.query(`
+      SELECT * FROM businesses 
+      WHERE user_id = $1 
+         OR user_id IN (SELECT id FROM users WHERE phone LIKE $2)
+         OR phone LIKE $2 
+         OR whatsapp LIKE $2 
+      ORDER BY id DESC LIMIT 1
+    `, [user.id, cleanPhone ? ('%' + cleanPhone) : '%__none__']);
     if (bizRes.rows && bizRes.rows.length > 0) {
       user.business = bizRes.rows[0];
-    } else {
-      // Auto-relink business by phone if user_id was desynced
-      const cleanPhone = (user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
-      if (cleanPhone && cleanPhone.length >= 10) {
-        const phoneBiz = await db.query('SELECT * FROM businesses WHERE phone LIKE $1 OR whatsapp LIKE $1 ORDER BY id DESC LIMIT 1', ['%' + cleanPhone]);
-        if (phoneBiz.rows && phoneBiz.rows.length > 0) {
-          user.business = phoneBiz.rows[0];
-          try {
-            await db.query('UPDATE businesses SET user_id = $1 WHERE id = $2', [user.id, user.business.id]);
-          } catch(relinkErr) {}
-        }
+      if (user.business.user_id !== user.id) {
+        try {
+          await db.query('UPDATE businesses SET user_id = $1 WHERE id = $2', [user.id, user.business.id]);
+        } catch(relinkErr) {}
       }
     }
     if (user.business && user.business.company_name && /^\d+$/.test(user.business.company_name.trim())) {
@@ -1726,7 +1727,11 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
     // fetch live product count
     let productsCount = 0;
     try {
-      const prodCountRes = await db.query('SELECT COUNT(*) as cnt FROM products WHERE supplier_id = $1', [user.id]);
+      const prodCountRes = await db.query(`
+        SELECT COUNT(*) as cnt FROM products 
+        WHERE supplier_id = $1 
+           OR supplier_id IN (SELECT id FROM users WHERE phone LIKE $2)
+      `, [user.id, cleanPhone ? ('%' + cleanPhone) : '%__none__']);
       productsCount = parseInt((prodCountRes.rows && prodCountRes.rows[0] && prodCountRes.rows[0].cnt) || 0, 10);
     } catch(e) {}
 
@@ -1962,6 +1967,7 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         }
       }
     } catch(sErr) {}
+    syncSuppliersCatalogFile(db).catch(() => {});
     // Auto-sync seller updates to Google Sheet
     googleSheetsService.syncSellerToGoogleSheet(targetUserId).catch(e => console.warn('[Google Sheets Sync error]', e.message));
   } catch (error) {
@@ -1974,19 +1980,56 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
 app.get('/api/public/businesses', async (req, res) => {
   try {
     const { category, q } = req.query;
-    let query = 'SELECT b.id, b.user_id, b.company_name, b.business_type, b.city, b.country, b.category, b.is_verified, b.logo_url, b.created_at, u.name as owner_name FROM businesses b LEFT JOIN users u ON b.user_id = u.id';
+    let query = `
+      SELECT b.*,
+             COALESCE(b.company_name, u.name, 'Verified Supplier') AS company_name,
+             COALESCE(b.city, u.city, 'Industrial Hub') AS city,
+             COALESCE(b.country, 'India') AS country,
+             COALESCE(b.phone, u.phone, '') AS phone,
+             COALESCE(b.whatsapp, b.phone, u.phone, '') AS whatsapp,
+             u.name AS owner_name,
+             u.email AS owner_email,
+             u.subscription AS subscription,
+             COALESCE((SELECT COUNT(*) FROM products p WHERE p.supplier_id = b.user_id), 0) AS products_count
+      FROM businesses b
+      LEFT JOIN users u ON b.user_id = u.id
+    `;
     const params = [];
+    const conditions = [];
 
     if (category) {
-      query += ' WHERE LOWER(b.category) = LOWER($1)';
-      params.push(category);
+      params.push(category.toLowerCase());
+      conditions.push(`LOWER(b.category) = $${params.length}`);
+    }
+
+    if (q) {
+      params.push(`%${q.toLowerCase()}%`);
+      conditions.push(`(LOWER(b.company_name) LIKE $${params.length} OR LOWER(b.city) LIKE $${params.length} OR LOWER(b.category) LIKE $${params.length})`);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     query += ' ORDER BY b.id DESC';
     const result = await db.query(query, params);
-    res.json({ businesses: result.rows });
+    let rows = result.rows || [];
+    if (rows.length === 0 && !category && !q) {
+      const sPath = path.join(__dirname, '..', 'suppliers.json');
+      if (fs.existsSync(sPath)) {
+        try { rows = JSON.parse(fs.readFileSync(sPath, 'utf8')); } catch(e) {}
+      }
+    }
+    res.json({ businesses: rows });
   } catch (err) {
     console.error('Error fetching public businesses:', err);
+    try {
+      const sPath = path.join(__dirname, '..', 'suppliers.json');
+      if (fs.existsSync(sPath)) {
+        const fallbackList = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+        return res.json({ businesses: fallbackList });
+      }
+    } catch(e) {}
     res.status(500).json({ error: 'Failed to fetch businesses' });
   }
 });
@@ -2032,6 +2075,20 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
       }
     }
 
+    if (!business) {
+      try {
+        const sPath = path.join(__dirname, '..', 'suppliers.json');
+        if (fs.existsSync(sPath)) {
+          const diskList = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+          const found = diskList.find(s => String(s.id) === String(rawId) || String(s.user_id) === String(rawId) || s.slug === String(rawId));
+          if (found) {
+            business = found;
+            targetUserId = business.user_id;
+          }
+        }
+      } catch(e) {}
+    }
+
     if (!business && !user) {
       return res.status(404).json({ error: 'Supplier not found' });
     } else if (!business) {
@@ -2056,8 +2113,23 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
     }
 
     // Fetch genuine supplier's products from database (NO fake mock products!)
-    let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId || business.user_id]);
+    const cleanUPhone = (user && user.phone || business && business.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+    let prodRes = await db.query(`
+      SELECT * FROM products 
+      WHERE supplier_id = $1 
+         OR supplier_id IN (SELECT id FROM users WHERE phone LIKE $2)
+      ORDER BY id DESC
+    `, [targetUserId || business.user_id, cleanUPhone ? ('%' + cleanUPhone) : '%__none__']);
     let products = prodRes.rows || [];
+    if (products.length === 0) {
+      try {
+        const pPath = path.join(__dirname, '..', 'products.json');
+        if (fs.existsSync(pPath)) {
+          const allP = JSON.parse(fs.readFileSync(pPath, 'utf8'));
+          products = allP.filter(p => String(p.supplier_id) === String(targetUserId || business.user_id) || (business.slug && p.supplier_slug === business.slug));
+        }
+      } catch(e) {}
+    }
 
     // Normalize product image URLs
     products = products.map(p => {
@@ -3215,6 +3287,41 @@ async function syncProductsCatalogFile(dbInstance) {
     console.warn('[Catalog Auto-Sync notice]:', e.message);
   }
 }
+
+async function syncSuppliersCatalogFile(dbInstance) {
+  try {
+    const res = await dbInstance.query(`
+      SELECT b.*,
+             COALESCE(b.company_name, u.name, 'Verified Supplier') AS company_name,
+             COALESCE(b.city, u.city, 'Industrial Hub') AS city,
+             COALESCE(b.country, 'India') AS country,
+             COALESCE(b.phone, u.phone, '') AS phone,
+             COALESCE(b.whatsapp, b.phone, u.phone, '') AS whatsapp,
+             u.name AS owner_name,
+             u.email AS owner_email,
+             u.subscription AS subscription,
+             COALESCE((SELECT COUNT(*) FROM products p WHERE p.supplier_id = b.user_id), 0) AS products_count
+      FROM businesses b
+      LEFT JOIN users u ON b.user_id = u.id
+      ORDER BY b.id ASC
+    `);
+    const list = res.rows || [];
+    if (list.length > 0) {
+      const sPath = path.join(__dirname, '..', 'suppliers.json');
+      fs.writeFileSync(sPath, JSON.stringify(list, null, 2), 'utf8');
+      const dbJsonPath = path.join(__dirname, 'database', 'db.json');
+      if (fs.existsSync(dbJsonPath)) {
+        try {
+          const dbData = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
+          dbData.businesses = list;
+          fs.writeFileSync(dbJsonPath, JSON.stringify(dbData, null, 2), 'utf8');
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    console.warn('[Suppliers Auto-Sync notice]:', e.message);
+  }
+}
 // Route: Add a Product (With Custom/Auto-Categorization, Country & Stock Quantity)
 app.post('/api/products', authMiddleware, upload.single('image'), async (req, res) => {
   const { name, price, category, moq, unit, stock_quantity, country } = req.body;
@@ -3940,7 +4047,15 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
 
     let recentUsers = [];
     try {
-      const rUsersRes = await db.query('SELECT id, name, phone, role, subscription, city, created_at FROM users ORDER BY id DESC LIMIT 10');
+      const rUsersRes = await db.query(`
+        SELECT u.id, u.name, u.phone, u.role, u.subscription, u.city, u.created_at,
+               COALESCE(b.company_name, u.name) as company_name,
+               b.subdomain, b.is_paid_trusted,
+               COALESCE((SELECT COUNT(*) FROM products p WHERE p.supplier_id = u.id), 0) as products_count
+        FROM users u
+        LEFT JOIN businesses b ON b.user_id = u.id
+        ORDER BY u.id DESC LIMIT 10
+      `);
       recentUsers = rUsersRes.rows || [];
     } catch(e) {}
 
@@ -4402,6 +4517,8 @@ app.post('/api/admin/clean-demo-data', async (req, res) => {
     await db.query("DELETE FROM products WHERE LOWER(name) LIKE '%demo%' OR LOWER(name) LIKE '%sample%' OR LOWER(name) LIKE '%test%'");
     await db.query("DELETE FROM businesses WHERE LOWER(company_name) LIKE '%demo%' OR LOWER(company_name) LIKE '%sample%'");
     await db.query("DELETE FROM users WHERE role != 'admin' AND id != 1 AND (LOWER(name) LIKE '%demo%' OR LOWER(name) LIKE '%test%')");
+    syncProductsCatalogFile(db).catch(() => {});
+    syncSuppliersCatalogFile(db).catch(() => {});
     res.json({ success: true, message: 'Demo and sample records cleaned up. Real seller accounts and products are fully preserved!' });
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -4546,6 +4663,10 @@ setTimeout(async () => {
     // Legacy demo data auto-rehydration permanently disabled to prevent overwriting new sellers/products
     console.log('✅ [Flenko Engine] Clean boot verified. Preserving registered sellers, buyers and products.');
 
+    // Always sync products and suppliers catalog files unconditionally on boot
+    syncProductsCatalogFile(db).catch(() => {});
+    syncSuppliersCatalogFile(db).catch(() => {});
+
     // 1. Perform startup sync of current sellers to Google Sheet (if configured)
     const webhook = await googleSheetsService.getWebhookUrl();
     if (webhook && !webhook.includes('_test') && webhook.startsWith('http')) {
@@ -4554,7 +4675,6 @@ setTimeout(async () => {
         console.log(`📊 [Google Sheets Startup Sync] Auto-synced ${result.count} sellers on boot.`);
       }
       googleSheetsService.syncAllProductsToGoogleSheet().catch(() => {});
-      syncProductsCatalogFile(db).catch(() => {});
     }
 
     // 2. Backfill any missing SEO slugs for 100% crawlability

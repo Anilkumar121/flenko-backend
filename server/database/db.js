@@ -158,12 +158,12 @@ if (!hasMasterAdmin) {
 function saveMockDB() {
   try {
     fs.writeFileSync(mockDbPath, JSON.stringify(mockDB, null, 2), 'utf8');
-    // Keep root products.json and suppliers.json in sync with current mockDB state
-    if (Array.isArray(mockDB.products)) {
+    // Keep root products.json and suppliers.json in sync with current mockDB state ONLY if non-empty
+    if (Array.isArray(mockDB.products) && mockDB.products.length > 0) {
       const pJsonPath = path.resolve(__dirname, '../../products.json');
       fs.writeFileSync(pJsonPath, JSON.stringify(mockDB.products, null, 2), 'utf8');
     }
-    if (Array.isArray(mockDB.businesses)) {
+    if (Array.isArray(mockDB.businesses) && mockDB.businesses.length > 0) {
       const sJsonPath = path.resolve(__dirname, '../../suppliers.json');
       fs.writeFileSync(sJsonPath, JSON.stringify(mockDB.businesses, null, 2), 'utf8');
     }
@@ -1253,12 +1253,22 @@ module.exports = {
       return { rows: [] };
     }
     if (textHas("DELETE FROM users WHERE role != 'admin'") || textHas("DELETE FROM users WHERE role = 'supplier'")) {
-      mockDB.users = (mockDB.users || []).filter(u => u.id == 1 && u.role === 'admin');
+      // NEVER wipe real registered users; only filter out demo or test records
+      mockDB.users = (mockDB.users || []).filter(u => {
+        if (u.id == 1 || u.role === 'admin') return true;
+        const n = (u.name || '').toLowerCase();
+        const e = (u.email || '').toLowerCase();
+        return !n.includes('demo') && !n.includes('sample') && !n.includes('test') && !e.includes('demo') && !e.includes('test');
+      });
       saveMockDB();
       return { rows: [] };
     }
     if (textHas('DELETE FROM businesses')) {
-      mockDB.businesses = [];
+      // NEVER wipe all businesses; only filter out demo or test records
+      mockDB.businesses = (mockDB.businesses || []).filter(b => {
+        const c = (b.company_name || '').toLowerCase();
+        return !c.includes('demo') && !c.includes('sample') && !c.includes('test');
+      });
       saveMockDB();
       return { rows: [] };
     }

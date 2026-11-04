@@ -974,6 +974,19 @@
         } catch(e) {}
       }
 
+      // 2b. If still not matched, fetch live from API
+      if (!matchedSupp) {
+        try {
+          const apiRes = await fetch(`${window.API_BASE || '/api'}/public/suppliers/${encodeURIComponent(target)}`);
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData && apiData.supplier) {
+              matchedSupp = apiData.supplier;
+            }
+          }
+        } catch(e) {}
+      }
+
       // 3. Load products (merging local custom seller products first)
       try {
         const u = (typeof auth !== "undefined" && typeof auth.getUser === "function") ? auth.getUser() : null;
