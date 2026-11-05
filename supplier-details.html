@@ -1,14 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <base href="/">
+  <script>
+    (function() {
+      // Dynamic base tag ONLY when running via rewritten subpath like /suppliers/xxx on an HTTP server
+      if (window.location.protocol.startsWith('http') && window.location.pathname.includes('/suppliers/')) {
+        var base = document.createElement('base');
+        base.href = '/';
+        document.head.appendChild(base);
+      }
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supplier Profile & Storefront - Flenko B2B</title>
-  <link rel="stylesheet" href="/css/base.css">
-  <link rel="stylesheet" href="/css/layout.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/mobile.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <style>
     body { background-color: #f8fafc; color: #1e293b; }
     
@@ -312,7 +322,8 @@
       <div>
         <div class="supplier-avatar-row">
           <div class="supplier-logo-box">
-            <img id="suppHeroLogo" src="assets/images/logo.png" alt="Supplier Logo">
+            <img id="suppHeroLogo" src="assets/images/logo.png" alt="Supplier Logo" onerror="this.style.display='none'; document.getElementById('suppHeroLogoText').style.display='flex';" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
+            <div id="suppHeroLogoText" style="display:flex; width:100%; height:100%; background: #0F4C9B; color: white; font-size: 1.8rem; font-weight: 800; border-radius: 8px; align-items: center; justify-content: center;">V</div>
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
@@ -592,10 +603,10 @@
     </div>
   </div>
 
-  <script src="/js/auth.js"></script>
-  <script src="/js/currency.js"></script>
-  <script src="/js/translator.js"></script>
-  <script src="/js/mobile-nav.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/translator.js"></script>
+  <script src="js/mobile-nav.js"></script>
   <script>
     let currentSupplierId = 1;
     let supplierData = null;
@@ -689,8 +700,23 @@
       let localBiz = {};
       try {
         const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
-        if (u && (String(u.id) === String(id) || String(u.phone) === String(id))) {
-          localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        if (u) {
+          const userKey = 'flenko_seller_profile_' + (u.id || 'default');
+          const cand = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem('flenko_seller_profile') || '{}');
+          const matches = String(u.id) === String(id) || 
+                          String(u.phone) === String(id) || 
+                          cand.slug === String(id) || 
+                          cand.subdomain === String(id) || 
+                          (u.business && u.business.slug === String(id)) ||
+                          (cand.company_name && cand.company_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === String(id).toLowerCase());
+          if (matches) {
+            localBiz = cand;
+            if (cand.company_name) {
+              localBiz.company_name = cand.company_name;
+            } else if (u.name) {
+              localBiz.company_name = u.name;
+            }
+          }
         }
       } catch(e) {}
 
@@ -706,14 +732,27 @@
         }
       } catch(e) {}
 
-      // Also load products for this supplier from products.json
+      // Check local products cache for seller products
       try {
-        const pRes = await fetch('products.json');
-        if (pRes.ok) {
-          const pList = await pRes.json();
-          allSupplierProducts = pList.filter(p => String(p.supplier_id) === String(id) || (localBiz.user_id && String(p.supplier_id) === String(localBiz.user_id)) || p.supplier_slug === String(id));
+        const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+        if (u) {
+          const cachedP = JSON.parse(localStorage.getItem('flenko_seller_products_' + (u.id || 'default')) || '[]');
+          if (Array.isArray(cachedP) && cachedP.length > 0) {
+            allSupplierProducts = cachedP;
+          }
         }
       } catch(e) {}
+
+      // Also load products for this supplier from products.json if empty
+      if (!allSupplierProducts || allSupplierProducts.length === 0) {
+        try {
+          const pRes = await fetch('products.json');
+          if (pRes.ok) {
+            const pList = await pRes.json();
+            allSupplierProducts = pList.filter(p => String(p.supplier_id) === String(id) || (localBiz.user_id && String(p.supplier_id) === String(localBiz.user_id)) || p.supplier_slug === String(id));
+          }
+        } catch(e) {}
+      }
 
       supplierData = {
         id: id,
@@ -748,8 +787,18 @@
       document.getElementById('suppCategoryText').innerText = supplier.category || 'General';
       document.getElementById('suppAboutText').innerText = supplier.about || `${supplier.company_name} is a certified verified supplier on Flenko offering wholesale products with buyer Trade Assurance protection.`;
 
+      const logoEl = document.getElementById('suppHeroLogo');
+      const logoTextEl = document.getElementById('suppHeroLogoText');
       if (supplier.logo_url) {
-        document.getElementById('suppHeroLogo').src = supplier.logo_url;
+        logoEl.src = supplier.logo_url;
+        logoEl.style.display = 'block';
+        if (logoTextEl) logoTextEl.style.display = 'none';
+      } else {
+        logoEl.style.display = 'none';
+        if (logoTextEl) {
+          logoTextEl.style.display = 'flex';
+          logoTextEl.innerText = (supplier.company_name || 'V').trim().charAt(0).toUpperCase();
+        }
       }
 
       // Paid Verified & Branded Website visibility - STRICTLY only for paid membership holders

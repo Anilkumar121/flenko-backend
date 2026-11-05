@@ -323,8 +323,8 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       if (!auth.getToken()) return window.location.href = 'login.html';
-      auth.syncSellerSession().catch(() => {});
-      populateCategoryDropdowns();
+      try { auth.syncSellerSession().catch(() => {}); } catch(e) {}
+      try { populateCategoryDropdowns(); } catch(e) {}
       await loadProducts();
     });
     // Real-time live image preview listeners
@@ -428,14 +428,21 @@
 
     async function loadProducts() {
       // 1. Instant Cache Render: 0ms UI response
+      let renderedEarly = false;
       try {
         const u = auth.getUser() || {};
         const localKey = 'flenko_seller_products_' + (u.id || 'default');
         const cached = JSON.parse(localStorage.getItem(localKey) || '[]');
         if (Array.isArray(cached) && cached.length > 0) {
           renderProductGrid(cached);
+          renderedEarly = true;
         }
       } catch(e) {}
+
+      // If nothing cached yet, render initial state immediately so screen never hangs on "Loading catalog..."
+      if (!renderedEarly) {
+        renderProductGrid(window.currentProducts || []);
+      }
 
       // 2. Fetch fresh live data from server
       try {
@@ -467,21 +474,34 @@
     }
 
     function populateCategoryDropdowns() {
-      const datalist = document.getElementById('categoryDatalist');
-      if (!datalist) return;
-      const allCats = window.getAllCategories ? window.getAllCategories() : (typeof FLENKO_CATEGORIES !== 'undefined' ? FLENKO_CATEGORIES : []);
-      const options = new Set();
-      allCats.forEach(cat => {
-        options.add(cat.name);
-        if (cat.subcategories) {
-          cat.subcategories.forEach(sub => options.add(sub.name));
-        }
-      });
       try {
-        const custom = JSON.parse(localStorage.getItem('flenko_custom_categories') || '[]');
-        custom.forEach(c => options.add(c));
-      } catch(e) {}
-      datalist.innerHTML = Array.from(options).map(opt => `<option value="${opt}">`).join('');
+        const datalist = document.getElementById('categoryDatalist');
+        if (!datalist) return;
+        const allCats = window.getAllCategories ? window.getAllCategories() : (typeof FLENKO_CATEGORIES !== 'undefined' ? FLENKO_CATEGORIES : []);
+        const options = new Set();
+        if (Array.isArray(allCats)) {
+          allCats.forEach(cat => {
+            if (!cat) return;
+            if (cat.name) options.add(cat.name);
+            if (cat.subcategories && Array.isArray(cat.subcategories)) {
+              cat.subcategories.forEach(sub => {
+                if (sub && sub.name) options.add(sub.name);
+              });
+            }
+          });
+        }
+        try {
+          const custom = JSON.parse(localStorage.getItem('flenko_custom_categories') || '[]');
+          if (Array.isArray(custom)) {
+            custom.forEach(c => {
+              if (c) options.add(typeof c === 'string' ? c : (c.name || ''));
+            });
+          }
+        } catch(e) {}
+        datalist.innerHTML = Array.from(options).filter(Boolean).map(opt => `<option value="${opt}">`).join('');
+      } catch(e) {
+        console.warn('populateCategoryDropdowns error:', e);
+      }
     }
 
     function resizeImageToDataUrl(file, maxWidth = 800, maxHeight = 800, quality = 0.75) {

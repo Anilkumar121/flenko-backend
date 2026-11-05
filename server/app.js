@@ -1088,7 +1088,17 @@ app.post('/api/auth/sync-seller-session', async (req, res) => {
 
     let targetUserId = (user && user.id) ? parseInt(user.id) : (business && business.user_id ? parseInt(business.user_id) : null);
     const cleanPhone = (user && user.phone) ? user.phone.toString().replace(/[^0-9]/g, '').slice(-10) : '';
-    const rawComp = (business && business.company_name) || (user && user.company_name) || (user && user.name) || '';
+
+    // Guard against cross-user business payload contamination
+    if (business && business.user_id && targetUserId && parseInt(business.user_id) !== targetUserId) {
+      console.warn(`[SECURITY] sync-seller-session: Ignored mismatched business user_id ${business.user_id} for target user ${targetUserId}`);
+      business.company_name = (user && (user.company_name || user.name)) || '';
+      business.about = null;
+      business.logo_url = null;
+      business.user_id = targetUserId;
+    }
+
+    const rawComp = (user && user.company_name) || (user && user.name) || (business && business.company_name) || '';
     const cleanCompName = (rawComp && !/^\d+$/.test(rawComp.trim())) ? rawComp.trim() : 'Verified Supplier';
 
     // 1. Ensure User exists

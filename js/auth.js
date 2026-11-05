@@ -246,15 +246,64 @@ const auth = {
       return null;
     }
   },
+  getSellerProfileKey() {
+    const u = this.getUser() || {};
+    const uid = u.id || (u.phone ? u.phone.toString().replace(/[^0-9]/g, '').slice(-10) : 'default');
+    return `flenko_seller_profile_${uid}`;
+  },
+  getSellerProfile() {
+    try {
+      const u = this.getUser() || {};
+      const scopedKey = this.getSellerProfileKey();
+      const scopedData = localStorage.getItem(scopedKey);
+      if (scopedData) {
+        const parsed = JSON.parse(scopedData);
+        if (!parsed.user_id || String(parsed.user_id) === String(u.id)) {
+          return parsed;
+        }
+      }
+      const legacy = localStorage.getItem('flenko_seller_profile');
+      if (legacy) {
+        const parsed = JSON.parse(legacy);
+        if (!parsed.user_id || String(parsed.user_id) === String(u.id)) {
+          return parsed;
+        }
+      }
+    } catch(e) {}
+    return {};
+  },
+  setSellerProfile(data) {
+    try {
+      const scopedKey = this.getSellerProfileKey();
+      const cleanData = flenkoSafeStorage.stripHeavyImages(data || {});
+      flenkoSafeStorage.setItem(scopedKey, JSON.stringify(cleanData));
+      flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(cleanData));
+    } catch(e) {}
+  },
   logout() {
-    localStorage.removeItem('flenko_token');
-    localStorage.removeItem('flenko_user');
+    try {
+      const u = this.getUser() || {};
+      const uid = u.id || (u.phone ? u.phone.toString().replace(/[^0-9]/g, '').slice(-10) : 'default');
+      localStorage.removeItem('flenko_token');
+      localStorage.removeItem('flenko_user');
+      localStorage.removeItem('flenko_seller_profile');
+      localStorage.removeItem(`flenko_seller_profile_${uid}`);
+      localStorage.removeItem('flenko_seller_products');
+      localStorage.removeItem(`flenko_seller_products_${uid}`);
+      localStorage.removeItem('flenko_temp_preview');
+      localStorage.removeItem('flenko_preview_store');
+    } catch(e) {}
     window.location.href = 'login.html';
   },
   async syncSellerSession() {
     try {
       const u = this.getUser() || {};
-      const b = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      if (!u || !u.id) return null;
+      const b = this.getSellerProfile();
+      // Safety check: Never sync foreign user profile
+      if (b.user_id && String(b.user_id) !== String(u.id)) {
+        return null;
+      }
       const cacheKey = `flenko_seller_products_${u.id || u.phone || 'default'}`;
       let p = [];
       try {
@@ -281,9 +330,10 @@ const auth = {
     let resData = null;
 
     // 1. Immediately persist changes locally so seller details are never cleared or lost
-    let bObj = {};
+    let bObj = this.getSellerProfile();
     try {
-      bObj = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+      const u = this.getUser() || {};
+      bObj.user_id = u.id;
       if (formData && typeof formData.entries === 'function') {
         for (let [k, v] of formData.entries()) {
           if (typeof v === 'string') {
@@ -295,9 +345,8 @@ const auth = {
       if (bObj.company_name && /^\d+$/.test(bObj.company_name.trim())) {
         delete bObj.company_name;
       }
-      flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(bObj));
+      this.setSellerProfile(bObj);
 
-      const u = this.getUser() || {};
       u.business = { ...(u.business || {}), ...bObj };
       if (bObj.logo_url) {
         bObj.logo = bObj.logo_url;
@@ -346,7 +395,7 @@ const auth = {
           if (resData && resData.business) {
             Object.assign(bObj, resData.business);
             if (resData.logo_url) bObj.logo_url = resData.logo_url;
-            flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(flenkoSafeStorage.stripHeavyImages(bObj)));
+            this.setSellerProfile(bObj);
           }
         }
       }
@@ -905,12 +954,9 @@ const auth = {
         this.setUser(data.user);
         if (data.user.business) {
           try {
-            const curP = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-            const merged = { ...curP };
-            for (const [k, v] of Object.entries(data.user.business)) {
-              if (v !== null && v !== undefined && v !== '') merged[k] = v;
-            }
-            flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(merged));
+            // Overwrite with clean server business data without merging dirty fields from other accounts
+            const cleanBiz = { ...data.user.business };
+            this.setSellerProfile(cleanBiz);
           } catch(e) {}
         }
       }

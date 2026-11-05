@@ -683,7 +683,7 @@
             document.getElementById('welcomeName').innerText = validBizName;
           }
         }
-        if (localSeller && localSeller.logo_url) {
+        if (localSeller && localSeller.logo_url && (!localSeller.user_id || String(localSeller.user_id) === String(localU.id))) {
           const logoImg = document.getElementById('userLogoImg');
           logoImg.src = localSeller.logo_url;
           logoImg.style.display = 'block';
@@ -701,13 +701,17 @@
            currentServerBiz = profileData.user.business || {};
            currentServerStats = profileData.stats || {};
            const cleanServName = cleanSupplierName(currentServerBiz.company_name || profileData.user.company_name || profileData.user.name, 'Supplier');
-           document.getElementById('userAvatarText').innerText = cleanServName.charAt(0).toUpperCase();
+           const logoImg = document.getElementById('userLogoImg');
+           const avatarText = document.getElementById('userAvatarText');
+           avatarText.innerText = cleanServName.charAt(0).toUpperCase();
            document.getElementById('welcomeName').innerText = cleanServName;
            if (currentServerBiz.logo_url) {
-             const logoImg = document.getElementById('userLogoImg');
              logoImg.src = currentServerBiz.logo_url;
              logoImg.style.display = 'block';
-             document.getElementById('userAvatarText').style.display = 'none';
+             avatarText.style.display = 'none';
+           } else {
+             logoImg.style.display = 'none';
+             avatarText.style.display = 'flex';
            }
            syncWebsiteUI(currentServerBiz, profileData.user);
            updateCompletenessAndViewsUI(currentServerUser, currentServerBiz, currentServerStats, null);
