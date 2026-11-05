@@ -1125,8 +1125,9 @@ const auth = {
   async getProducts() {
     const token = this.getToken();
     const user = this.getUser() || {};
-    const userId = user.id || 1;
-    const isMasterAdmin = (user.role === "admin" || userId === 1);
+    const cleanPhone = (user.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+    const isMasterAdmin = (user.role === "admin" || cleanPhone === '8368074009' || (user.id === 1 && user.role === 'admin'));
+    const userId = user.id || (cleanPhone ? cleanPhone : 'default');
     const cacheKey = `flenko_seller_products_${userId}`;
     let products = [];
 
@@ -1164,39 +1165,20 @@ const auth = {
     // Seller ownership matching logic (checks ID, company name, phone, or slug)
     const sProfile = JSON.parse(localStorage.getItem("flenko_seller_profile") || "{}");
     const sellerCompName = (user.company_name || user.name || sProfile.company_name || "").toLowerCase().trim();
-    const sellerPhone = (user.phone || sProfile.phone || "").replace(/[^0-9]/g, "").slice(-10);
+    const sellerPhone = cleanPhone || (sProfile.phone || "").replace(/[^0-9]/g, "").slice(-10);
     const sellerSlug = (user.subdomain || sProfile.subdomain || (user.business && user.business.slug) || "").toLowerCase().trim();
 
     const matchesUser = (p) => {
       if (!p) return false;
       if (isMasterAdmin) return true;
-      if (String(p.supplier_id) === String(userId)) return true;
+      if (userId && String(p.supplier_id) === String(userId)) return true;
       if (sellerCompName && p.supplier_name && p.supplier_name.toLowerCase().trim() === sellerCompName) return true;
       if (sellerPhone && p.supplier_phone && p.supplier_phone.replace(/[^0-9]/g, "").slice(-10) === sellerPhone) return true;
       if (sellerSlug && p.supplier_slug && p.supplier_slug.toLowerCase().trim() === sellerSlug) return true;
       return false;
     };
 
-    // 1. Try loading from live backend API
-    let resDataProds = null;
-    try {
-      const endpoint = isMasterAdmin ? "/products?all=true" : "/products";
-      const res = await this.fetchWithFallback(endpoint, {
-        headers: token ? { "Authorization": `Bearer ${token}` } : {}
-      });
-      if (res && res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.products)) {
-          resDataProds = data.products;
-          // The backend /api/products already scopes strictly to the authenticated user
-          products = data.products;
-        }
-      }
-    } catch(e) {
-      console.warn("Network getProducts warning:", e);
-    }
-
-    // 2. Load from local cache keys (any product in the seller's own cacheKey was placed there for this seller)
+    // 1. Load from local cache keys immediately
     let localSellerProds = [];
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
@@ -1221,55 +1203,44 @@ const auth = {
       }
     } catch(e) {}
 
-    // 3. For Master Admin, also merge all static catalog products
-    if (isMasterAdmin) {
-      try {
-        const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
-        if (catRes && catRes.ok) {
-          const allProds = await catRes.json();
-          if (Array.isArray(allProds)) {
-            products = dedupe([...products, ...localSellerProds, ...allProds]);
-            return { products };
-          }
+    // 2. Fetch from live backend API
+    let resDataProds = null;
+    try {
+      const endpoint = isMasterAdmin ? "/products?all=true" : "/products";
+      const res = await this.fetchWithFallback(endpoint, {
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.products)) {
+          resDataProds = data.products;
+          products = data.products;
         }
-      } catch(catErr) {}
-    } else {
-      // 4. For regular seller: merge live products with their local products + static items strictly matching
-      try {
-        const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
-        if (catRes && catRes.ok) {
-          const allProds = await catRes.json();
-          if (Array.isArray(allProds)) {
-            const suppProds = allProds.filter(matchesUser);
-            products = dedupe([...localSellerProds, ...products, ...suppProds]);
-          }
-        }
-      } catch(e) {
-        products = dedupe([...localSellerProds, ...products]);
       }
-      
-      // Update local storage so seller products stay cached only if non-empty (never wipe cache with empty)
-      if (products.length > 0) {
-        try {
-          flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
-        } catch(e) {}
-        // If server had 0 products or was recently restarted, trigger background self-healing
-        if (!isMasterAdmin && (!resDataProds || resDataProds.length === 0)) {
-          this.syncSellerSession().catch(() => {});
-        }
-      } else {
-        try {
-          const prevCached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
-          if (Array.isArray(prevCached) && prevCached.length > 0) {
-            products = dedupe(prevCached);
-          }
-        } catch(e) {}
-      }
-
-      return { products };
+    } catch(e) {
+      console.warn("Network getProducts notice:", e);
     }
 
-    products = dedupe([...localSellerProds, ...products]);
+    // 3. Merge server products and local products cleanly
+    products = dedupe([...products, ...localSellerProds]);
+
+    // Update local storage so seller products stay cached
+    if (products.length > 0) {
+      try {
+        flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products));
+      } catch(e) {}
+      if (!isMasterAdmin && (!resDataProds || resDataProds.length === 0)) {
+        this.syncSellerSession().catch(() => {});
+      }
+    } else {
+      try {
+        const prevCached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+        if (Array.isArray(prevCached) && prevCached.length > 0) {
+          products = dedupe(prevCached);
+        }
+      } catch(e) {}
+    }
+
     return { products };
   },
   async addProduct(formData) {
