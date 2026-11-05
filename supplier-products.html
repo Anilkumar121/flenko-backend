@@ -364,7 +364,17 @@
 
 
     function renderProductGrid(prods) {
-      window.currentProducts = Array.isArray(prods) ? prods : [];
+      const rawList = Array.isArray(prods) ? prods : [];
+      const seen = new Set();
+      window.currentProducts = [];
+      rawList.forEach(p => {
+        if (!p || !p.name) return;
+        const normKey = String(p.name).toLowerCase().trim().replace(/\s+/g, ' ');
+        if (!seen.has(normKey)) {
+          seen.add(normKey);
+          window.currentProducts.push(p);
+        }
+      });
       const totalCountEl = document.getElementById('totalListedCount');
       if (totalCountEl) totalCountEl.innerText = window.currentProducts.length;
       const grid = document.getElementById('productGrid');

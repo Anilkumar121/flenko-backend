@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <base href="/">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supplier Profile & Storefront - Flenko B2B</title>
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/mobile.css">
   <style>
     body { background-color: #f8fafc; color: #1e293b; }
     
@@ -591,10 +592,10 @@
     </div>
   </div>
 
-  <script src="js/auth.js"></script>
-  <script src="js/currency.js"></script>
-  <script src="js/translator.js"></script>
-  <script src="js/mobile-nav.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/currency.js"></script>
+  <script src="/js/translator.js"></script>
+  <script src="/js/mobile-nav.js"></script>
   <script>
     let currentSupplierId = 1;
     let supplierData = null;
@@ -610,7 +611,28 @@
       if (id && !isNaN(parseInt(id, 10))) {
         return parseInt(id, 10);
       }
-      return id || '';
+      if (id) return id;
+
+      // Extract from clean URL pathname: /suppliers/codemarkers -> "codemarkers"
+      try {
+        const path = window.location.pathname.replace(/\/+$/, '');
+        const segments = path.split('/').filter(Boolean);
+        const suppIdx = segments.indexOf('suppliers');
+        if (suppIdx !== -1 && segments[suppIdx + 1]) {
+          return decodeURIComponent(segments[suppIdx + 1]);
+        }
+      } catch(e) {}
+
+      // Fallback: If logged-in supplier is viewing storefront
+      if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+        const u = auth.getUser();
+        if (u) {
+          const sProf = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+          return sProf.subdomain || (u.business && u.business.slug) || u.subdomain || u.id || '';
+        }
+      }
+
+      return '';
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -635,6 +657,16 @@
     });
 
     async function loadSupplierProfile(id) {
+      if (!id) {
+        if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+          const u = auth.getUser();
+          if (u) {
+            id = (u.business && u.business.slug) || u.subdomain || u.id || 1;
+          }
+        }
+        if (!id) id = 1;
+      }
+      currentSupplierId = id;
       try {
         const res = await auth.fetchWithFallback(`/public/suppliers/${id}`);
         if (res && res.ok) {

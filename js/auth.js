@@ -1143,9 +1143,10 @@ const auth = {
       editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
     } catch(e) {}
 
-    // Helper: deduplicate products list by id and trimmed name, apply edits and filter deleted
+    // Helper: deduplicate products list by id and normalized name, apply edits and filter deleted
     const dedupe = (arr) => {
-      const seen = new Set();
+      const seenIds = new Set();
+      const seenNames = new Set();
       const res = [];
       arr.forEach(rawP => {
         if (!rawP || !rawP.name) return;
@@ -1153,11 +1154,13 @@ const auth = {
         // Only drop if tombstoned
         if (deletedIds.has(pIdStr)) return;
         const p = editedOverrides[pIdStr] ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
-        const uid = String(p.id || p.name.toLowerCase().trim());
-        if (!seen.has(uid)) {
-          seen.add(uid);
-          res.push(p);
+        const normName = String(p.name).toLowerCase().trim().replace(/\s+/g, ' ');
+        if (seenIds.has(pIdStr) || seenNames.has(normName)) {
+          return;
         }
+        seenIds.add(pIdStr);
+        seenNames.add(normName);
+        res.push(p);
       });
       return res;
     };

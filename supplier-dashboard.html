@@ -651,7 +651,7 @@
 
         // Setup Public Storefront link for seller
         const storefrontSlug = b.slug || (cleanComp ? cleanComp.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : null);
-        const storefrontUrl = storefrontSlug ? `/suppliers/${storefrontSlug}` : `supplier-details.html?id=${u.id || b.user_id || 1}`;
+        const storefrontUrl = storefrontSlug ? `supplier-details.html?slug=${storefrontSlug}` : `supplier-details.html?id=${u.id || b.user_id || 1}`;
         const sideStoreLink = document.getElementById('sideNavStorefrontLink');
         if (sideStoreLink) {
           sideStoreLink.href = storefrontUrl;
