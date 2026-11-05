@@ -864,7 +864,22 @@ const auth = {
       });
       if (!res.ok) {
         // Attempt auto-healing sync if user was previously stored locally
-        const cached = this.getUser();
+        let cached = this.getUser();
+        if (!cached) {
+          try {
+            const prof = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+            if (prof && (prof.company_name || prof.phone)) {
+              cached = {
+                id: prof.user_id || prof.id || Date.now(),
+                phone: prof.phone || '',
+                name: prof.company_name || 'Supplier',
+                role: 'supplier',
+                business: prof
+              };
+              this.setUser(cached);
+            }
+          } catch(e) {}
+        }
         if (cached && (cached.role === 'supplier' || cached.role === 'admin')) {
           try {
             await this.syncSellerSession();
@@ -872,7 +887,7 @@ const auth = {
             const retryRes = await this.fetchWithFallback(`/users/me`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (retryRes.ok) {
+            if (retryRes && retryRes.ok) {
               const retryData = await retryRes.json();
               if (retryData && retryData.user) {
                 this.setUser(retryData.user);
@@ -882,7 +897,7 @@ const auth = {
           } catch(syncErr) {}
         }
         if (cached) return { success: true, user: cached };
-        if (res.status === 401 && !token.includes('local')) this.logout();
+        // Never auto-logout on server errors or status glitches; preserve session
         return null;
       }
       const data = await res.json();

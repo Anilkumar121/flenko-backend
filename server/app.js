@@ -3430,7 +3430,6 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       image_url
     }, supplierBiz);
 
-    let supplierBiz = null;
     if ((!image_url || image_url === 'assets/images/logo.png') && supplierBiz && supplierBiz.logo_url) {
       image_url = supplierBiz.logo_url;
     }
@@ -3509,6 +3508,13 @@ app.put('/api/products/:id', authMiddleware, upload.single('image'), async (req,
     }
 
     let supplierBiz = null;
+    try {
+      if (req.user && req.user.id) {
+        const sBizRes = await db.query('SELECT company_name, city, logo_url FROM businesses WHERE user_id = $1', [req.user.id]);
+        if (sBizRes.rows && sBizRes.rows.length > 0) supplierBiz = sBizRes.rows[0];
+      }
+    } catch(sbErr) {}
+
     if ((!image_url || image_url === 'assets/images/logo.png') && supplierBiz && supplierBiz.logo_url) {
       image_url = supplierBiz.logo_url;
     }
