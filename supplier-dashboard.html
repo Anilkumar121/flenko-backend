@@ -534,6 +534,16 @@
           if (inact) inact.style.display = 'flex';
           const mobLink = document.getElementById('mobileSubnavWebsiteLink');
           if (mobLink) mobLink.style.display = 'none';
+          const sideLink = document.getElementById('sideNavWebsiteLink');
+          if (sideLink) {
+            const fallbackSub = sub || u.subdomain || (u.business && (u.business.subdomain || u.business.slug)) || u.id;
+            if (fallbackSub) {
+              sideLink.href = `site.html?store=${encodeURIComponent(fallbackSub)}`;
+              sideLink.style.display = 'block';
+            } else {
+              sideLink.style.display = 'none';
+            }
+          }
         }
       }
 
@@ -651,7 +661,7 @@
 
         // Setup Public Storefront link for seller
         const storefrontSlug = b.slug || (cleanComp ? cleanComp.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : null);
-        const storefrontUrl = storefrontSlug ? `supplier-details.html?slug=${storefrontSlug}` : `supplier-details.html?id=${u.id || b.user_id || 1}`;
+        const storefrontUrl = storefrontSlug ? `supplier-details.html?slug=${encodeURIComponent(storefrontSlug)}&id=${u.id || b.user_id || 1}` : `supplier-details.html?id=${u.id || b.user_id || 1}`;
         const sideStoreLink = document.getElementById('sideNavStorefrontLink');
         if (sideStoreLink) {
           sideStoreLink.href = storefrontUrl;

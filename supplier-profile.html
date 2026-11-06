@@ -148,13 +148,13 @@
         <div>
           <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
             <span style="font-size: 0.85rem; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Seller Account ID</span>
-            <span id="sellerIdBadge" style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 4px; font-family: monospace; font-weight: 700; font-size: 0.95rem; letter-spacing: 0.5px;">#FLK-SUP-1</span>
+            <span id="sellerIdBadge" style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 4px; font-family: monospace; font-weight: 700; font-size: 0.95rem; letter-spacing: 0.5px;">#FLK-SUP-...</span>
             <span style="background: #10b981; color: white; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Verified Seller ✓</span>
           </div>
           <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1;">Your seller profile and products are publicly discoverable by verified buyers across India & globally.</p>
         </div>
         <div>
-          <a id="viewStorefrontLink" href="supplier-details.html?id=1" target="_blank" class="btn" style="background: #0284c7; color: white; border: none; font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1rem; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.4rem;">
+          <a id="viewStorefrontLink" href="supplier-details.html" target="_blank" class="btn" style="background: #0284c7; color: white; border: none; font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1rem; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.4rem;">
             🏪 View Public Storefront Profile ↗
           </a>
         </div>
@@ -302,7 +302,10 @@
       const sellerIdBadge = document.getElementById('sellerIdBadge');
       if (sellerIdBadge) sellerIdBadge.innerText = `#FLK-SUP-${currentUserId}`;
       const storefrontLink = document.getElementById('viewStorefrontLink');
-      if (storefrontLink) storefrontLink.href = `supplier-details.html?id=${currentUserId}`;
+      const suppInitSlug = (loggedUser.business && loggedUser.business.slug) || loggedUser.slug;
+      if (storefrontLink) {
+        storefrontLink.href = suppInitSlug ? `supplier-details.html?slug=${encodeURIComponent(suppInitSlug)}&id=${currentUserId}` : `supplier-details.html?id=${currentUserId}`;
+      }
 
       let serverBiz = null;
       try {
@@ -311,7 +314,10 @@
           if (data.user.id) currentUserId = data.user.id;
           if (data.user.business) serverBiz = data.user.business;
           if (sellerIdBadge) sellerIdBadge.innerText = `#FLK-SUP-${currentUserId}`;
-          if (storefrontLink) storefrontLink.href = `supplier-details.html?id=${currentUserId}`;
+          const suppSlug = (serverBiz && serverBiz.slug) || (data.user.business && data.user.business.slug) || data.user.slug || suppInitSlug;
+          if (storefrontLink) {
+            storefrontLink.href = suppSlug ? `supplier-details.html?slug=${encodeURIComponent(suppSlug)}&id=${currentUserId}` : `supplier-details.html?id=${currentUserId}`;
+          }
         }
       } catch(e) {}
 
@@ -566,7 +572,8 @@
         }
         const storefrontLink = document.getElementById('viewStorefrontLink');
         if (storefrontLink) {
-          storefrontLink.href = `supplier-details.html?id=${currentUserId}`;
+          const suppSlug = (data && data.business && data.business.slug) || (bObj && bObj.slug) || (serverBiz && serverBiz.slug);
+          storefrontLink.href = suppSlug ? `supplier-details.html?slug=${encodeURIComponent(suppSlug)}&id=${currentUserId}` : `supplier-details.html?id=${currentUserId}`;
         }
       } catch (err) {
         console.error('Error saving profile:', err);

@@ -1230,7 +1230,7 @@
           <tr>
             <td><strong>${escapeHtml(s.company_name)}</strong></td>
             <td>
-              <a href="/suppliers/${encodeURIComponent(s.slug || s.id)}" target="_blank" style="color: #0284c7; text-decoration: none; font-family: monospace; font-size: 0.8rem;">
+              <a href="supplier-details.html?slug=${encodeURIComponent(s.slug || '')}&id=${encodeURIComponent(s.id || '')}" target="_blank" style="color: #0284c7; text-decoration: none; font-family: monospace; font-size: 0.8rem;">
                 /suppliers/${s.slug || s.id} ↗
               </a>
             </td>

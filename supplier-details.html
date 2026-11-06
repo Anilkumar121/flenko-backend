@@ -3,11 +3,16 @@
 <head>
   <script>
     (function() {
-      // Dynamic base tag ONLY when running via rewritten subpath like /suppliers/xxx on an HTTP server
-      if (window.location.protocol.startsWith('http') && window.location.pathname.includes('/suppliers/')) {
-        var base = document.createElement('base');
-        base.href = '/';
-        document.head.appendChild(base);
+      // If accessed via rewritten subpath like /suppliers/<slug>, immediately redirect to supplier-details.html?slug=<slug>
+      if (window.location.pathname.includes('/suppliers/')) {
+        var parts = window.location.pathname.replace(/\/+$/, '').split('/');
+        var sIdx = parts.indexOf('suppliers');
+        if (sIdx !== -1 && parts[sIdx + 1]) {
+          var slug = parts[sIdx + 1];
+          var search = window.location.search || '';
+          var sep = search ? '&' : '?';
+          window.location.replace('supplier-details.html' + search + (search.includes('slug=') ? '' : (sep + 'slug=' + encodeURIComponent(slug))));
+        }
       }
     })();
   </script>
@@ -617,12 +622,12 @@
     function getSupplierIdFromUrl() {
       const urlParams = new URLSearchParams(window.location.search);
       const slug = urlParams.get('slug') || urlParams.get('store');
-      if (slug) return slug;
+      if (slug) return slug.trim();
       const id = urlParams.get('id');
       if (id && !isNaN(parseInt(id, 10))) {
         return parseInt(id, 10);
       }
-      if (id) return id;
+      if (id) return id.trim();
 
       // Extract from clean URL pathname: /suppliers/codemarkers -> "codemarkers"
       try {
@@ -634,12 +639,12 @@
         }
       } catch(e) {}
 
-      // Fallback: If logged-in supplier is viewing storefront
+      // Fallback: ONLY if NO id/slug is in URL AND logged-in user is a seller viewing their own storefront
       if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
         const u = auth.getUser();
-        if (u) {
+        if (u && (u.role === 'supplier' || u.business)) {
           const sProf = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
-          return sProf.subdomain || (u.business && u.business.slug) || u.subdomain || u.id || '';
+          return sProf.slug || (u.business && u.business.slug) || sProf.subdomain || u.subdomain || u.id || '';
         }
       }
 
@@ -669,73 +674,127 @@
 
     async function loadSupplierProfile(id) {
       if (!id) {
-        if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
-          const u = auth.getUser();
-          if (u) {
-            id = (u.business && u.business.slug) || u.subdomain || u.id || 1;
+        // Try to load first verified supplier from suppliers.json if guest visits without id
+        try {
+          const sRes = await fetch('suppliers.json?v=' + Math.floor(Date.now() / 60000));
+          if (sRes.ok) {
+            const sList = await sRes.json();
+            if (Array.isArray(sList) && sList.length > 0) {
+              const firstSupp = sList.find(s => s.user_id !== 1 && s.company_name) || sList[0];
+              id = firstSupp.slug || firstSupp.id;
+            }
           }
-        }
-        if (!id) id = 1;
+        } catch(e) {}
       }
+      if (!id) id = 3; // Default to verified supplier #3 (Rana Pratap Construction), NEVER admin #1
       currentSupplierId = id;
       try {
-        const res = await auth.fetchWithFallback(`/public/suppliers/${id}`);
+        const res = await auth.fetchWithFallback(`/public/suppliers/${encodeURIComponent(id)}`);
         if (res && res.ok) {
           const data = await res.json();
-          supplierData = data.supplier || {};
-          allSupplierProducts = data.products || [];
-          allSupplierReviews = data.reviews || [];
-          renderSupplierUI(supplierData, data.stats || {});
-        } else {
-          // If server fails, try fallback mock
-          fallbackLocalSupplier(id);
+          if (data && data.supplier && data.supplier.company_name) {
+            supplierData = data.supplier;
+            allSupplierProducts = data.products || [];
+            allSupplierReviews = data.reviews || [];
+            renderSupplierUI(supplierData, data.stats || {});
+            return;
+          }
         }
       } catch (err) {
         console.warn('Network error fetching supplier profile, using fallback:', err);
-        fallbackLocalSupplier(id);
       }
+      // If server fails or returned empty, load cleanly from static suppliers.json
+      await fallbackLocalSupplier(id);
     }
 
     async function fallbackLocalSupplier(id) {
-      let localBiz = {};
-      try {
-        const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
-        if (u) {
-          const userKey = 'flenko_seller_profile_' + (u.id || 'default');
-          const cand = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem('flenko_seller_profile') || '{}');
-          const matches = String(u.id) === String(id) || 
-                          String(u.phone) === String(id) || 
-                          cand.slug === String(id) || 
-                          cand.subdomain === String(id) || 
-                          (u.business && u.business.slug === String(id)) ||
-                          (cand.company_name && cand.company_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === String(id).toLowerCase());
-          if (matches) {
-            localBiz = cand;
-            if (cand.company_name) {
-              localBiz.company_name = cand.company_name;
-            } else if (u.name) {
-              localBiz.company_name = u.name;
-            }
-          }
-        }
-      } catch(e) {}
+      let localBiz = null;
 
-      // Check suppliers.json directly from domain (< 20ms)
+      // 1. Check static suppliers.json directly (< 20ms)
       try {
-        const sRes = await fetch('suppliers.json');
+        const sRes = await fetch('suppliers.json?v=' + Math.floor(Date.now() / 60000));
         if (sRes.ok) {
           const sList = await sRes.json();
-          const match = sList.find(s => String(s.id) === String(id) || String(s.user_id) === String(id) || s.slug === String(id));
-          if (match) {
-            localBiz = { ...match, ...localBiz };
+          if (Array.isArray(sList)) {
+            const targetStr = String(id).toLowerCase().trim();
+            localBiz = sList.find(s => 
+              String(s.id) === targetStr || 
+              String(s.user_id) === targetStr || 
+              (s.slug && s.slug.toLowerCase() === targetStr) ||
+              (s.subdomain && s.subdomain.toLowerCase() === targetStr) ||
+              (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '-') === targetStr) ||
+              (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetStr.replace(/[^a-z0-9]/g, ''))
+            );
           }
         }
       } catch(e) {}
 
-      // Check local products cache for seller products
+      // 2. Only if STILL not found, check logged-in seller session IF this supplier matches the logged-in seller
+      if (!localBiz) {
+        try {
+          const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+          if (u) {
+            const userKey = 'flenko_seller_profile_' + (u.id || 'default');
+            const cand = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem('flenko_seller_profile') || '{}');
+            const matches = String(u.id) === String(id) || 
+                            String(u.phone) === String(id) || 
+                            cand.slug === String(id) || 
+                            cand.subdomain === String(id) || 
+                            (u.business && u.business.slug === String(id)) ||
+                            (cand.company_name && cand.company_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === String(id).toLowerCase());
+            if (matches) {
+              localBiz = cand;
+              if (cand.company_name) {
+                localBiz.company_name = cand.company_name;
+              } else if (u.name) {
+                localBiz.company_name = u.name;
+              }
+            }
+          }
+        } catch(e) {}
+      }
+
+      if (!localBiz) {
+        localBiz = {
+          id: id,
+          company_name: 'Verified Supplier',
+          business_type: 'Manufacturer & Wholesaler',
+          category: 'General B2B',
+          gst_number: 'GST Verified',
+          city: 'Industrial Hub',
+          country: 'India',
+          address: 'Industrial Area, India',
+          about: 'Certified manufacturer and wholesale supplier on Flenko Marketplace. Direct bulk B2B pricing with factory warranty.',
+          logo_url: 'assets/images/logo.png',
+          is_verified: true
+        };
+      }
+
+      const effId = localBiz.user_id || localBiz.id || id;
+      supplierData = {
+        id: effId,
+        user_id: localBiz.user_id || effId,
+        seller_code: `FLK-SUP-${effId || '1'}`,
+        company_name: localBiz.company_name || 'Verified Supplier',
+        business_type: localBiz.business_type || 'Manufacturer & Wholesaler',
+        category: localBiz.category || 'General B2B',
+        gst_number: localBiz.gst_number || 'GST Verified',
+        city: localBiz.city || 'Industrial Hub',
+        country: localBiz.country || 'India',
+        address: localBiz.address || `${localBiz.city || 'Industrial Area'}, India`,
+        about: localBiz.about || `${localBiz.company_name} is a certified verified supplier on Flenko offering wholesale products with buyer Trade Assurance protection.`,
+        logo_url: localBiz.logo_url || 'assets/images/logo.png',
+        is_verified: true,
+        slug: localBiz.slug || ''
+      };
+
+      // Load products for this supplier
+      allSupplierProducts = [];
+      // STRICT ISOLATION: ONLY check local products cache IF the logged-in user is the owner!
       try {
         const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
-        if (u) {
+        const isOwner = u && (String(u.id) === String(effId) || String(u.id) === String(localBiz.user_id));
+        if (isOwner) {
           const cachedP = JSON.parse(localStorage.getItem('flenko_seller_products_' + (u.id || 'default')) || '[]');
           if (Array.isArray(cachedP) && cachedP.length > 0) {
             allSupplierProducts = cachedP;
@@ -743,33 +802,24 @@
         }
       } catch(e) {}
 
-      // Also load products for this supplier from products.json if empty
-      if (!allSupplierProducts || allSupplierProducts.length === 0) {
+      // Load from products.json
+      if (allSupplierProducts.length === 0) {
         try {
-          const pRes = await fetch('products.json');
+          const pRes = await fetch('products.json?v=' + Math.floor(Date.now() / 60000));
           if (pRes.ok) {
             const pList = await pRes.json();
-            allSupplierProducts = pList.filter(p => String(p.supplier_id) === String(id) || (localBiz.user_id && String(p.supplier_id) === String(localBiz.user_id)) || p.supplier_slug === String(id));
+            const targetSuppId = String(effId);
+            const targetSlug = (localBiz.slug || String(id)).toLowerCase();
+            const targetName = (localBiz.company_name || '').toLowerCase().trim();
+            allSupplierProducts = pList.filter(p => 
+              String(p.supplier_id) === targetSuppId || 
+              (p.supplier_slug && p.supplier_slug.toLowerCase() === targetSlug) ||
+              (p.supplier_name && targetName && p.supplier_name.toLowerCase().trim() === targetName)
+            );
           }
         } catch(e) {}
       }
 
-      supplierData = {
-        id: id,
-        seller_code: `FLK-SUP-${id || '1'}`,
-        company_name: localBiz.company_name || 'Verified Supplier',
-        business_type: localBiz.business_type || 'Manufacturer & Wholesaler',
-        category: localBiz.category || 'General B2B',
-        gst_number: localBiz.gst_number || 'GST Verified',
-        city: localBiz.city || 'Industrial Hub',
-        country: localBiz.country || 'India',
-        address: localBiz.address || 'Industrial Area, India',
-        about: localBiz.about || 'Verified B2B manufacturer and wholesale supplier on Flenko Marketplace.',
-        logo_url: localBiz.logo_url || 'assets/images/logo.png',
-        is_verified: true
-      };
-
-      // Do not wipe allSupplierProducts - keep the products loaded from products.json
       allSupplierReviews = allSupplierReviews || [];
       renderSupplierUI(supplierData, { rating: '5.0', review_count: 0, total_products: allSupplierProducts.length });
     }
@@ -789,10 +839,17 @@
 
       const logoEl = document.getElementById('suppHeroLogo');
       const logoTextEl = document.getElementById('suppHeroLogoText');
-      if (supplier.logo_url) {
+      if (supplier.logo_url && supplier.logo_url !== 'assets/images/logo.png') {
         logoEl.src = supplier.logo_url;
         logoEl.style.display = 'block';
         if (logoTextEl) logoTextEl.style.display = 'none';
+        logoEl.onerror = function() {
+          this.style.display = 'none';
+          if (logoTextEl) {
+            logoTextEl.style.display = 'flex';
+            logoTextEl.innerText = (supplier.company_name || 'V').trim().charAt(0).toUpperCase();
+          }
+        };
       } else {
         logoEl.style.display = 'none';
         if (logoTextEl) {

@@ -429,6 +429,7 @@
 
         grid.innerHTML = filtered.map(s => {
           const suppId = s.user_id || s.id || 1;
+          const suppStoreUrl = `supplier-details.html?slug=${encodeURIComponent(s.slug || '')}&id=${suppId}`;
           const logoHtml = s.logo_url 
             ? `<img src="${s.logo_url}" alt="${s.company_name}" style="width:100%; height:100%; object-fit:contain; padding:2px;">` 
             : `🏢`;
@@ -441,14 +442,14 @@
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
                   <span class="badge badge-teal">${s.business_type || 'Manufacturer'}</span>
-                  <a href="supplier-details.html?id=${suppId}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Seller ID">
+                  <a href="${suppStoreUrl}" style="background:#eff6ff; color:#1d4ed8; font-family:monospace; font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; text-decoration:none; border:1px solid #bfdbfe;" title="Seller ID">
                     #FLK-SUP-${suppId}
                   </a>
                 </div>
               </div>
               
               <h3 style="font-size:1.1rem; margin-bottom:0.35rem; color:var(--color-navy-midnight); font-weight:700;">
-                <a href="supplier-details.html?id=${suppId}" style="color:inherit; text-decoration:none;" class="hover-underline">
+                <a href="${suppStoreUrl}" style="color:inherit; text-decoration:none;" class="hover-underline">
                   ${s.company_name}
                 </a>
                 <span style="color:var(--color-blue-primary);" title="Verified Global Supplier">✓</span>
@@ -463,7 +464,7 @@
               </div>
               
               <div style="display:flex; gap:0.5rem; margin-top:auto;">
-                <button class="btn btn-orange" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='supplier-details.html?id=${suppId}'">
+                <button class="btn btn-orange" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='${suppStoreUrl}'">
                   View Storefront 🏪
                 </button>
                 <button class="btn btn-outline" style="flex:1; font-size:0.8125rem;" onclick="window.location.href='rfq.html?supplier=${suppId}&name=${encodeURIComponent(s.company_name)}'">

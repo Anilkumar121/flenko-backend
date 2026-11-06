@@ -19,6 +19,14 @@ DirectoryIndex index.html index.php
     RewriteRule ^sitemap\.xml$ sitemap.xml [L]
     RewriteRule ^sitemap-([a-z0-9_-]+)\.xml$ sitemap-$1.xml [L]
 
+    # Fix relative assets for deep paths (/suppliers/css/..., /products/css/...)
+    RewriteRule ^suppliers/css/(.*)$ css/$1 [L]
+    RewriteRule ^suppliers/js/(.*)$ js/$1 [L]
+    RewriteRule ^suppliers/assets/(.*)$ assets/$1 [L]
+    RewriteRule ^products/css/(.*)$ css/$1 [L]
+    RewriteRule ^products/js/(.*)$ js/$1 [L]
+    RewriteRule ^products/assets/(.*)$ assets/$1 [L]
+
     # 3. Clean SEO Product URLs (/products/wholesale-product-slug)
     RewriteCond %{DOCUMENT_ROOT}/products/$1/index.html -f
     RewriteRule ^products/([^/]+)/?$ products/$1/index.html [L]
@@ -38,7 +46,7 @@ DirectoryIndex index.html index.php
     # 7. Fallback Dynamic Routes (If static page not yet pre-rendered)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^suppliers/([^/]+)/?$ supplier-details.html?slug=$1 [L,QSA]
+    RewriteRule ^suppliers/([^/]+)/?$ supplier-details.html?slug=$1 [R=301,L,QSA]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

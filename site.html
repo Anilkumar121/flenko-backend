@@ -781,10 +781,11 @@
     let siteProducts = [];
     let siteReviews = [];
 
-    // Detect Subdomain from Hostname or Query Param (?store=xyz or ?id=1)
+    // Detect Subdomain from Hostname or Query Param (?store=xyz or ?id=1 or ?slug=xyz)
     function resolveSubdomain() {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('store')) return urlParams.get('store').toLowerCase().trim();
+      if (urlParams.get('slug')) return urlParams.get('slug').toLowerCase().trim();
       if (urlParams.get('domain')) return urlParams.get('domain').toLowerCase().trim();
       if (urlParams.get('id')) return urlParams.get('id').trim();
 
@@ -800,6 +801,17 @@
       if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'admin') {
         return parts[0];
       }
+
+      // If logged in supplier is viewing site without parameters, open their OWN store
+      if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+        const u = auth.getUser();
+        if (u && (u.role === 'supplier' || u.business)) {
+          const sProf = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+          const mySub = sProf.subdomain || sProf.slug || (u.business && (u.business.subdomain || u.business.slug)) || u.subdomain || u.id;
+          if (mySub) return String(mySub).toLowerCase().trim();
+        }
+      }
+
       return 'store';
     }
 
@@ -818,13 +830,20 @@
           siteProducts = data.products || [];
           siteReviews = data.reviews || [];
 
-          // Auto-heal logo from local storage if server returned null or default placeholder
+          // STRICT ISOLATION: Auto-heal logo from local storage ONLY if logged-in user is the actual OWNER!
           if (!supplierInfo.logo_url || supplierInfo.logo_url === 'assets/images/logo.png') {
             try {
-              const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
               const loggedUser = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
-              const localLogo = localSeller.logo_url || localSeller.logo || (loggedUser && (loggedUser.logo_url || loggedUser.logo));
-              if (localLogo) supplierInfo.logo_url = localLogo;
+              const isOwner = loggedUser && (
+                String(loggedUser.id) === String(supplierInfo.user_id) || 
+                String(loggedUser.id) === String(supplierInfo.id) ||
+                (supplierInfo.subdomain && loggedUser.subdomain === supplierInfo.subdomain)
+              );
+              if (isOwner) {
+                const localSeller = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+                const localLogo = localSeller.logo_url || localSeller.logo || (loggedUser && (loggedUser.logo_url || loggedUser.logo));
+                if (localLogo) supplierInfo.logo_url = localLogo;
+              }
             } catch(e) {}
           }
 
@@ -847,38 +866,41 @@
       const sId = (supp && (supp.id || supp.user_id)) || 1;
       const sName = (supp && supp.company_name ? supp.company_name : '').toLowerCase().trim();
       const sPhone = (supp && (supp.phone || (supp.contact && supp.contact.phone)) ? (supp.phone || supp.contact.phone).replace(/[^0-9]/g, '').slice(-10) : '');
-      const sSlug = (supp && supp.subdomain ? supp.subdomain : '').toLowerCase().trim();
+      const sSlug = (supp && (supp.subdomain || supp.slug) ? (supp.subdomain || supp.slug) : '').toLowerCase().trim();
 
       const matched = [];
       const seen = new Set();
 
-      const keys = [`flenko_seller_products_${sId}`, 'flenko_seller_products', 'flenko_custom_products', 'flenko_public_products'];
-      keys.forEach(k => {
-        try {
-          const arr = JSON.parse(localStorage.getItem(k) || '[]');
-          if (Array.isArray(arr)) {
-            arr.forEach(p => {
-              if (!p || !p.name) return;
-              const pSuppId = String(p.supplier_id || '');
-              const pSuppName = (p.supplier_name || '').toLowerCase().trim();
-              const pSuppPhone = (p.supplier_phone || '').replace(/[^0-9]/g, '').slice(-10);
-              const pSuppSlug = (p.supplier_slug || '').toLowerCase().trim();
-
-              const match = (pSuppId && pSuppId === String(sId)) ||
-                            (sName && pSuppName && (pSuppName === sName || pSuppName.includes(sName) || sName.includes(pSuppName))) ||
-                            (sPhone && pSuppPhone && pSuppPhone === sPhone) ||
-                            (sSlug && pSuppSlug && pSuppSlug === sSlug);
-              if (match) {
-                const uid = String(p.id || p.name);
-                if (!seen.has(uid)) {
-                  seen.add(uid);
-                  matched.push(p);
-                }
+      // STRICT ISOLATION: Only check localStorage custom products IF the logged-in user is the actual OWNER!
+      try {
+        const loggedUser = (typeof auth !== 'undefined' && typeof auth.getUser === 'function') ? auth.getUser() : null;
+        const isOwner = loggedUser && (
+          String(loggedUser.id) === String(sId) || 
+          String(loggedUser.id) === String(supp.user_id) || 
+          (supp.subdomain && loggedUser.subdomain === supp.subdomain)
+        );
+        if (isOwner) {
+          const keys = [`flenko_seller_products_${sId}`, 'flenko_seller_products', 'flenko_custom_products'];
+          keys.forEach(k => {
+            try {
+              const arr = JSON.parse(localStorage.getItem(k) || '[]');
+              if (Array.isArray(arr)) {
+                arr.forEach(p => {
+                  if (!p || !p.name) return;
+                  const pSuppId = String(p.supplier_id || '');
+                  if (pSuppId === String(sId) || !pSuppId) {
+                    const uid = String(p.id || p.name);
+                    if (!seen.has(uid)) {
+                      seen.add(uid);
+                      matched.push(p);
+                    }
+                  }
+                });
               }
-            });
-          }
-        } catch(e) {}
-      });
+            } catch(e) {}
+          });
+        }
+      } catch(e) {}
 
       try {
         const catRes = await fetch('products.json?v=' + Math.floor(Date.now() / 60000));
@@ -967,7 +989,7 @@
       // 2. Try to load from static suppliers.json
       if (!matchedSupp) {
         try {
-          const sRes = await fetch('suppliers.json');
+          const sRes = await fetch('suppliers.json?v=' + Math.floor(Date.now() / 60000));
           if (sRes.ok) {
             const suppliersList = await sRes.json();
             matchedSupp = suppliersList.find(s => 
@@ -975,12 +997,8 @@
               (s.slug && s.slug.toLowerCase() === target) ||
               String(s.id) === target ||
               String(s.user_id) === target ||
-              (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(target.replace(/[^a-z0-9]/g, '')))
+              (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '') === target.replace(/[^a-z0-9]/g, ''))
             );
-            // Default store fallback so storefront is NEVER blank
-            if (!matchedSupp && Array.isArray(suppliersList) && suppliersList.length > 0) {
-              matchedSupp = suppliersList[0];
-            }
           }
         } catch(e) {}
       }
@@ -998,12 +1016,25 @@
         } catch(e) {}
       }
 
-      // 3. Load products (merging local custom seller products first)
+      // 2c. Only if target was explicitly 'store' or 'demo' and still no match, fallback to first verified supplier
+      if (!matchedSupp && (target === 'store' || target === 'demo')) {
+        try {
+          const sRes = await fetch('suppliers.json?v=' + Math.floor(Date.now() / 60000));
+          if (sRes.ok) {
+            const sList = await sRes.json();
+            if (Array.isArray(sList) && sList.length > 0) {
+              matchedSupp = sList.find(s => s.user_id !== 1 && s.company_name) || sList[0];
+            }
+          }
+        } catch(e) {}
+      }
+
+      // 3. Load products (STRICT ISOLATION: only merge local custom seller products IF viewer is the owner!)
       try {
         const u = (typeof auth !== "undefined" && typeof auth.getUser === "function") ? auth.getUser() : null;
-        const uId = (u && u.id) || (matchedSupp && (matchedSupp.id || matchedSupp.user_id)) || 1;
-        const suppName = (matchedSupp && matchedSupp.company_name) ? matchedSupp.company_name.toLowerCase().trim() : "";
-        const keysToCheck = [`flenko_seller_products_${uId}`, "flenko_seller_products", "flenko_custom_products"];
+        const suppOwnerId = (matchedSupp && (matchedSupp.user_id || matchedSupp.id));
+        const isOwner = u && suppOwnerId && (String(u.id) === String(suppOwnerId));
+        const keysToCheck = isOwner ? [`flenko_seller_products_${suppOwnerId}`, "flenko_seller_products", "flenko_custom_products"] : [];
         const seen = new Set();
         keysToCheck.forEach(k => {
           try {
@@ -1011,7 +1042,7 @@
             if (Array.isArray(arr)) {
               arr.forEach(p => {
                 if (p && p.name) {
-                  const matchId = String(p.supplier_id) === String(uId) || (suppName && p.supplier_name && p.supplier_name.toLowerCase().trim() === suppName);
+                  const matchId = String(p.supplier_id) === String(suppOwnerId);
                   if (matchId && !seen.has(String(p.id || p.name))) {
                     seen.add(String(p.id || p.name));
                     matchedProducts.push(p);

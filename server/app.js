@@ -2068,11 +2068,24 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         }
       }
     } else {
-      // Slug lookup (e.g. /api/public/suppliers/rana-pratap-construction or rakshit-enterprise)
-      let bizRes = await db.query('SELECT * FROM businesses WHERE slug = $1', [rawId]);
+      // Slug or Subdomain lookup (e.g. /api/public/suppliers/rana-pratap-construction or codemarkers or rehan-textiles)
+      let bizRes = await db.query('SELECT * FROM businesses WHERE LOWER(slug) = LOWER($1) OR LOWER(subdomain) = LOWER($1)', [rawId]);
       if (bizRes.rows && bizRes.rows.length > 0) {
         business = bizRes.rows[0];
         targetUserId = business.user_id;
+      } else {
+        const allBiz = await db.query('SELECT * FROM businesses');
+        const searchRaw = rawId.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const match = (allBiz.rows || []).find(b => {
+          const cSlug = (b.company_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/(^-|-$)/g, '');
+          const cRaw = (b.company_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          const subRaw = (b.subdomain || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cSlug === rawId.toLowerCase() || (cRaw && cRaw === searchRaw) || (subRaw && subRaw === searchRaw);
+        });
+        if (match) {
+          business = match;
+          targetUserId = business.user_id;
+        }
       }
     }
 
@@ -2090,7 +2103,14 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
         const sPath = path.join(__dirname, '..', 'suppliers.json');
         if (fs.existsSync(sPath)) {
           const diskList = JSON.parse(fs.readFileSync(sPath, 'utf8'));
-          const found = diskList.find(s => String(s.id) === String(rawId) || String(s.user_id) === String(rawId) || s.slug === String(rawId));
+          const searchRaw = rawId.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const found = diskList.find(s => 
+            String(s.id) === String(rawId) || 
+            String(s.user_id) === String(rawId) || 
+            (s.slug && s.slug.toLowerCase() === rawId.toLowerCase()) ||
+            (s.subdomain && s.subdomain.toLowerCase() === rawId.toLowerCase()) ||
+            (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '') === searchRaw)
+          );
           if (found) {
             business = found;
             targetUserId = business.user_id;
@@ -2262,17 +2282,37 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
     if (!business) {
       // Fallback search by company name slug
       const allBiz = await db.query('SELECT * FROM businesses');
+      const searchRaw = rawSub.replace(/[^a-z0-9]/g, '');
       business = (allBiz.rows || []).find(b => {
         const slug = (b.company_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        return slug.includes(rawSub.replace(/[^a-z0-9]/g, '')) || (b.subdomain && b.subdomain.toLowerCase() === rawSub);
+        const sub = (b.subdomain || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (slug && slug === searchRaw) || (sub && sub === searchRaw);
       });
     }
 
-    // Fallback: If rawSub is 'store', 'demo', or business not found, fallback to first verified business in DB
+    // Check disk suppliers.json if not found in DB
     if (!business) {
+      try {
+        const sPath = path.join(__dirname, '..', 'suppliers.json');
+        if (fs.existsSync(sPath)) {
+          const sList = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+          const searchRaw = rawSub.replace(/[^a-z0-9]/g, '');
+          business = (sList || []).find(s => 
+            (s.subdomain && s.subdomain.toLowerCase().replace(/[^a-z0-9]/g, '') === searchRaw) ||
+            (s.slug && s.slug.toLowerCase().replace(/[^a-z0-9]/g, '') === searchRaw) ||
+            String(s.id) === rawSub ||
+            String(s.user_id) === rawSub ||
+            (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '') === searchRaw)
+          );
+        }
+      } catch(e) {}
+    }
+
+    // ONLY if rawSub was explicitly 'store' or 'demo', fallback to a verified business
+    if (!business && (rawSub === 'store' || rawSub === 'demo')) {
       const allBiz = await db.query('SELECT * FROM businesses ORDER BY id ASC');
       if (allBiz.rows && allBiz.rows.length > 0) {
-        business = allBiz.rows.find(b => b.is_verified) || allBiz.rows[0];
+        business = allBiz.rows.find(b => b.is_verified && b.user_id !== 1) || allBiz.rows.find(b => b.is_verified) || allBiz.rows[0];
       }
     }
 

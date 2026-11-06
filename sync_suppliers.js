@@ -30,8 +30,11 @@ async function run() {
       console.log('ID:', r.id, 'user_id:', r.user_id, 'company:', r.company_name, 'phone:', r.phone, 'prods:', r.products_count, 'slug:', r.slug);
     });
 
-    const sPath = path.join(__dirname, '..', 'suppliers.json');
+    const sPath = path.join(__dirname, 'suppliers.json');
     fs.writeFileSync(sPath, JSON.stringify(res.rows, null, 2), 'utf8');
+    try {
+      fs.writeFileSync(path.join(__dirname, '..', 'suppliers.json'), JSON.stringify(res.rows, null, 2), 'utf8');
+    } catch(e) {}
     console.log('Successfully wrote', res.rows.length, 'suppliers to', sPath);
   } catch(e) {
     console.error('Error:', e);
