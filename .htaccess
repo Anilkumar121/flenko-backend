@@ -46,7 +46,7 @@ DirectoryIndex index.html index.php
     # 7. Fallback Dynamic Routes (If static page not yet pre-rendered)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^suppliers/([^/]+)/?$ supplier-details.html?slug=$1 [R=301,L,QSA]
+    RewriteRule ^suppliers/([^/]+)/?$ /supplier-details.html?slug=$1 [R=301,L,QSA]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

@@ -2550,6 +2550,49 @@ app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
   }
 });
 
+
+// Route: Track & Increment Profile Views for a Supplier (Storefront View Ping)
+app.post('/api/public/suppliers/:id/view', async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    if (!rawId) return res.json({ success: false });
+    const intId = !isNaN(parseInt(rawId, 10)) ? parseInt(rawId, 10) : -1;
+    const strId = String(rawId).toLowerCase().trim();
+    const r = await db.query(`
+      UPDATE businesses 
+      SET profile_views = COALESCE(profile_views, 0) + 1 
+      WHERE id = $1 OR user_id = $1 OR LOWER(slug) = $2 OR LOWER(subdomain) = $2
+      RETURNING profile_views, user_id, id
+    `, [intId, strId]);
+    if (r.rows && r.rows[0]) {
+      return res.json({ success: true, profile_views: r.rows[0].profile_views, user_id: r.rows[0].user_id });
+    }
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: true, error: e.message });
+  }
+});
+
+// Route: Track & Increment Website Views for a Seller Website (site.html?store=...)
+app.post('/api/public/site/:subdomain/view', async (req, res) => {
+  try {
+    const sub = (req.params.subdomain || '').toLowerCase().trim();
+    if (!sub) return res.json({ success: false });
+    const r = await db.query(`
+      UPDATE businesses 
+      SET profile_views = COALESCE(profile_views, 0) + 1 
+      WHERE LOWER(subdomain) = $1 OR LOWER(slug) = $1
+      RETURNING profile_views, user_id, id
+    `, [sub]);
+    if (r.rows && r.rows[0]) {
+      return res.json({ success: true, profile_views: r.rows[0].profile_views, user_id: r.rows[0].user_id });
+    }
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: true, error: e.message });
+  }
+});
+
 // Route: Get Reviews for a Supplier
 app.get('/api/public/suppliers/:id/reviews', async (req, res) => {
   try {

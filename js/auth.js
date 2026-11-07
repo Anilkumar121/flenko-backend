@@ -1286,23 +1286,33 @@ const auth = {
       console.warn("Network getProducts notice:", e);
     }
 
-    // 2b. High-Availability Fallback: If backend is asleep or returned 0, load verified products from static products.json
+    // 2b. High-Availability Fallback: If backend is asleep or returned 0, load verified products from memory or static catalog
     if (!resDataProds || resDataProds.length === 0) {
-      try {
-        const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
-        if (catRes.ok) {
-          const allCat = await catRes.json();
-          if (Array.isArray(allCat)) {
-            const staticSellerProds = isMasterAdmin ? allCat : allCat.filter(matchesUser);
-            if (staticSellerProds.length > 0) {
-              staticSellerProds.forEach(p => {
-                if (p && p.id) deletedIds.delete(String(p.id));
-              });
-              localSellerProds.push(...staticSellerProds);
+      if (typeof FLENKO_STATIC_PRODUCTS !== 'undefined' && Array.isArray(FLENKO_STATIC_PRODUCTS) && FLENKO_STATIC_PRODUCTS.length > 0) {
+        const staticSellerProds = isMasterAdmin ? FLENKO_STATIC_PRODUCTS : FLENKO_STATIC_PRODUCTS.filter(matchesUser);
+        if (staticSellerProds.length > 0) {
+          staticSellerProds.forEach(p => {
+            if (p && p.id) deletedIds.delete(String(p.id));
+          });
+          localSellerProds.push(...staticSellerProds);
+        }
+      } else {
+        try {
+          const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
+          if (catRes.ok) {
+            const allCat = await catRes.json();
+            if (Array.isArray(allCat)) {
+              const staticSellerProds = isMasterAdmin ? allCat : allCat.filter(matchesUser);
+              if (staticSellerProds.length > 0) {
+                staticSellerProds.forEach(p => {
+                  if (p && p.id) deletedIds.delete(String(p.id));
+                });
+                localSellerProds.push(...staticSellerProds);
+              }
             }
           }
-        }
-      } catch(e) {}
+        } catch(e) {}
+      }
     }
 
     // 3. Merge server products and local products cleanly

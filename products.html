@@ -1202,7 +1202,7 @@
       function renderList(products, filters) {
         resultsSubText.textContent = `Showing ${products.length} verified listings with direct factory pricing`;
         filterCountLabel.textContent = `${products.length} items`;
-        document.getElementById("mobileBadge").textContent = filters.selCat || (filters.selCountry.code !== 'ALL' ? filters.selCountry.name : 'All Products');
+        document.getElementById("mobileBadge").textContent = filters.selCat || (filters.selCountry && filters.selCountry.code && filters.selCountry.code !== 'ALL' ? filters.selCountry.name : 'All Products');
 
         // Dynamic SEO & ItemList Schema updates
         updateDynamicSEO(filters.q, filters.selCat, (filters.selCountry && filters.selCountry.code !== 'ALL') ? filters.selCountry.name : '');

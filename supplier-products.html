@@ -322,12 +322,18 @@
   <script src="js/currency.js"></script>
   <script src="js/translator.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+    async function initProductsPage() {
       if (!auth.getToken()) return window.location.href = 'login.html';
       try { auth.syncSellerSession().catch(() => {}); } catch(e) {}
       try { populateCategoryDropdowns(); } catch(e) {}
       await loadProducts();
-    });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initProductsPage);
+    } else {
+      initProductsPage();
+    }
     // Real-time live image preview listeners
     const addImgInp = document.getElementById('pImage');
     if (addImgInp) {

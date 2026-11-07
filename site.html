@@ -1127,7 +1127,28 @@
       renderWebsite(supplierInfo, { rating: '5.0', review_count: 5, total_products: siteProducts.length });
     }
 
+    function trackWebsiteView(subdomain, supp) {
+      try {
+        const pingSub = subdomain || (supp && (supp.subdomain || supp.slug)) || '';
+        const suppId = (supp && (supp.id || supp.user_id)) || '';
+        if (typeof auth !== 'undefined' && auth.fetchWithFallback) {
+          if (pingSub) auth.fetchWithFallback(`/public/site/${encodeURIComponent(pingSub)}/view`, { method: 'POST' }).catch(() => {});
+          if (suppId) auth.fetchWithFallback(`/public/suppliers/${encodeURIComponent(suppId)}/view`, { method: 'POST' }).catch(() => {});
+        }
+        if (suppId) {
+          const vKey = 'flenko_seller_views_' + suppId;
+          const curV = parseInt(localStorage.getItem(vKey) || '0', 10) + 1;
+          localStorage.setItem(vKey, String(curV));
+          const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+          if (u && (String(u.id) === String(suppId) || String(u.id) === String(supp.user_id))) {
+            localStorage.setItem('flenko_seller_views', String(curV));
+          }
+        }
+      } catch(e) {}
+    }
+
     function renderWebsite(supplier, stats) {
+      trackWebsiteView(activeSubdomain, supplier);
       document.title = `${supplier.company_name} - Official Manufacturer Storefront`;
 
       // Header & Navigation

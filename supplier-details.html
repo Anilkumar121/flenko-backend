@@ -4,14 +4,17 @@
   <script>
     (function() {
       // If accessed via rewritten subpath like /suppliers/<slug>, immediately redirect to /supplier-details.html?slug=<slug>
-      if (window.location.pathname.includes('/suppliers/')) {
-        var parts = window.location.pathname.replace(/\/+$/, '').split('/');
+      var p = window.location.pathname;
+      if (p.indexOf('/suppliers/') !== -1) {
+        var parts = p.replace(/\/+$/, '').split('/');
         var sIdx = parts.indexOf('suppliers');
-        if (sIdx !== -1 && parts[sIdx + 1]) {
-          var slug = parts[sIdx + 1];
-          var search = window.location.search || '';
-          var sep = search ? '&' : '?';
-          window.location.replace('supplier-details.html' + search + (search.includes('slug=') ? '' : (sep + 'slug=' + encodeURIComponent(slug))));
+        var candidate = (sIdx !== -1 && parts[sIdx + 1]) ? parts[sIdx + 1] : '';
+        var search = window.location.search || '';
+        var sep = search ? '&' : '?';
+        if (candidate && candidate !== 'supplier-details.html') {
+          window.location.replace('/supplier-details.html' + search + (search.indexOf('slug=') !== -1 ? '' : (sep + 'slug=' + encodeURIComponent(candidate))));
+        } else {
+          window.location.replace('/supplier-details.html' + search);
         }
       }
     })();
@@ -20,10 +23,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supplier Profile & Storefront - Flenko B2B</title>
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="/css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="/css/storefront.css">
   <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="/css/mobile.css">
   <style>
     body { background-color: #f8fafc; color: #1e293b; }
     
@@ -622,9 +630,11 @@
     // Extract supplier id or slug from URL query: supplier-details.html?id=... or ?slug=...
     function getSupplierIdFromUrl() {
       const urlParams = new URLSearchParams(window.location.search);
-      const slug = urlParams.get('slug') || urlParams.get('store');
+      let slug = urlParams.get('slug') || urlParams.get('store');
+      if (slug && slug.toLowerCase() === 'supplier-details.html') slug = '';
       if (slug) return slug.trim();
-      const id = urlParams.get('id');
+      let id = urlParams.get('id');
+      if (id && id.toLowerCase() === 'supplier-details.html') id = '';
       if (id && !isNaN(parseInt(id, 10))) {
         return parseInt(id, 10);
       }
@@ -635,7 +645,7 @@
         const path = window.location.pathname.replace(/\/+$/, '');
         const segments = path.split('/').filter(Boolean);
         const suppIdx = segments.indexOf('suppliers');
-        if (suppIdx !== -1 && segments[suppIdx + 1]) {
+        if (suppIdx !== -1 && segments[suppIdx + 1] && segments[suppIdx + 1] !== 'supplier-details.html') {
           return decodeURIComponent(segments[suppIdx + 1]);
         }
       } catch(e) {}
@@ -652,7 +662,23 @@
       return '';
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
+    function trackStorefrontView(id, supp) {
+      try {
+        const pingId = (supp && (supp.id || supp.user_id)) || id;
+        if (typeof auth !== 'undefined' && auth.fetchWithFallback) {
+          auth.fetchWithFallback(`/public/suppliers/${encodeURIComponent(pingId)}/view`, { method: 'POST' }).catch(() => {});
+        }
+        const vKey = 'flenko_seller_views_' + pingId;
+        const curV = parseInt(localStorage.getItem(vKey) || '0', 10) + 1;
+        localStorage.setItem(vKey, String(curV));
+        const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+        if (u && (String(u.id) === String(pingId) || String(u.id) === String(supp && supp.user_id))) {
+          localStorage.setItem('flenko_seller_views', String(curV));
+        }
+      } catch(e) {}
+    }
+
+    function initSupplierDetailsPage() {
       currentSupplierId = getSupplierIdFromUrl();
 
       // Prefill user name & phone in inquiry form and review form if logged in
@@ -670,19 +696,30 @@
         }
       }
 
-      await loadSupplierProfile(currentSupplierId);
-    });
+      loadSupplierProfile(currentSupplierId);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSupplierDetailsPage);
+    } else {
+      initSupplierDetailsPage();
+    }
 
     async function loadSupplierProfile(id) {
       if (!id) {
-        // Try to load first verified supplier from suppliers.json if guest visits without id
+        // Try to load first verified supplier from memory / suppliers.json if guest visits without id
         try {
-          const sRes = await fetch('suppliers.json?v=' + Math.floor(Date.now() / 60000));
-          if (sRes.ok) {
-            const sList = await sRes.json();
-            if (Array.isArray(sList) && sList.length > 0) {
-              const firstSupp = sList.find(s => s.user_id !== 1 && s.company_name) || sList[0];
-              id = firstSupp.slug || firstSupp.id;
+          if (typeof FLENKO_STATIC_SUPPLIERS !== 'undefined' && Array.isArray(FLENKO_STATIC_SUPPLIERS) && FLENKO_STATIC_SUPPLIERS.length > 0) {
+            const firstSupp = FLENKO_STATIC_SUPPLIERS.find(s => s.user_id !== 1 && s.company_name) || FLENKO_STATIC_SUPPLIERS[0];
+            id = firstSupp.slug || firstSupp.id;
+          } else {
+            const sRes = await fetch('suppliers.json?v=' + Math.floor(Date.now() / 60000));
+            if (sRes.ok) {
+              const sList = await sRes.json();
+              if (Array.isArray(sList) && sList.length > 0) {
+                const firstSupp = sList.find(s => s.user_id !== 1 && s.company_name) || sList[0];
+                id = firstSupp.slug || firstSupp.id;
+              }
             }
           }
         } catch(e) {}
@@ -706,6 +743,7 @@
             allSupplierProducts = data.products || [];
             allSupplierReviews = data.reviews || [];
             renderSupplierUI(supplierData, data.stats || {});
+            trackStorefrontView(id, supplierData);
             return;
           }
         }
@@ -714,6 +752,7 @@
       }
       // If server fails or returned empty, load cleanly from static suppliers.json
       await fallbackLocalSupplier(id);
+      trackStorefrontView(id, supplierData);
     }
 
     async function fallbackLocalSupplier(id) {

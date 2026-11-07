@@ -585,13 +585,20 @@
 
         // 2. Profile Views (Real-time tracking)
         let views = 0;
+        const uId = u.id || b.user_id || '';
+        const specificViews = uId ? localStorage.getItem('flenko_seller_views_' + uId) : null;
+        if (specificViews !== null && !isNaN(parseInt(specificViews, 10)) && parseInt(specificViews, 10) > 0) {
+          views = Math.max(views, parseInt(specificViews, 10));
+        }
         if (stats.profile_views !== undefined && stats.profile_views !== null) {
-          views = parseInt(stats.profile_views, 10);
-        } else if (b.profile_views !== undefined && b.profile_views !== null) {
-          views = parseInt(b.profile_views, 10);
-        } else {
-          const locViews = localStorage.getItem('flenko_seller_views');
-          if (locViews) views = parseInt(locViews, 10);
+          views = Math.max(views, parseInt(stats.profile_views, 10));
+        }
+        if (b.profile_views !== undefined && b.profile_views !== null) {
+          views = Math.max(views, parseInt(b.profile_views, 10));
+        }
+        const locViews = localStorage.getItem('flenko_seller_views');
+        if (locViews && !isNaN(parseInt(locViews, 10))) {
+          views = Math.max(views, parseInt(locViews, 10));
         }
         if (isNaN(views) || views < 0) views = 0;
         const vEl = document.getElementById('profileViewCount');
