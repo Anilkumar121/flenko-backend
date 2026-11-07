@@ -317,6 +317,7 @@
   </div>
 
   <script src="js/auth.js"></script>
+  <script src="js/products-data.js"></script>
   <script src="js/categories-data.js"></script>
   <script src="js/currency.js"></script>
   <script src="js/translator.js"></script>
@@ -438,6 +439,20 @@
           renderedEarly = true;
         }
       } catch(e) {}
+
+      // Fallback to preloaded static products if this user owns products in memory
+      if (!renderedEarly && typeof FLENKO_STATIC_PRODUCTS !== 'undefined' && Array.isArray(FLENKO_STATIC_PRODUCTS)) {
+        try {
+          const u = auth.getUser() || {};
+          const cleanP = (u.phone || '').replace(/[^0-9]/g, '').slice(-10);
+          const isMasterAdmin = (u.role === 'admin' || cleanP === '8368074009');
+          const staticProds = isMasterAdmin ? FLENKO_STATIC_PRODUCTS : FLENKO_STATIC_PRODUCTS.filter(p => p && (String(p.supplier_id) === String(u.id) || (cleanP && p.supplier_phone && p.supplier_phone.includes(cleanP))));
+          if (staticProds.length > 0) {
+            renderProductGrid(staticProds);
+            renderedEarly = true;
+          }
+        } catch(e) {}
+      }
 
       // If nothing cached yet, render initial state immediately so screen never hangs on "Loading catalog..."
       if (!renderedEarly) {

@@ -372,8 +372,8 @@
       <!-- Flenko Search Box -->
       <form class="flenko-search-box" action="products.html" method="GET" id="productsSearchForm">
         <select class="search-type-select" name="type" id="pageSearchType">
-          <option value="all">All</option>
-          <option value="products" selected>Products</option>
+          <option value="all" selected>All (Products & Services)</option>
+          <option value="products">Products</option>
           <option value="services">Services</option>
           <option value="suppliers">Suppliers</option>
         </select>
@@ -535,6 +535,7 @@
   </main>
 
   <script src="js/auth.js"></script>
+  <script src="js/products-data.js"></script>
   <script src="js/categories-data.js"></script>
   <script src="js/inquiry-modal.js"></script>
   <script src="js/countries.js"></script>
@@ -664,6 +665,8 @@
         pillMoq.classList.remove("active");
         maxMoqInput.value = '';
         searchQueryInput.value = '';
+        if (pageSearchType) pageSearchType.value = 'all';
+        try { window.history.replaceState({}, '', window.location.pathname); } catch(e) {}
         sidebarCountryPicker.selectCountry(FLENKO_COUNTRIES[0]);
         headerCountryPicker.selectCountry(FLENKO_COUNTRIES[0]);
         applyFilters();
@@ -834,6 +837,11 @@
         });
         window.allProductsList = allProducts;
         if (typeof applyFilters === 'function') applyFilters();
+      }
+
+      // Step 0: Instant Authoritative Memory Preload (0ms - Immune to offline/CORS/sleep)
+      if (typeof FLENKO_STATIC_PRODUCTS !== 'undefined' && Array.isArray(FLENKO_STATIC_PRODUCTS) && FLENKO_STATIC_PRODUCTS.length > 0) {
+        formatAndStoreProducts(FLENKO_STATIC_PRODUCTS);
       }
 
       // Step 1: Instant Local Cache (< 5ms)

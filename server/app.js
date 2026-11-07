@@ -3415,35 +3415,29 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
   try {
     let effectiveSupplierId = (req.user && req.user.id) ? parseInt(req.user.id) : null;
     try {
-      let uCheck = effectiveSupplierId ? await db.query('SELECT id, name, city FROM users WHERE id = $1', [effectiveSupplierId]) : { rows: [] };
-      if (!uCheck.rows || uCheck.rows.length === 0) {
-        let found = null;
-        if (req.user && req.user.phone) {
-          const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
-          const pCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
-          if (pCheck.rows && pCheck.rows.length > 0) found = pCheck.rows[0].id;
-        }
-        if (found) {
-          effectiveSupplierId = found;
-        } else if (req.user) {
-          // Auto-recreate supplier user record so products are NEVER mistakenly assigned to Master Admin
+      if (effectiveSupplierId) {
+        let uCheck = await db.query('SELECT id, name, city FROM users WHERE id = $1', [effectiveSupplierId]);
+        if (!uCheck.rows || uCheck.rows.length === 0) {
           const uName = (req.user.name || req.user.company_name || 'Verified Supplier').trim();
           const uPhone = (req.user.phone || ('+91' + Date.now().toString().slice(-10))).trim();
-          const uEmail = req.user.email || null;
-          const uCity = req.user.city || 'Industrial Hub';
-          const insUser = await db.query(
-            'INSERT INTO users (phone, name, email, city, role, subscription) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-            [uPhone, uName, uEmail, uCity, 'supplier', req.user.subscription || 'free']
-          );
-          if (insUser.rows && insUser.rows[0]) {
-            effectiveSupplierId = insUser.rows[0].id;
+          try {
+            await db.query(
+              'INSERT INTO users (id, phone, name, role, subscription) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING',
+              [effectiveSupplierId, uPhone, uName, 'supplier', 'free']
+            );
+          } catch(insErr) {
+            console.warn('Upsert user notice:', insErr.message);
           }
         }
+      } else if (req.user && req.user.phone) {
+        const cleanP = req.user.phone.replace(/[^0-9]/g, '').slice(-10);
+        const pCheck = await db.query('SELECT id FROM users WHERE phone LIKE $1', ['%' + cleanP]);
+        if (pCheck.rows && pCheck.rows.length > 0) effectiveSupplierId = pCheck.rows[0].id;
       }
     } catch(e) {
       console.warn('Error verifying product supplier user:', e.message);
     }
-    if (!effectiveSupplierId) effectiveSupplierId = 1;
+    if (!effectiveSupplierId) effectiveSupplierId = (req.user && req.user.id) ? parseInt(req.user.id) : 1;
 
     // Auto-link business profile if missing
     try {

@@ -1407,42 +1407,43 @@ const auth = {
     const supplierSlug = (user.business && user.business.slug) || sProfile.slug || sProfile.subdomain || user.subdomain || (supplierName ? supplierName.toLowerCase().replace(/[^a-z0-9]/g, "-") : "store");
     const city = user.city || sProfile.city || "Industrial Hub";
 
-    // 1. Try sending to live server backend
+    // 1. Fast Dual-Engine Submit (JSON first with instant response)
     let resData = null;
     const effectiveToken = token || (this.isAdmin() ? 'flenko_jwt_admin_local' : '');
+    const jsonPayload = {
+      name, category, country, price, moq, unit, stock_quantity,
+      is_service, listing_type,
+      image_data: image_url
+    };
+
     try {
-      const res = await this.fetchWithFallback("/products", {
+      const resJson = await this.fetchWithFallback("/products", {
         method: "POST",
-        headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {},
-        body: formData
+        headers: {
+          "Content-Type": "application/json",
+          ...(effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {})
+        },
+        body: JSON.stringify(jsonPayload)
       });
-      if (res && res.ok) {
-        resData = await res.json();
+      if (resJson && resJson.ok) {
+        resData = await resJson.json();
       }
-    } catch(e) {
-      console.warn("Network add product unavailable, retrying with JSON:", e);
+    } catch(je) {
+      console.warn("JSON add product notice:", je);
     }
 
-    if (!resData) {
+    if (!resData && formData) {
       try {
-        const jsonPayload = {
-          name, category, country, price, moq, unit, stock_quantity,
-          is_service, listing_type,
-          image_data: image_url
-        };
-        const resJson = await this.fetchWithFallback("/products", {
+        const res = await this.fetchWithFallback("/products", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {})
-          },
-          body: JSON.stringify(jsonPayload)
+          headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {},
+          body: formData
         });
-        if (resJson && resJson.ok) {
-          resData = await resJson.json();
+        if (res && res.ok) {
+          resData = await res.json();
         }
-      } catch(je) {
-        console.warn("JSON fallback add product warning:", je);
+      } catch(e) {
+        console.warn("FormData add product notice:", e);
       }
     }
 

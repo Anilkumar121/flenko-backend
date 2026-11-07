@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <base href="/">
   <script>
     (function() {
       // If accessed via rewritten subpath like /suppliers/<slug>, immediately redirect to /supplier-details.html?slug=<slug>
@@ -12,7 +11,7 @@
           var slug = parts[sIdx + 1];
           var search = window.location.search || '';
           var sep = search ? '&' : '?';
-          window.location.replace('/supplier-details.html' + search + (search.includes('slug=') ? '' : (sep + 'slug=' + encodeURIComponent(slug))));
+          window.location.replace('supplier-details.html' + search + (search.includes('slug=') ? '' : (sep + 'slug=' + encodeURIComponent(slug))));
         }
       }
     })();
@@ -610,6 +609,7 @@
   </div>
 
   <script src="js/auth.js"></script>
+  <script src="js/products-data.js"></script>
   <script src="js/currency.js"></script>
   <script src="js/translator.js"></script>
   <script src="js/mobile-nav.js"></script>
@@ -687,7 +687,15 @@
           }
         } catch(e) {}
       }
-      if (!id) id = 3; // Default to verified supplier #3 (Rana Pratap Construction), NEVER admin #1
+      if (!id || id == 1 || id == '1') {
+        // If user is a logged-in seller, use their ID
+        const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
+        if (u && (u.role === 'supplier' || u.business) && u.id && u.id != 1) {
+          id = u.id;
+        } else {
+          id = 3; // Default to verified supplier #3 (Rana Pratap Construction), NEVER admin #1
+        }
+      }
       currentSupplierId = id;
       try {
         const res = await auth.fetchWithFallback(`/public/suppliers/${encodeURIComponent(id)}`);
@@ -729,6 +737,18 @@
           }
         }
       } catch(e) {}
+
+      if (!localBiz && typeof FLENKO_STATIC_SUPPLIERS !== 'undefined' && Array.isArray(FLENKO_STATIC_SUPPLIERS)) {
+        const targetStr = String(id).toLowerCase().trim();
+        localBiz = FLENKO_STATIC_SUPPLIERS.find(s => 
+          String(s.id) === targetStr || 
+          String(s.user_id) === targetStr || 
+          (s.slug && s.slug.toLowerCase() === targetStr) ||
+          (s.subdomain && s.subdomain.toLowerCase() === targetStr) ||
+          (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '-') === targetStr) ||
+          (s.company_name && s.company_name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetStr.replace(/[^a-z0-9]/g, ''))
+        );
+      }
 
       // 2. Only if STILL not found, check logged-in seller session IF this supplier matches the logged-in seller
       if (!localBiz) {
@@ -820,6 +840,18 @@
             );
           }
         } catch(e) {}
+      }
+
+      if (allSupplierProducts.length === 0 && typeof FLENKO_STATIC_PRODUCTS !== 'undefined' && Array.isArray(FLENKO_STATIC_PRODUCTS)) {
+        const targetSuppId = String(effId);
+        const targetSlug = (localBiz.slug || String(id)).toLowerCase();
+        const targetName = (localBiz.company_name || '').toLowerCase().trim();
+        const isGeneric = ['supplier', 'verified supplier', 'store'].includes(targetName);
+        allSupplierProducts = FLENKO_STATIC_PRODUCTS.filter(p => 
+          (p.supplier_id && String(p.supplier_id) === targetSuppId) || 
+          (p.supplier_slug && targetSlug && p.supplier_slug.toLowerCase() === targetSlug) ||
+          (!isGeneric && p.supplier_name && targetName && p.supplier_name.toLowerCase().trim() === targetName)
+        );
       }
 
       allSupplierReviews = allSupplierReviews || [];

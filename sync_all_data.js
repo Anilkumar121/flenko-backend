@@ -65,6 +65,15 @@ async function run() {
     } catch(e) {}
     console.log('✓ Updated products.json with', pRes.rows.length, 'products.');
 
+    // 3. Generate high-availability browser JS fallback bundle
+    const jsPath = path.join(__dirname, 'js', 'products-data.js');
+    const jsContent = `// Preloaded Authoritative Data for Instant Rendering (Offline / Cold-Start Safe)
+window.FLENKO_STATIC_SUPPLIERS = ${JSON.stringify(bRes.rows)};
+window.FLENKO_STATIC_PRODUCTS = ${JSON.stringify(pRes.rows)};
+`;
+    fs.writeFileSync(jsPath, jsContent, 'utf8');
+    console.log('✓ Updated js/products-data.js with preloaded suppliers and products.');
+
   } catch(e) {
     console.error('Error during sync:', e);
   } finally {
