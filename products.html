@@ -764,7 +764,7 @@
         const customIds = new Set(customProds.map(p => String(p.id)));
         const customNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
 
-        const incomingFiltered = rawList.filter(p => !customIds.has(String(p.id)) && !customNames.has((p.name || "").toLowerCase().trim()));
+        const incomingFiltered = rawList.filter(p => !customIds.has(String(p.id)));
         let mergedList = [...customProds, ...incomingFiltered];
 
         // Apply tombstones and edited overrides
@@ -773,6 +773,13 @@
           const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
           if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
         } catch(e) {}
+
+        // Authoritative live products from PostgreSQL or verified catalog must never be hidden by stale local tombstones
+        if (rawList && rawList.length > 0) {
+          rawList.forEach(p => {
+            if (p && p.id) deletedIds.delete(String(p.id));
+          });
+        }
 
         let editedOverrides = {};
         try {
@@ -877,7 +884,8 @@
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 45000);
-          const res = await fetch(${primaryApi}/public/products?_t=, { signal: controller.signal });
+          const primaryApi = window.API_BASE || "/api";
+          const res = await fetch(`${primaryApi}/public/products?_t=${Date.now()}`, { signal: controller.signal });
           clearTimeout(timer);
           if (res.ok) {
             const data = await res.json();

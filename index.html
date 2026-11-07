@@ -1440,7 +1440,7 @@
 
           const cIds = new Set(customProds.map(p => String(p.id)));
           const cNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
-          const filteredRaw = (list || []).filter(p => !cIds.has(String(p.id)) && !cNames.has((p.name || "").toLowerCase().trim()));
+          const filteredRaw = (list || []).filter(p => !cIds.has(String(p.id)));
           let combined = [...customProds, ...filteredRaw];
 
           let deletedIds = new Set();
@@ -1448,6 +1448,13 @@
             const dList = JSON.parse(localStorage.getItem("flenko_deleted_product_ids") || "[]");
             if (Array.isArray(dList)) deletedIds = new Set(dList.map(String));
           } catch(e) {}
+
+          // Authoritative live products from PostgreSQL or verified catalog must never be hidden by stale local tombstones
+          if (list && list.length > 0) {
+            list.forEach(p => {
+              if (p && p.id) deletedIds.delete(String(p.id));
+            });
+          }
 
           let editedOverrides = {};
           try {

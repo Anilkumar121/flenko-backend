@@ -1241,6 +1241,9 @@ const auth = {
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
       if (Array.isArray(cached) && cached.length > 0) {
+        cached.forEach(p => {
+          if (p && p.id) deletedIds.delete(String(p.id));
+        });
         localSellerProds.push(...cached);
       }
     } catch(e) {}
@@ -1292,6 +1295,9 @@ const auth = {
           if (Array.isArray(allCat)) {
             const staticSellerProds = isMasterAdmin ? allCat : allCat.filter(matchesUser);
             if (staticSellerProds.length > 0) {
+              staticSellerProds.forEach(p => {
+                if (p && p.id) deletedIds.delete(String(p.id));
+              });
               localSellerProds.push(...staticSellerProds);
             }
           }
