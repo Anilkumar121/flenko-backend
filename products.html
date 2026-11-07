@@ -729,7 +729,8 @@
 
       function getLocalCustomProducts() {
         const list = [];
-        const seen = new Set();
+        const seenNames = new Set();
+        const seenIds = new Set();
         const sources = [
           "flenko_custom_products",
           "flenko_seller_products",
@@ -746,11 +747,13 @@
             if (Array.isArray(arr)) {
               arr.forEach(item => {
                 if (item && item.name) {
-                  const uid = String(item.id || item.name.toLowerCase().trim());
-                  if (!seen.has(uid)) {
-                    seen.add(uid);
-                    list.push(item);
-                  }
+                  const norm = (item.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                  const strId = item.id ? String(item.id) : null;
+                  if (strId && seenIds.has(strId)) return;
+                  if (norm && seenNames.has(norm)) return;
+                  if (strId) seenIds.add(strId);
+                  if (norm) seenNames.add(norm);
+                  list.push(item);
                 }
               });
             }
@@ -765,10 +768,29 @@
         // Dual-Engine Merge: Always prioritize seller added products at the very top!
         const customProds = getLocalCustomProducts();
         const customIds = new Set(customProds.map(p => String(p.id)));
-        const customNames = new Set(customProds.map(p => (p.name || "").toLowerCase().trim()));
+        const customNames = new Set(customProds.map(p => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, '')));
 
-        const incomingFiltered = rawList.filter(p => !customIds.has(String(p.id)));
+        const incomingFiltered = rawList.filter(p => !customIds.has(String(p.id)) && !customNames.has((p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
         let mergedList = [...customProds, ...incomingFiltered];
+
+        // Apply strict deduplication on mergedList
+        const dedupedMap = new Map();
+        mergedList.forEach(p => {
+          if (!p || !p.name) return;
+          const norm = (p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (!norm) return;
+          if (!dedupedMap.has(norm)) {
+            dedupedMap.set(norm, p);
+          } else {
+            const existing = dedupedMap.get(norm);
+            const isExistingTempId = !existing.id || String(existing.id).length > 10;
+            const isNewRealId = p.id && String(p.id).length <= 10;
+            if (isExistingTempId && isNewRealId) {
+              dedupedMap.set(norm, { ...existing, ...p, id: p.id });
+            }
+          }
+        });
+        mergedList = Array.from(dedupedMap.values());
 
         // Apply tombstones and edited overrides
         let deletedIds = new Set();

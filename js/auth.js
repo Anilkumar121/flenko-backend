@@ -231,11 +231,31 @@ const auth = {
     if (!user) return;
     try {
       const existing = this.getUser();
-      // If switching to a different user, do NOT inherit profile/business details from previous user!
+      // If switching to a different user, isolate session without destroying previous user's data!
       if (existing && existing.id && user.id && String(existing.id) !== String(user.id)) {
         try {
-          localStorage.removeItem('flenko_seller_profile');
-          localStorage.removeItem('flenko_seller_products');
+          // Preserve previous user's data in their own scoped slot
+          const curProf = localStorage.getItem('flenko_seller_profile');
+          if (curProf) {
+            localStorage.setItem('flenko_seller_profile_' + existing.id, curProf);
+          }
+          const curProds = localStorage.getItem('flenko_seller_products');
+          if (curProds) {
+            localStorage.setItem('flenko_seller_products_' + existing.id, curProds);
+          }
+          // Restore next user's data from their scoped slot
+          const nextProf = localStorage.getItem('flenko_seller_profile_' + user.id);
+          if (nextProf) {
+            localStorage.setItem('flenko_seller_profile', nextProf);
+          } else {
+            localStorage.removeItem('flenko_seller_profile');
+          }
+          const nextProds = localStorage.getItem('flenko_seller_products_' + user.id);
+          if (nextProds) {
+            localStorage.setItem('flenko_seller_products', nextProds);
+          } else {
+            localStorage.removeItem('flenko_seller_products');
+          }
           localStorage.removeItem('flenko_preview_store');
         } catch(e) {}
         flenkoSafeStorage.setItem('flenko_user', JSON.stringify(user));
@@ -297,12 +317,16 @@ const auth = {
     try {
       const u = this.getUser() || {};
       const uid = u.id || (u.phone ? u.phone.toString().replace(/[^0-9]/g, '').slice(-10) : 'default');
+      // Save current session to scoped keys before clearing active session so data is never destroyed
+      const curProf = localStorage.getItem('flenko_seller_profile');
+      if (curProf && uid) localStorage.setItem(`flenko_seller_profile_${uid}`, curProf);
+      const curProds = localStorage.getItem('flenko_seller_products');
+      if (curProds && uid) localStorage.setItem(`flenko_seller_products_${uid}`, curProds);
+
       localStorage.removeItem('flenko_token');
       localStorage.removeItem('flenko_user');
       localStorage.removeItem('flenko_seller_profile');
-      localStorage.removeItem(`flenko_seller_profile_${uid}`);
       localStorage.removeItem('flenko_seller_products');
-      localStorage.removeItem(`flenko_seller_products_${uid}`);
       localStorage.removeItem('flenko_temp_preview');
       localStorage.removeItem('flenko_preview_store');
     } catch(e) {}
@@ -967,8 +991,26 @@ const auth = {
         this.setUser(data.user);
         if (data.user.business) {
           try {
-            // Overwrite with clean server business data without merging dirty fields from other accounts
-            const cleanBiz = { ...data.user.business };
+            const curBiz = this.getSellerProfile() || {};
+            const serverBiz = data.user.business;
+            const cleanBiz = {
+              ...curBiz,
+              ...serverBiz,
+              company_name: serverBiz.company_name || curBiz.company_name || '',
+              gst_number: serverBiz.gst_number || curBiz.gst_number || '',
+              business_type: serverBiz.business_type || curBiz.business_type || 'Manufacturer',
+              category: serverBiz.category || curBiz.category || '',
+              city: serverBiz.city || curBiz.city || '',
+              country: serverBiz.country || curBiz.country || 'India',
+              address: serverBiz.address || curBiz.address || '',
+              about: serverBiz.about || curBiz.about || '',
+              year_est: serverBiz.year_est || curBiz.year_est || '',
+              phone: serverBiz.phone || curBiz.phone || '',
+              whatsapp: serverBiz.whatsapp || curBiz.whatsapp || '',
+              logo_url: serverBiz.logo_url || curBiz.logo_url || null,
+              slug: serverBiz.slug || curBiz.slug || '',
+              subdomain: serverBiz.subdomain || curBiz.subdomain || ''
+            };
             this.setSellerProfile(cleanBiz);
           } catch(e) {}
         }
@@ -1202,21 +1244,32 @@ const auth = {
       editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
     } catch(e) {}
 
-    // Helper: deduplicate products list by id, apply edits and filter deleted
+    // Helper: deduplicate products list strictly by id AND normalized name, merge best info and filter deleted
     const dedupe = (arr) => {
-      const seenIds = new Set();
-      const res = [];
+      const seenNames = new Map();
       arr.forEach(rawP => {
         if (!rawP || !rawP.name) return;
-        const pIdStr = String(rawP.id);
+        const pIdStr = rawP.id ? String(rawP.id) : null;
+        const normName = (rawP.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!normName) return;
         // Only drop if tombstoned
-        if (deletedIds.has(pIdStr)) return;
-        if (seenIds.has(pIdStr)) return;
-        seenIds.add(pIdStr);
-        const p = editedOverrides[pIdStr] ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
-        res.push(p);
+        if (pIdStr && deletedIds.has(pIdStr)) return;
+        if (deletedIds.has(normName)) return;
+
+        if (!seenNames.has(normName)) {
+          const p = (pIdStr && editedOverrides[pIdStr]) ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
+          seenNames.set(normName, p);
+        } else {
+          // If duplicate found, upgrade to real server id if current is temporary timestamp
+          const existing = seenNames.get(normName);
+          const isExistingTempId = !existing.id || String(existing.id).length > 10;
+          const isNewRealId = rawP.id && String(rawP.id).length <= 10;
+          if (isExistingTempId && isNewRealId) {
+            seenNames.set(normName, { ...existing, ...rawP, id: rawP.id });
+          }
+        }
       });
-      return res;
+      return Array.from(seenNames.values());
     };
 
     // Seller ownership matching logic (checks ID, company name, phone, or slug)
@@ -1503,37 +1556,45 @@ const auth = {
         }
       } catch(e) {}
 
+      const isSameProduct = (p) => {
+        if (!p) return false;
+        if (p.id && savedProduct.id && String(p.id) === String(savedProduct.id)) return true;
+        const n1 = (p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const n2 = (savedProduct.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (n1 && n2 && n1 === n2);
+      };
+
       // User-specific cache
       let cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
       if (!Array.isArray(cached)) cached = [];
-      cached = cached.filter(p => p && p.id !== savedProduct.id && p.name !== savedProduct.name);
+      cached = cached.filter(p => !isSameProduct(p));
       cached.unshift(savedProduct);
       flenkoSafeStorage.setItem(cacheKey, JSON.stringify(cached));
 
       // Global seller products (merge without wiping other products)
       let allSellerProds = JSON.parse(localStorage.getItem("flenko_seller_products") || "[]");
       if (!Array.isArray(allSellerProds)) allSellerProds = [];
-      allSellerProds = allSellerProds.filter(p => p && p.id !== savedProduct.id && p.name !== savedProduct.name);
+      allSellerProds = allSellerProds.filter(p => !isSameProduct(p));
       allSellerProds.unshift(savedProduct);
       flenkoSafeStorage.setItem("flenko_seller_products", JSON.stringify(allSellerProds));
 
       // Global custom products key (read by Admin Dashboard and Marketplace)
       let customProds = JSON.parse(localStorage.getItem("flenko_custom_products") || "[]");
       if (!Array.isArray(customProds)) customProds = [];
-      customProds = customProds.filter(p => p.id !== savedProduct.id && p.name !== savedProduct.name);
+      customProds = customProds.filter(p => !isSameProduct(p));
       customProds.unshift(savedProduct);
       flenkoSafeStorage.setItem("flenko_custom_products", JSON.stringify(customProds));
 
       // Public products cache (read by products.html and index.html)
       let pubProds = JSON.parse(localStorage.getItem("flenko_public_products") || "[]");
       if (Array.isArray(pubProds)) {
-        pubProds = pubProds.filter(p => p.id !== savedProduct.id);
+        pubProds = pubProds.filter(p => !isSameProduct(p));
         pubProds.unshift(savedProduct);
         flenkoSafeStorage.setItem("flenko_public_products", JSON.stringify(pubProds));
       }
       let pubCache = JSON.parse(localStorage.getItem("flenko_public_products_cache") || "[]");
       if (Array.isArray(pubCache)) {
-        pubCache = pubCache.filter(p => p.id !== savedProduct.id);
+        pubCache = pubCache.filter(p => !isSameProduct(p));
         pubCache.unshift(savedProduct);
         flenkoSafeStorage.setItem("flenko_public_products_cache", JSON.stringify(pubCache));
       }

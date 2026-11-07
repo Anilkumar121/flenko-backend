@@ -337,7 +337,7 @@
         if (typeof auth !== 'undefined' && auth.getSellerProfile) {
           localBiz = auth.getSellerProfile();
         } else {
-          localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+          localBiz = JSON.parse(localStorage.getItem('flenko_seller_profile_' + loggedUser.id) || localStorage.getItem('flenko_seller_profile') || '{}');
         }
         // Strict isolation: if localBiz belongs to a different user, ignore it!
         if (localBiz && localBiz.user_id && String(localBiz.user_id) !== String(loggedUser.id)) {
@@ -352,21 +352,20 @@
         return s;
       }
 
-      // Merge cleanly: prioritize server business as source of truth
-      const hasServerBiz = Boolean(serverBiz && (serverBiz.company_name || serverBiz.id));
+      // Merge cleanly: prioritize server business as source of truth, but NEVER wipe existing local data!
       const merged = {
         company_name: cleanTextName(serverBiz && serverBiz.company_name) || cleanTextName(loggedUser.company_name) || cleanTextName(loggedUser.name) || cleanTextName(localBiz.company_name) || '',
-        gst_number: (serverBiz && serverBiz.gst_number) || (hasServerBiz ? '' : (localBiz.gst_number || '')),
+        gst_number: (serverBiz && serverBiz.gst_number) || localBiz.gst_number || '',
         business_type: (serverBiz && serverBiz.business_type) || localBiz.business_type || 'Manufacturer',
-        category: (serverBiz && serverBiz.category) || (hasServerBiz ? '' : (localBiz.category || '')),
+        category: (serverBiz && serverBiz.category) || localBiz.category || '',
         city: (serverBiz && serverBiz.city) || loggedUser.city || localBiz.city || 'Industrial Hub',
         country: (serverBiz && serverBiz.country) || localBiz.country || 'India',
-        address: (serverBiz && serverBiz.address) || (hasServerBiz ? '' : (localBiz.address || '')),
-        about: (serverBiz && serverBiz.about) || (hasServerBiz ? '' : (localBiz.about || '')),
-        year_est: (serverBiz && serverBiz.year_est) || (hasServerBiz ? '' : (localBiz.year_est || '')),
+        address: (serverBiz && serverBiz.address) || localBiz.address || '',
+        about: (serverBiz && serverBiz.about) || localBiz.about || '',
+        year_est: (serverBiz && serverBiz.year_est) || localBiz.year_est || '',
         phone: (serverBiz && serverBiz.phone) || loggedUser.phone || localBiz.phone || '',
         whatsapp: (serverBiz && serverBiz.whatsapp) || (serverBiz && serverBiz.phone) || loggedUser.phone || localBiz.whatsapp || '',
-        logo_url: (serverBiz && serverBiz.logo_url) ? serverBiz.logo_url : (hasServerBiz ? null : (localBiz.logo_url || null))
+        logo_url: (serverBiz && serverBiz.logo_url) || localBiz.logo_url || localBiz.logo || null
       };
 
       document.getElementById('companyName').value = merged.company_name;
@@ -533,13 +532,20 @@
           currentProfile.logo = selectedLogoDataUrl;
         }
 
+        const user = auth.getUser() || {};
+        currentProfile.user_id = user.id || currentUserId;
+        const scopedKey = 'flenko_seller_profile_' + (user.id || currentUserId || 'default');
+
         if (window.flenkoSafeStorage) {
           window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
+          window.flenkoSafeStorage.setItem(scopedKey, JSON.stringify(currentProfile));
         } else {
           localStorage.setItem('flenko_seller_profile', JSON.stringify(currentProfile));
+          localStorage.setItem(scopedKey, JSON.stringify(currentProfile));
         }
-
-        const user = auth.getUser() || {};
+        if (typeof auth !== 'undefined' && auth.setSellerProfile) {
+          auth.setSellerProfile(currentProfile);
+        }
         user.name = compName;
         user.company_name = compName;
         user.city = bCity;

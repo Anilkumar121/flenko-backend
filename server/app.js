@@ -1589,6 +1589,26 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   }
 });
 
+// Helper: server-side product deduplication by normalized name and ID
+function dedupeProductsList(list) {
+  if (!Array.isArray(list)) return [];
+  const map = new Map();
+  list.forEach(p => {
+    if (!p || !p.name) return;
+    const norm = (p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!norm) return;
+    if (!map.has(norm)) {
+      map.set(norm, p);
+    } else {
+      const existing = map.get(norm);
+      if ((!existing.id || String(existing.id).length > 10) && p.id && String(p.id).length <= 10) {
+        map.set(norm, { ...existing, ...p, id: p.id });
+      }
+    }
+  });
+  return Array.from(map.values());
+}
+
 // Middleware to verify JWT
 const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -1597,8 +1617,7 @@ const authMiddleware = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    let numId = parseInt(decoded.id) || 1;
-    if (numId > 2147483640) numId = (numId % 2000000000) + 10;
+    let numId = decoded.id ? (parseInt(decoded.id) || decoded.id) : 1;
     req.user = { ...decoded, id: numId };
     return next();
   } catch (err) {
@@ -1610,16 +1629,12 @@ const authMiddleware = async (req, res, next) => {
       let targetUserId = null;
       if (token.startsWith('flenko_jwt_local_') || token.startsWith('flenko_jwt_google_')) {
         const idPart = token.replace('flenko_jwt_local_', '').replace('flenko_jwt_google_', '');
-        targetUserId = parseInt(idPart) || 1;
-        if (targetUserId > 2147483640) {
-          targetUserId = (targetUserId % 2000000000) + 10;
-        }
+        targetUserId = parseInt(idPart) || idPart;
       } else {
         try {
           const decoded = jwt.decode(token);
           if (decoded && (decoded.id || decoded.phone)) {
-            targetUserId = parseInt(decoded.id) || 1;
-            if (targetUserId > 2147483640) targetUserId = (targetUserId % 2000000000) + 10;
+            targetUserId = parseInt(decoded.id) || decoded.id;
           }
         } catch(decodeErr) {}
       }
@@ -1808,8 +1823,7 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
   }
 
   try {
-    let targetUserId = parseInt(req.user.id) || 1;
-    if (targetUserId > 2147483640) targetUserId = (targetUserId % 2000000000) + 10;
+    let targetUserId = req.user.id ? (parseInt(req.user.id) || req.user.id) : 1;
     const cleanPhoneDigits = (cleanPhone || (req.user && req.user.phone) || '').toString().replace(/[^0-9]/g, '').slice(-10);
 
     // Verify user exists in database to satisfy foreign key constraint
@@ -1897,23 +1911,30 @@ app.post('/api/businesses', authMiddleware, uploadLogo.single('logo'), async (re
         try { await db.query('UPDATE users SET phone = $1 WHERE id = $2', [cleanPhone, targetUserId]); } catch(e) {}
       }
 
+      const finalGst = (gst_number !== undefined && gst_number !== null && gst_number !== '') ? gst_number : (curBiz.gst_number || '');
+      const finalAddress = (address !== undefined && address !== null && address !== '') ? address : (curBiz.address || '');
+      const finalCategory = (category !== undefined && category !== null && category !== '') ? category : (curBiz.category || 'General B2B');
+      const finalBizType = (business_type !== undefined && business_type !== null && business_type !== '') ? business_type : (curBiz.business_type || 'Manufacturer & Wholesaler');
+      const finalYear = finalYearEst || curBiz.year_est || '';
+      const finalAboutVal = (about !== undefined && about !== null && about !== '') ? about : (curBiz.about || '');
+
       await db.query(
-        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10, slug = $11, seo_title = $12, seo_description = $13, phone = COALESCE(NULLIF($14, \'\'), phone), whatsapp = COALESCE(NULLIF($15, \'\'), whatsapp) WHERE user_id = $16',
-        [cleanCompName, gst_number || '', business_type || 'Manufacturer & Wholesaler', address || '', finalCity, category || 'General B2B', logo_url, effectiveCountry, effectiveAbout, finalYearEst, supplierSlug, suppMeta.title, suppMeta.description, cleanPhone, cleanWa, targetUserId]
+        'UPDATE businesses SET company_name = $1, gst_number = $2, business_type = $3, address = $4, city = $5, category = $6, logo_url = $7, country = $8, about = $9, year_est = $10, slug = $11, seo_title = $12, seo_description = $13, phone = COALESCE(NULLIF($14, \'\'), phone), whatsapp = COALESCE(NULLIF($15, \'\'), whatsapp) WHERE id = $16',
+        [cleanCompName, finalGst, finalBizType, finalAddress, finalCity, finalCategory, logo_url, effectiveCountry, finalAboutVal, finalYear, supplierSlug, suppMeta.title, suppMeta.description, cleanPhone, cleanWa, curBiz.id]
       );
       updatedBusiness = {
         id: curBiz.id,
         user_id: targetUserId,
         company_name: cleanCompName,
-        gst_number,
-        business_type,
-        address,
+        gst_number: finalGst,
+        business_type: finalBizType,
+        address: finalAddress,
         city: finalCity,
-        category,
+        category: finalCategory,
         logo_url,
         country: effectiveCountry,
-        about: effectiveAbout,
-        year_est: finalYearEst,
+        about: finalAboutVal,
+        year_est: finalYear,
         slug: supplierSlug,
         seo_title: suppMeta.title,
         seo_description: suppMeta.description,
@@ -2161,11 +2182,11 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
       } catch(e) {}
     }
 
-    // Normalize product image URLs
-    products = products.map(p => {
+    // Normalize product image URLs and deduplicate
+    products = dedupeProductsList(products.map(p => {
       p.image_url = normalizeProductImageUrl(p.image_url);
       return p;
-    });
+    }));
 
     // Fetch supplier's reviews
     let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId || business.user_id]);
@@ -2374,11 +2395,11 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
       } catch(e) {}
     }
 
-    // Normalize product image URLs
-    products = products.map(p => {
+    // Normalize product image URLs and deduplicate
+    products = dedupeProductsList(products.map(p => {
       p.image_url = normalizeProductImageUrl(p.image_url);
       return p;
-    });
+    }));
 
     // Fetch supplier's reviews
     let revRes = await db.query('SELECT * FROM reviews WHERE supplier_id = $1 ORDER BY created_at DESC', [targetUserId]);
@@ -2472,8 +2493,7 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
 // Route: Activate / Update Seller Custom Website & Subdomain
 app.post('/api/seller/website/generate', authMiddleware, async (req, res) => {
   try {
-    let userId = parseInt(req.user.id) || 1;
-    if (userId > 2147483640) userId = (userId % 2000000000) + 10;
+    let userId = req.user.id ? (parseInt(req.user.id) || req.user.id) : 1;
     let { subdomain, tagline } = req.body;
 
     // Verify user exists in database to satisfy foreign key constraint
@@ -2662,8 +2682,7 @@ app.post('/api/public/suppliers/:id/reviews', async (req, res) => {
 // Route: Get Supplier Leads
 app.get('/api/leads', authMiddleware, async (req, res) => {
   try {
-    let userId = parseInt(req.user.id) || 1;
-    if (userId > 2147483640) userId = (userId % 2000000000) + 10;
+    let userId = req.user.id ? (parseInt(req.user.id) || req.user.id) : 1;
     const userPhone = (req.user && req.user.phone) ? req.user.phone.replace(/[^0-9]/g, '').slice(-10) : '';
 
     // Fetch leads: specific direct inquiries for this supplier OR universal market buy leads
@@ -3496,19 +3515,16 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
       }
     } catch(bErr) {}
 
-    // Deduplication check: prevent accidental double-submits
+    // Deduplication check: prevent duplicate product/service listings
     try {
       const dupCheck = await db.query(
-        'SELECT id, name, created_at FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name)) = LOWER($2) ORDER BY id DESC LIMIT 1',
+        'SELECT id, name, created_at FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2)) ORDER BY id DESC LIMIT 1',
         [effectiveSupplierId, cleanName]
       );
       if (dupCheck.rows && dupCheck.rows.length > 0) {
         const lastProd = dupCheck.rows[0];
-        const timeDiff = Date.now() - new Date(lastProd.created_at).getTime();
-        if (!isNaN(timeDiff) && timeDiff < 10000) {
-          console.warn(`[Duplicate Prevented] Product '${cleanName}' was already added ${timeDiff}ms ago.`);
-          return res.json({ success: true, product: lastProd, seo_generated: autoSeoTags, category: effectiveCategory, country: effectiveCountry, isDuplicatePrevented: true });
-        }
+        console.warn(`[Duplicate Prevented] Product '${cleanName}' already exists for supplier ${effectiveSupplierId}.`);
+        return res.json({ success: true, product: lastProd, seo_generated: autoSeoTags, category: effectiveCategory, country: effectiveCountry, isDuplicatePrevented: true });
       }
     } catch(dErr) {}
 

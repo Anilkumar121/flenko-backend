@@ -20,6 +20,7 @@
     })();
   </script>
   <meta charset="UTF-8">
+  <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supplier Profile & Storefront - Flenko B2B</title>
   <link rel="stylesheet" href="css/base.css">
@@ -627,6 +628,27 @@
     let allSupplierProducts = [];
     let allSupplierReviews = [];
 
+    function dedupeProducts(list) {
+      if (!Array.isArray(list)) return [];
+      const seenNames = new Map();
+      list.forEach(rawP => {
+        if (!rawP || !rawP.name) return;
+        const normName = (rawP.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!normName) return;
+        if (!seenNames.has(normName)) {
+          seenNames.set(normName, rawP);
+        } else {
+          const existing = seenNames.get(normName);
+          const isExistingTempId = !existing.id || String(existing.id).length > 10;
+          const isNewRealId = rawP.id && String(rawP.id).length <= 10;
+          if (isExistingTempId && isNewRealId) {
+            seenNames.set(normName, { ...existing, ...rawP, id: rawP.id });
+          }
+        }
+      });
+      return Array.from(seenNames.values());
+    }
+
     // Extract supplier id or slug from URL query: supplier-details.html?id=... or ?slug=...
     function getSupplierIdFromUrl() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -740,7 +762,7 @@
           const data = await res.json();
           if (data && data.supplier && data.supplier.company_name) {
             supplierData = data.supplier;
-            allSupplierProducts = data.products || [];
+            allSupplierProducts = dedupeProducts(data.products || []);
             allSupplierReviews = data.reviews || [];
             renderSupplierUI(supplierData, data.stats || {});
             trackStorefrontView(id, supplierData);
@@ -893,6 +915,7 @@
         );
       }
 
+      allSupplierProducts = dedupeProducts(allSupplierProducts || []);
       allSupplierReviews = allSupplierReviews || [];
       renderSupplierUI(supplierData, { rating: '5.0', review_count: 0, total_products: allSupplierProducts.length });
     }
@@ -1042,8 +1065,9 @@
     }
 
     function renderProducts(products) {
+      const cleanProducts = dedupeProducts(products);
       const grid = document.getElementById('supplierProductsGrid');
-      if (!products || products.length === 0) {
+      if (!cleanProducts || cleanProducts.length === 0) {
         grid.innerHTML = `
           <div style="grid-column: 1/-1; padding: 3rem 1.5rem; text-align: center; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 10px;">
             <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
@@ -1057,7 +1081,7 @@
         return;
       }
 
-      grid.innerHTML = products.map(p => {
+      grid.innerHTML = cleanProducts.map(p => {
         const img = (window.formatProductImageUrl ? window.formatProductImageUrl(p.image_url) : p.image_url) || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80';
         const priceDisplay = (p.price && Number(p.price) > 0) ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Best Wholesale Rate';
         const unit = p.unit || 'Pieces';

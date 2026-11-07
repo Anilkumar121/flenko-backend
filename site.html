@@ -815,6 +815,27 @@
       return 'store';
     }
 
+    function dedupeProducts(list) {
+      if (!Array.isArray(list)) return [];
+      const seenNames = new Map();
+      list.forEach(rawP => {
+        if (!rawP || !rawP.name) return;
+        const normName = (rawP.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!normName) return;
+        if (!seenNames.has(normName)) {
+          seenNames.set(normName, rawP);
+        } else {
+          const existing = seenNames.get(normName);
+          const isExistingTempId = !existing.id || String(existing.id).length > 10;
+          const isNewRealId = rawP.id && String(rawP.id).length <= 10;
+          if (isExistingTempId && isNewRealId) {
+            seenNames.set(normName, { ...existing, ...rawP, id: rawP.id });
+          }
+        }
+      });
+      return Array.from(seenNames.values());
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('currentYear').innerText = new Date().getFullYear();
       activeSubdomain = resolveSubdomain();
@@ -851,6 +872,7 @@
           if (!Array.isArray(siteProducts) || siteProducts.length === 0) {
             siteProducts = await loadLocalSiteProducts(supplierInfo);
           }
+          siteProducts = dedupeProducts(siteProducts);
 
           renderWebsite(supplierInfo, { ...(data.stats || {}), total_products: siteProducts.length });
         } else {
@@ -944,9 +966,9 @@
         editedOverrides = JSON.parse(localStorage.getItem('flenko_edited_products') || '{}');
       } catch(e) {}
 
-      return matched
+      return dedupeProducts(matched
         .filter(p => !deletedIds.has(String(p.id)))
-        .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p);
+        .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p));
     }
 
     async function fallbackDefaultStore() {
@@ -1093,9 +1115,9 @@
         editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
       } catch(e) {}
 
-      matchedProducts = matchedProducts
+      matchedProducts = dedupeProducts(matchedProducts
         .filter(p => !deletedIds.has(String(p.id)))
-        .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p);
+        .map(p => editedOverrides[String(p.id)] ? { ...p, ...editedOverrides[String(p.id)] } : p));
 
       if (!matchedSupp) {
         matchedSupp = {
@@ -1239,8 +1261,9 @@
     }
 
     function renderCatalog(products) {
+      const cleanProducts = dedupeProducts(products);
       const grid = document.getElementById('websiteProductGrid');
-      if (!products || products.length === 0) {
+      if (!cleanProducts || cleanProducts.length === 0) {
         grid.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px;">
             <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
@@ -1252,7 +1275,7 @@
         return;
       }
 
-      grid.innerHTML = products.map(p => {
+      grid.innerHTML = cleanProducts.map(p => {
         const img = (window.formatProductImageUrl ? window.formatProductImageUrl(p.image_url) : p.image_url) || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80';
         const priceDisplay = (p.price && Number(p.price) > 0) ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Contact for Best Rate';
         const unit = p.unit || 'Pieces';

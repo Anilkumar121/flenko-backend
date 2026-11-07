@@ -372,16 +372,23 @@
 
     function renderProductGrid(prods) {
       const rawList = Array.isArray(prods) ? prods : [];
-      const seen = new Set();
-      window.currentProducts = [];
+      const seenNames = new Map();
       rawList.forEach(p => {
         if (!p || !p.name) return;
-        const normKey = String(p.id || p.name);
-        if (!seen.has(normKey)) {
-          seen.add(normKey);
-          window.currentProducts.push(p);
+        const normName = (p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!normName) return;
+        if (!seenNames.has(normName)) {
+          seenNames.set(normName, p);
+        } else {
+          const existing = seenNames.get(normName);
+          const isExistingTempId = !existing.id || String(existing.id).length > 10;
+          const isNewRealId = p.id && String(p.id).length <= 10;
+          if (isExistingTempId && isNewRealId) {
+            seenNames.set(normName, { ...existing, ...p, id: p.id });
+          }
         }
       });
+      window.currentProducts = Array.from(seenNames.values());
       const totalCountEl = document.getElementById('totalListedCount');
       if (totalCountEl) totalCountEl.innerText = window.currentProducts.length;
       const grid = document.getElementById('productGrid');
@@ -439,7 +446,13 @@
       try {
         const u = auth.getUser() || {};
         const localKey = 'flenko_seller_products_' + (u.id || 'default');
-        const cached = JSON.parse(localStorage.getItem(localKey) || '[]');
+        let cached = JSON.parse(localStorage.getItem(localKey) || '[]');
+        if (!Array.isArray(cached) || cached.length === 0) {
+          cached = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+          if (Array.isArray(cached) && u.id) {
+            cached = cached.filter(p => p && (!p.supplier_id || String(p.supplier_id) === String(u.id)));
+          }
+        }
         if (Array.isArray(cached) && cached.length > 0) {
           renderProductGrid(cached);
           renderedEarly = true;
