@@ -40,7 +40,7 @@ window.formatProductImageUrl = formatProductImageUrl;
 const PRELOADED_SUPPLIERS = [];
 
 // Automatic Fresh Storage Stamp: Clears legacy cached demo traces once
-const FLENKO_DATA_VERSION = 'flenko_v6_live';
+const FLENKO_DATA_VERSION = 'flenko_v7_clean_isolation';
 if (typeof localStorage !== 'undefined') {
   try {
     const curVer = localStorage.getItem('flenko_data_version');
@@ -50,7 +50,10 @@ if (typeof localStorage !== 'undefined') {
         'flenko_admin_leads_cache',
         'flenko_cached_leads',
         'flenko_deleted_product_ids',
-        'flenko_edited_products'
+        'flenko_edited_products',
+        'flenko_seller_products',
+        'flenko_custom_products',
+        'flenko_public_products_cache'
       ];
       legacyKeys.forEach(k => {
         try { localStorage.removeItem(k); } catch(e) {}
@@ -227,12 +230,22 @@ const auth = {
   setUser(user) {
     if (!user) return;
     try {
-      const existing = this.getUser() || {};
-      const merged = { ...existing, ...user };
-      if (!user.business && existing.business) merged.business = existing.business;
-      if (!user.company_name && existing.company_name) merged.company_name = existing.company_name;
-      if (!user.logo_url && existing.logo_url) merged.logo_url = existing.logo_url;
-      if (!user.subdomain && existing.subdomain) merged.subdomain = existing.subdomain;
+      const existing = this.getUser();
+      // If switching to a different user, do NOT inherit profile/business details from previous user!
+      if (existing && existing.id && user.id && String(existing.id) !== String(user.id)) {
+        try {
+          localStorage.removeItem('flenko_seller_profile');
+          localStorage.removeItem('flenko_seller_products');
+          localStorage.removeItem('flenko_preview_store');
+        } catch(e) {}
+        flenkoSafeStorage.setItem('flenko_user', JSON.stringify(user));
+        return;
+      }
+      const merged = { ...(existing || {}), ...user };
+      if (!user.business && existing && existing.business) merged.business = existing.business;
+      if (!user.company_name && existing && existing.company_name) merged.company_name = existing.company_name;
+      if (!user.logo_url && existing && existing.logo_url) merged.logo_url = existing.logo_url;
+      if (!user.subdomain && existing && existing.subdomain) merged.subdomain = existing.subdomain;
       flenkoSafeStorage.setItem('flenko_user', JSON.stringify(merged));
     } catch(e) {
       flenkoSafeStorage.setItem('flenko_user', JSON.stringify(user));
@@ -1189,23 +1202,18 @@ const auth = {
       editedOverrides = JSON.parse(localStorage.getItem("flenko_edited_products") || "{}");
     } catch(e) {}
 
-    // Helper: deduplicate products list by id and normalized name, apply edits and filter deleted
+    // Helper: deduplicate products list by id, apply edits and filter deleted
     const dedupe = (arr) => {
       const seenIds = new Set();
-      const seenNames = new Set();
       const res = [];
       arr.forEach(rawP => {
         if (!rawP || !rawP.name) return;
         const pIdStr = String(rawP.id);
         // Only drop if tombstoned
         if (deletedIds.has(pIdStr)) return;
-        const p = editedOverrides[pIdStr] ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
-        const normName = String(p.name).toLowerCase().trim().replace(/\s+/g, ' ');
-        if (seenIds.has(pIdStr) || seenNames.has(normName)) {
-          return;
-        }
+        if (seenIds.has(pIdStr)) return;
         seenIds.add(pIdStr);
-        seenNames.add(normName);
+        const p = editedOverrides[pIdStr] ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
         res.push(p);
       });
       return res;
@@ -1214,6 +1222,7 @@ const auth = {
     // Seller ownership matching logic (checks ID, company name, phone, or slug)
     const sProfile = JSON.parse(localStorage.getItem("flenko_seller_profile") || "{}");
     const sellerCompName = (user.company_name || user.name || sProfile.company_name || "").toLowerCase().trim();
+    const isGenericCompName = ['supplier', 'verified supplier', 'store', 'demo'].includes(sellerCompName);
     const sellerPhone = cleanPhone || (sProfile.phone || "").replace(/[^0-9]/g, "").slice(-10);
     const sellerSlug = (user.subdomain || sProfile.subdomain || (user.business && user.business.slug) || "").toLowerCase().trim();
 
@@ -1221,9 +1230,9 @@ const auth = {
       if (!p) return false;
       if (isMasterAdmin) return true;
       if (userId && String(p.supplier_id) === String(userId)) return true;
-      if (sellerCompName && p.supplier_name && p.supplier_name.toLowerCase().trim() === sellerCompName) return true;
       if (sellerPhone && p.supplier_phone && p.supplier_phone.replace(/[^0-9]/g, "").slice(-10) === sellerPhone) return true;
       if (sellerSlug && p.supplier_slug && p.supplier_slug.toLowerCase().trim() === sellerSlug) return true;
+      if (!isGenericCompName && sellerCompName && p.supplier_name && p.supplier_name.toLowerCase().trim() === sellerCompName) return true;
       return false;
     };
 
@@ -1264,10 +1273,30 @@ const auth = {
         if (data && Array.isArray(data.products)) {
           resDataProds = data.products;
           products = data.products;
+          // Clean stale tombstones for any products confirmed alive in PostgreSQL
+          resDataProds.forEach(p => {
+            if (p && p.id) deletedIds.delete(String(p.id));
+          });
         }
       }
     } catch(e) {
       console.warn("Network getProducts notice:", e);
+    }
+
+    // 2b. High-Availability Fallback: If backend is asleep or returned 0, load verified products from static products.json
+    if (!resDataProds || resDataProds.length === 0) {
+      try {
+        const catRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
+        if (catRes.ok) {
+          const allCat = await catRes.json();
+          if (Array.isArray(allCat)) {
+            const staticSellerProds = isMasterAdmin ? allCat : allCat.filter(matchesUser);
+            if (staticSellerProds.length > 0) {
+              localSellerProds.push(...staticSellerProds);
+            }
+          }
+        }
+      } catch(e) {}
     }
 
     // 3. Merge server products and local products cleanly
@@ -1353,16 +1382,23 @@ const auth = {
 
     const autoSeoTags = `buy ${name} wholesale, best ${name} supplier, ${name} manufacturers in ${country}, top quality ${category}`;
 
-    // Get seller profile details for universal storefront & public cards
+    // Get seller profile details strictly for this authenticated seller
     let sProfile = {};
     try {
-      sProfile = JSON.parse(localStorage.getItem("flenko_seller_profile") || "{}");
+      const userKey = 'flenko_seller_profile_' + (user.id || 'default');
+      sProfile = JSON.parse(localStorage.getItem(userKey) || '{}');
+      if (!sProfile.company_name) {
+        const legacyProfile = JSON.parse(localStorage.getItem("flenko_seller_profile") || "{}");
+        if (legacyProfile && (!legacyProfile.user_id || String(legacyProfile.user_id) === String(user.id))) {
+          sProfile = legacyProfile;
+        }
+      }
     } catch(e) {}
 
-    const supplierName = user.company_name || user.name || sProfile.company_name || "Verified Supplier";
+    const supplierName = (user.company_name && !/^\d+$/.test(user.company_name.trim())) ? user.company_name : (user.name || sProfile.company_name || "Verified Supplier");
     const supplierPhone = user.phone || sProfile.phone || "";
     const supplierWhatsapp = user.whatsapp || user.phone || sProfile.whatsapp || sProfile.phone || "";
-    const supplierSlug = sProfile.subdomain || (user.company_name ? user.company_name.toLowerCase().replace(/[^a-z0-9]/g, "-") : "store");
+    const supplierSlug = (user.business && user.business.slug) || sProfile.slug || sProfile.subdomain || user.subdomain || (supplierName ? supplierName.toLowerCase().replace(/[^a-z0-9]/g, "-") : "store");
     const city = user.city || sProfile.city || "Industrial Hub";
 
     // 1. Try sending to live server backend

@@ -880,7 +880,7 @@
           (supp.subdomain && loggedUser.subdomain === supp.subdomain)
         );
         if (isOwner) {
-          const keys = [`flenko_seller_products_${sId}`, 'flenko_seller_products', 'flenko_custom_products'];
+          const keys = [`flenko_seller_products_${sId}`];
           keys.forEach(k => {
             try {
               const arr = JSON.parse(localStorage.getItem(k) || '[]');
@@ -888,7 +888,7 @@
                 arr.forEach(p => {
                   if (!p || !p.name) return;
                   const pSuppId = String(p.supplier_id || '');
-                  if (pSuppId === String(sId) || !pSuppId) {
+                  if (pSuppId === String(sId)) {
                     const uid = String(p.id || p.name);
                     if (!seen.has(uid)) {
                       seen.add(uid);
@@ -907,6 +907,8 @@
         if (catRes && catRes.ok) {
           const allProds = await catRes.json();
           if (Array.isArray(allProds)) {
+            const cleanSuppName = sName.replace(/\s+/g, ' ').trim();
+            const isGenericName = ['supplier', 'verified supplier', 'store', 'demo', 'marketplace'].includes(cleanSuppName);
             allProds.forEach(p => {
               if (!p || !p.name) return;
               const pSuppId = String(p.supplier_id || '');
@@ -915,9 +917,9 @@
               const pSuppSlug = (p.supplier_slug || '').toLowerCase().trim();
 
               const match = (pSuppId && pSuppId === String(sId)) ||
-                            (sName && pSuppName && (pSuppName === sName || pSuppName.includes(sName) || sName.includes(pSuppName))) ||
+                            (sSlug && pSuppSlug && pSuppSlug === sSlug) ||
                             (sPhone && pSuppPhone && pSuppPhone === sPhone) ||
-                            (sSlug && pSuppSlug && pSuppSlug === sSlug);
+                            (!isGenericName && cleanSuppName && pSuppName && pSuppName === cleanSuppName);
               if (match) {
                 const uid = String(p.id || p.name);
                 if (!seen.has(uid)) {
@@ -1034,7 +1036,7 @@
         const u = (typeof auth !== "undefined" && typeof auth.getUser === "function") ? auth.getUser() : null;
         const suppOwnerId = (matchedSupp && (matchedSupp.user_id || matchedSupp.id));
         const isOwner = u && suppOwnerId && (String(u.id) === String(suppOwnerId));
-        const keysToCheck = isOwner ? [`flenko_seller_products_${suppOwnerId}`, "flenko_seller_products", "flenko_custom_products"] : [];
+        const keysToCheck = isOwner ? [`flenko_seller_products_${suppOwnerId}`] : [];
         const seen = new Set();
         keysToCheck.forEach(k => {
           try {
@@ -1059,11 +1061,12 @@
         if (pRes.ok) {
           const prodsList = await pRes.json();
           if (matchedSupp && Array.isArray(prodsList)) {
+            const cleanSuppName = (matchedSupp.company_name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+            const isGenericName = ['supplier', 'verified supplier', 'store', 'demo', 'verified supplier storefront'].includes(cleanSuppName);
             const filteredProds = prodsList.filter(p => 
-              String(p.supplier_id) === String(matchedSupp.id) ||
-              String(p.supplier_id) === String(matchedSupp.user_id) ||
-              (p.supplier_slug && p.supplier_slug === matchedSupp.slug) ||
-              (p.supplier_name && matchedSupp.company_name && p.supplier_name.toLowerCase().trim() === matchedSupp.company_name.toLowerCase().trim())
+              (p.supplier_id && (String(p.supplier_id) === String(matchedSupp.id) || String(p.supplier_id) === String(matchedSupp.user_id))) ||
+              (p.supplier_slug && matchedSupp.slug && p.supplier_slug.toLowerCase() === matchedSupp.slug.toLowerCase()) ||
+              (!isGenericName && cleanSuppName && p.supplier_name && p.supplier_name.toLowerCase().trim() === cleanSuppName)
             );
             if (filteredProds.length > 0) {
               const existingIds = new Set(matchedProducts.map(p => String(p.id)));
@@ -1114,18 +1117,8 @@
         };
       }
 
-      // If matchedProducts is still empty, load catalog products from products.json so page is never blank
-      if (matchedProducts.length === 0) {
-        try {
-          const pRes = await fetch("products.json?v=" + Math.floor(Date.now() / 60000));
-          if (pRes.ok) {
-            const allProds = await pRes.json();
-            if (Array.isArray(allProds) && allProds.length > 0) {
-              matchedProducts = allProds.slice(0, 8);
-            }
-          }
-        } catch(e) {}
-      }
+      // STRICT ZERO-LEAKAGE: Never inject random foreign products if a seller has 0 products
+      // renderCatalog cleanly displays the 'Catalog Being Updated' state.
 
       supplierInfo = matchedSupp;
       siteProducts = matchedProducts;

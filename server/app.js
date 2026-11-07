@@ -2333,10 +2333,20 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
     let prodRes = await db.query('SELECT * FROM products WHERE supplier_id = $1 ORDER BY id DESC', [targetUserId]);
     let products = prodRes.rows || [];
 
-    // Fallback: search products by company name or user_id
+    // Fallback: search products by company name or user_id via JOIN with users and businesses
     if (products.length === 0 && business.company_name) {
       try {
-        const byNameRes = await db.query('SELECT * FROM products WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($1)) ORDER BY id DESC', [business.company_name]);
+        const byNameRes = await db.query(`
+          SELECT p.*, 
+                 COALESCE(b.company_name, u.name, 'Verified Supplier') AS supplier_name,
+                 b.slug AS supplier_slug,
+                 COALESCE(b.phone, u.phone, '') AS supplier_phone
+          FROM products p
+          JOIN users u ON p.supplier_id = u.id
+          LEFT JOIN businesses b ON b.user_id = u.id
+          WHERE LOWER(TRIM(b.company_name)) = LOWER(TRIM($1)) OR LOWER(TRIM(u.name)) = LOWER(TRIM($1))
+          ORDER BY p.id DESC
+        `, [business.company_name]);
         if (byNameRes.rows && byNameRes.rows.length > 0) {
           products = byNameRes.rows;
         }
@@ -2351,10 +2361,13 @@ app.get('/api/public/site/:subdomain', async (req, res) => {
           const pList = JSON.parse(fs.readFileSync(pPath, 'utf8'));
           if (Array.isArray(pList)) {
             const compClean = (business.company_name || '').toLowerCase().trim();
+            const bSlug = (business.slug || '').toLowerCase().trim();
+            const isGeneric = ['supplier', 'verified supplier', 'store'].includes(compClean);
             products = pList.filter(p => 
               String(p.supplier_id) === String(targetUserId) ||
               String(p.supplier_id) === String(business.id) ||
-              (p.supplier_name && compClean && p.supplier_name.toLowerCase().trim() === compClean)
+              (bSlug && p.supplier_slug && p.supplier_slug.toLowerCase() === bSlug) ||
+              (!isGeneric && p.supplier_name && compClean && p.supplier_name.toLowerCase().trim() === compClean)
             );
           }
         }

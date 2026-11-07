@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <base href="/">
   <script>
     (function() {
-      // If accessed via rewritten subpath like /suppliers/<slug>, immediately redirect to supplier-details.html?slug=<slug>
+      // If accessed via rewritten subpath like /suppliers/<slug>, immediately redirect to /supplier-details.html?slug=<slug>
       if (window.location.pathname.includes('/suppliers/')) {
         var parts = window.location.pathname.replace(/\/+$/, '').split('/');
         var sIdx = parts.indexOf('suppliers');
@@ -11,7 +12,7 @@
           var slug = parts[sIdx + 1];
           var search = window.location.search || '';
           var sep = search ? '&' : '?';
-          window.location.replace('supplier-details.html' + search + (search.includes('slug=') ? '' : (sep + 'slug=' + encodeURIComponent(slug))));
+          window.location.replace('/supplier-details.html' + search + (search.includes('slug=') ? '' : (sep + 'slug=' + encodeURIComponent(slug))));
         }
       }
     })();
@@ -811,10 +812,11 @@
             const targetSuppId = String(effId);
             const targetSlug = (localBiz.slug || String(id)).toLowerCase();
             const targetName = (localBiz.company_name || '').toLowerCase().trim();
+            const isGeneric = ['supplier', 'verified supplier', 'store'].includes(targetName);
             allSupplierProducts = pList.filter(p => 
-              String(p.supplier_id) === targetSuppId || 
-              (p.supplier_slug && p.supplier_slug.toLowerCase() === targetSlug) ||
-              (p.supplier_name && targetName && p.supplier_name.toLowerCase().trim() === targetName)
+              (p.supplier_id && String(p.supplier_id) === targetSuppId) || 
+              (p.supplier_slug && targetSlug && p.supplier_slug.toLowerCase() === targetSlug) ||
+              (!isGeneric && p.supplier_name && targetName && p.supplier_name.toLowerCase().trim() === targetName)
             );
           }
         } catch(e) {}
