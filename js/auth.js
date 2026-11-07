@@ -48,12 +48,7 @@ if (typeof localStorage !== 'undefined') {
       const legacyKeys = [
         'flenko_broadcast_leads',
         'flenko_admin_leads_cache',
-        'flenko_cached_leads',
-        'flenko_deleted_product_ids',
-        'flenko_edited_products',
-        'flenko_seller_products',
-        'flenko_custom_products',
-        'flenko_public_products_cache'
+        'flenko_cached_leads'
       ];
       legacyKeys.forEach(k => {
         try { localStorage.removeItem(k); } catch(e) {}
@@ -1252,9 +1247,8 @@ const auth = {
         const pIdStr = rawP.id ? String(rawP.id) : null;
         const normName = (rawP.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         if (!normName) return;
-        // Only drop if tombstoned
+        // Only drop if exact ID is tombstoned (never drop by name!)
         if (pIdStr && deletedIds.has(pIdStr)) return;
-        if (deletedIds.has(normName)) return;
 
         if (!seenNames.has(normName)) {
           const p = (pIdStr && editedOverrides[pIdStr]) ? { ...rawP, ...editedOverrides[pIdStr] } : rawP;
@@ -1320,7 +1314,11 @@ const auth = {
     // 2. Fetch from live backend API
     let resDataProds = null;
     try {
-      const endpoint = isMasterAdmin ? "/products?all=true" : "/products";
+      const qParams = new URLSearchParams();
+      if (isMasterAdmin) qParams.set("all", "true");
+      if (userId) qParams.set("supplier_id", String(userId));
+      if (cleanPhone) qParams.set("phone", cleanPhone);
+      const endpoint = "/products?" + qParams.toString();
       const res = await this.fetchWithFallback(endpoint, {
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
@@ -1381,9 +1379,18 @@ const auth = {
       }
     } else {
       try {
-        const prevCached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+        let prevCached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+        if (!Array.isArray(prevCached) || prevCached.length === 0) {
+          const gCached = JSON.parse(localStorage.getItem("flenko_seller_products") || "[]");
+          if (Array.isArray(gCached)) prevCached = isMasterAdmin ? gCached : gCached.filter(matchesUser);
+        }
+        if (!Array.isArray(prevCached) || prevCached.length === 0) {
+          const cProds = JSON.parse(localStorage.getItem("flenko_custom_products") || "[]");
+          if (Array.isArray(cProds)) prevCached = isMasterAdmin ? cProds : cProds.filter(matchesUser);
+        }
         if (Array.isArray(prevCached) && prevCached.length > 0) {
           products = dedupe(prevCached);
+          try { flenkoSafeStorage.setItem(cacheKey, JSON.stringify(products)); } catch(e) {}
         }
       } catch(e) {}
     }

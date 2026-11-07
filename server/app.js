@@ -2165,12 +2165,14 @@ app.get('/api/public/suppliers/:id', async (req, res) => {
 
     // Fetch genuine supplier's products from database (NO fake mock products!)
     const cleanUPhone = (user && user.phone || business && business.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
+    const suppSlugLookup = (business && (business.slug || business.subdomain)) ? (business.slug || business.subdomain).toLowerCase() : (rawId ? rawId.toLowerCase() : '__none__');
     let prodRes = await db.query(`
       SELECT * FROM products 
       WHERE supplier_id = $1 
-         OR supplier_id IN (SELECT id FROM users WHERE phone LIKE $2)
+         OR (supplier_id IN (SELECT id FROM users WHERE phone LIKE $2))
+         OR (supplier_id IN (SELECT user_id FROM businesses WHERE LOWER(slug) = $3 OR LOWER(subdomain) = $3))
       ORDER BY id DESC
-    `, [targetUserId || business.user_id, cleanUPhone ? ('%' + cleanUPhone) : '%__none__']);
+    `, [targetUserId || (business && business.user_id) || 1, cleanUPhone ? ('%' + cleanUPhone) : '%__none__', suppSlugLookup]);
     let products = prodRes.rows || [];
     if (products.length === 0) {
       try {
@@ -3334,8 +3336,8 @@ app.get('/api/products', authMiddleware, async (req, res) => {
         ORDER BY p.created_at DESC
       `);
     } else {
-      let targetId = req.user ? req.user.id : null;
-      let cleanP = req.user && req.user.phone ? req.user.phone.replace(/[^0-9]/g, '').slice(-10) : '';
+      let targetId = req.query.supplier_id || req.query.user_id || (req.user ? req.user.id : null);
+      let cleanP = req.query.phone || (req.user && req.user.phone ? req.user.phone.replace(/[^0-9]/g, '').slice(-10) : '');
 
       // Collect all associated IDs for this seller's phone
       let supplierIdList = targetId ? [targetId] : [];
@@ -3349,7 +3351,11 @@ app.get('/api/products', authMiddleware, async (req, res) => {
           }
         } catch(e) {}
       }
-      if (supplierIdList.length === 0) supplierIdList = [1];
+      // Ensure all IDs are valid numeric strings for PostgreSQL bigint array casting
+      supplierIdList = supplierIdList
+        .map(id => String(id).trim())
+        .filter(id => /^\d+$/.test(id));
+      if (supplierIdList.length === 0) supplierIdList = ['1'];
 
       prods = await db.query(`
         SELECT p.*, 
@@ -3363,7 +3369,7 @@ app.get('/api/products', authMiddleware, async (req, res) => {
         FROM products p
         LEFT JOIN businesses b ON p.supplier_id = b.user_id
         LEFT JOIN users u ON p.supplier_id = u.id
-        WHERE p.supplier_id = ANY($1::int[]) OR (u.phone LIKE $2) OR (b.phone LIKE $2) OR (b.whatsapp LIKE $2)
+        WHERE p.supplier_id = ANY($1::bigint[]) OR (u.phone LIKE $2) OR (b.phone LIKE $2) OR (b.whatsapp LIKE $2)
         ORDER BY p.created_at DESC
       `, [supplierIdList, cleanP ? ('%' + cleanP) : '%__none__']);
     }
@@ -3518,7 +3524,7 @@ app.post('/api/products', authMiddleware, upload.single('image'), async (req, re
     // Deduplication check: prevent duplicate product/service listings
     try {
       const dupCheck = await db.query(
-        'SELECT id, name, created_at FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2)) ORDER BY id DESC LIMIT 1',
+        'SELECT * FROM products WHERE supplier_id = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2)) ORDER BY id DESC LIMIT 1',
         [effectiveSupplierId, cleanName]
       );
       if (dupCheck.rows && dupCheck.rows.length > 0) {

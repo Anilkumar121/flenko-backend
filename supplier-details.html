@@ -673,10 +673,10 @@
       } catch(e) {}
 
       // Fallback: ONLY if NO id/slug is in URL AND logged-in user is a seller viewing their own storefront
-      if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+      if (typeof auth !== 'undefined' && auth.isLoggedIn && auth.isLoggedIn()) {
         const u = auth.getUser();
-        if (u && (u.role === 'supplier' || u.business)) {
-          const sProf = JSON.parse(localStorage.getItem('flenko_seller_profile') || '{}');
+        if (u && (u.role === 'supplier' || u.business || u.id)) {
+          const sProf = JSON.parse(localStorage.getItem('flenko_seller_profile_' + u.id) || localStorage.getItem('flenko_seller_profile') || '{}');
           return sProf.slug || (u.business && u.business.slug) || sProf.subdomain || u.subdomain || u.id || '';
         }
       }
@@ -818,19 +818,24 @@
           if (u) {
             const userKey = 'flenko_seller_profile_' + (u.id || 'default');
             const cand = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem('flenko_seller_profile') || '{}');
-            const matches = String(u.id) === String(id) || 
+            const matches = !id || id == 1 || id == '1' ||
+                            String(u.id) === String(id) || 
                             String(u.phone) === String(id) || 
                             cand.slug === String(id) || 
                             cand.subdomain === String(id) || 
                             (u.business && u.business.slug === String(id)) ||
                             (cand.company_name && cand.company_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === String(id).toLowerCase());
-            if (matches) {
-              localBiz = cand;
-              if (cand.company_name) {
-                localBiz.company_name = cand.company_name;
-              } else if (u.name) {
-                localBiz.company_name = u.name;
-              }
+            if (matches && (cand.company_name || u.name)) {
+              localBiz = {
+                ...cand,
+                user_id: u.id,
+                id: u.id,
+                company_name: cand.company_name || u.name,
+                city: cand.city || u.city || 'Industrial Hub',
+                phone: cand.phone || u.phone || '',
+                whatsapp: cand.whatsapp || cand.phone || u.phone || '',
+                slug: cand.slug || (cand.company_name ? cand.company_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : '')
+              };
             }
           }
         } catch(e) {}
@@ -872,12 +877,19 @@
 
       // Load products for this supplier
       allSupplierProducts = [];
-      // STRICT ISOLATION: ONLY check local products cache IF the logged-in user is the owner!
       try {
         const u = (typeof auth !== 'undefined' && auth.getUser) ? auth.getUser() : null;
-        const isOwner = u && (String(u.id) === String(effId) || String(u.id) === String(localBiz.user_id));
+        const isOwner = u && (String(u.id) === String(effId) || String(u.id) === String(localBiz.user_id) || !id || id == 1 || id == '1');
         if (isOwner) {
-          const cachedP = JSON.parse(localStorage.getItem('flenko_seller_products_' + (u.id || 'default')) || '[]');
+          let cachedP = JSON.parse(localStorage.getItem('flenko_seller_products_' + (u.id || 'default')) || '[]');
+          if (!Array.isArray(cachedP) || cachedP.length === 0) {
+            cachedP = JSON.parse(localStorage.getItem('flenko_seller_products') || '[]');
+          }
+          if (Array.isArray(cachedP) && cachedP.length > 0) {
+            allSupplierProducts = cachedP;
+          }
+        } else {
+          let cachedP = JSON.parse(localStorage.getItem('flenko_seller_products_' + effId) || '[]');
           if (Array.isArray(cachedP) && cachedP.length > 0) {
             allSupplierProducts = cachedP;
           }

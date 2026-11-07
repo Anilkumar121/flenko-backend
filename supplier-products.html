@@ -481,11 +481,16 @@
       // 2. Fetch fresh live data from server
       try {
         const data = await auth.getProducts();
-        const prods = (data && Array.isArray(data.products)) ? data.products : (window.currentProducts || []);
+        let prods = (data && Array.isArray(data.products)) ? data.products : [];
+        if (prods.length === 0 && window.currentProducts && window.currentProducts.length > 0) {
+          prods = window.currentProducts;
+        }
         renderProductGrid(prods);
       } catch(err) {
         console.warn('Network product fetch notice:', err);
-        if (!window.currentProducts || window.currentProducts.length === 0) {
+        if (window.currentProducts && window.currentProducts.length > 0) {
+          renderProductGrid(window.currentProducts);
+        } else {
           renderProductGrid([]);
         }
       }

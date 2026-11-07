@@ -910,7 +910,7 @@
                 arr.forEach(p => {
                   if (!p || !p.name) return;
                   const pSuppId = String(p.supplier_id || '');
-                  if (pSuppId === String(sId)) {
+                  if (!pSuppId || pSuppId === String(sId) || pSuppId === String(supp.user_id)) {
                     const uid = String(p.id || p.name);
                     if (!seen.has(uid)) {
                       seen.add(uid);

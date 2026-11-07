@@ -596,7 +596,23 @@
 
         if (res && res.success) {
           auth.setToken(res.token);
-          if (res.user) auth.setUser(res.user);
+          if (res.user) {
+            auth.setUser(res.user);
+            if (isSupplier) {
+              try {
+                const sProf = {
+                  user_id: res.user.id,
+                  company_name: name || res.user.name,
+                  phone: fullPhone || rawPhone,
+                  city: res.user.city || 'Industrial Hub',
+                  category: 'General B2B',
+                  business_type: 'Contractor & Service Provider'
+                };
+                localStorage.setItem('flenko_seller_profile', JSON.stringify(sProf));
+                localStorage.setItem('flenko_seller_profile_' + res.user.id, JSON.stringify(sProf));
+              } catch(e) {}
+            }
+          }
           try { localStorage.setItem('flenko_remember_id', fullPhone || email); } catch(e) {}
           
           statusMsg.innerText = (res.alreadyExisted ? 'Account already exists. Signed in successfully!' : 'Account created successfully!') + ' Redirecting...';

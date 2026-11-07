@@ -343,6 +343,9 @@
               is_verified: true
             };
             if (window.flenkoSafeStorage) window.flenkoSafeStorage.setItem('flenko_seller_profile', JSON.stringify(fullBiz)); else localStorage.setItem('flenko_seller_profile', JSON.stringify(fullBiz));
+            if (res.user && res.user.id) {
+              try { localStorage.setItem('flenko_seller_profile_' + res.user.id, JSON.stringify(fullBiz)); } catch(e) {}
+            }
             
             const userObj = res.user || {};
             userObj.business = fullBiz;
